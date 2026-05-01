@@ -153,8 +153,8 @@ export default function ActivityPage() {
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Activity</h1>
-        <p className="text-gray-600 mt-1">Track all changes and updates across your workspace</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Activity</h1>
+        <p className="text-muted-foreground mt-1">Track all changes and updates across your workspace</p>
       </div>
 
       {/* Stats */}
@@ -166,8 +166,8 @@ export default function ActivityPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
                   </div>
                   <div
                     className={`w-10 h-10 ${stat.bgColor} rounded-lg flex items-center justify-center`}
@@ -186,7 +186,7 @@ export default function ActivityPage() {
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search activities..."
@@ -232,8 +232,8 @@ export default function ActivityPage() {
         </CardHeader>
         <CardContent>
           {filteredActivities.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <div className="text-center py-12 text-muted-foreground">
+              <FileText className="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
               <p className="font-medium">No activities found</p>
               <p className="text-sm">Try adjusting your search or filters</p>
             </div>
@@ -242,12 +242,12 @@ export default function ActivityPage() {
               {Object.entries(groupedActivities).map(([date, dateActivities]) => (
                 <div key={date}>
                   {/* Date Header */}
-                  <div className="sticky top-0 bg-white py-2 mb-4">
+                  <div className="sticky top-0 bg-background py-2 mb-4">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-gray-900">
+                      <span className="text-sm font-semibold text-foreground">
                         {getRelativeDate(date)}
                       </span>
-                      <div className="flex-1 h-px bg-gray-200" />
+                      <div className="flex-1 h-px bg-border" />
                     </div>
                   </div>
 
@@ -319,7 +319,7 @@ export default function ActivityPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t mt-6 pt-4">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Showing {startIndex + 1} to{' '}
                 {Math.min(startIndex + itemsPerPage, filteredActivities.length)} of{' '}
                 {filteredActivities.length} activities
