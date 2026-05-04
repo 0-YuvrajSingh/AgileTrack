@@ -290,11 +290,11 @@ export default function Users() {
             <h3 className="font-semibold text-foreground mb-4">Role Permissions</h3>
             <div className="space-y-3">
               {(['ADMIN', 'MANAGER', 'DEVELOPER', 'VIEWER'] as Role[]).map((role) => (
-                <div key={role} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                <div key={role} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
                   <Badge variant="outline" className={`${getRoleBadgeColor(role)} mt-0.5`}>
                     {role}
                   </Badge>
-                  <p className="text-sm text-gray-600 flex-1">{getRoleDescription(role)}</p>
+                  <p className="text-sm text-muted-foreground flex-1">{getRoleDescription(role)}</p>
                 </div>
               ))}
             </div>
@@ -303,26 +303,26 @@ export default function Users() {
 
         <Card>
           <CardContent className="p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Team Statistics</h3>
+            <h3 className="font-semibold text-foreground mb-4">Team Statistics</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm text-gray-600">Total Users</span>
+                <span className="text-sm text-muted-foreground">Total Users</span>
                 <span className="text-sm font-medium">{users.length}</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm text-gray-600">Active Members</span>
+                <span className="text-sm text-muted-foreground">Active Members</span>
                 <span className="text-sm font-medium">
                   {users.filter((u) => u.role !== 'VIEWER').length}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm text-gray-600">Administrators</span>
+                <span className="text-sm text-muted-foreground">Administrators</span>
                 <span className="text-sm font-medium">
                   {users.filter((u) => u.role === 'ADMIN').length}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-gray-600">New This Month</span>
+                <span className="text-sm text-muted-foreground">New This Month</span>
                 <span className="text-sm font-medium">
                   {
                     users.filter((u) => {
