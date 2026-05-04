@@ -47,7 +47,7 @@ export default function Users() {
       <div className="p-4 sm:p-6 lg:p-8">
         <Card>
           <CardContent className="text-center py-12">
-            <p className="text-gray-500">
+            <p className="text-muted-foreground">
               You don't have permission to view this page
             </p>
           </CardContent>
@@ -96,8 +96,8 @@ export default function Users() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Users</h1>
-          <p className="text-gray-600 mt-1">Manage team members and their roles</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Users</h1>
+          <p className="text-muted-foreground mt-1">Manage team members and their roles</p>
         </div>
         {hasRole(['ADMIN']) && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -141,7 +141,7 @@ export default function Users() {
                       <SelectItem value="VIEWER">Viewer</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-gray-500 mt-1.5">
+                  <p className="text-xs text-muted-foreground mt-1.5">
                     {getRoleDescription('DEVELOPER')}
                   </p>
                 </div>
@@ -166,8 +166,8 @@ export default function Users() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">{role}s</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{count}</p>
+                    <p className="text-sm text-muted-foreground">{role}s</p>
+                    <p className="text-2xl font-bold text-foreground mt-1">{count}</p>
                   </div>
                   <Badge variant="outline" className={getRoleBadgeColor(role)}>
                     {role}
@@ -184,7 +184,7 @@ export default function Users() {
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search by name or email..."
@@ -227,8 +227,8 @@ export default function Users() {
               {filteredUsers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-12">
-                    <div className="text-gray-500">
-                      <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <div className="text-muted-foreground">
+                      <Search className="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
                       <p className="font-medium">No users found</p>
                       <p className="text-sm">Try adjusting your search or filters</p>
                     </div>
@@ -236,7 +236,7 @@ export default function Users() {
                 </TableRow>
               ) : (
                 filteredUsers.map((user) => (
-                  <TableRow key={user.id} className="hover:bg-gray-50">
+                  <TableRow key={user.id} className="hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
@@ -244,13 +244,13 @@ export default function Users() {
                           <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-gray-900">{user.name}</p>
-                          <p className="text-sm text-gray-500 md:hidden">{user.email}</p>
+                          <p className="font-medium text-foreground">{user.name}</p>
+                          <p className="text-sm text-muted-foreground md:hidden">{user.email}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Mail className="w-4 h-4" />
                         {user.email}
                       </div>
@@ -261,7 +261,7 @@ export default function Users() {
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="w-4 h-4" />
                         {new Date(user.createdAt).toLocaleDateString()}
                       </div>
@@ -287,7 +287,7 @@ export default function Users() {
       <div className="mt-8 grid md:grid-cols-2 gap-6">
         <Card>
           <CardContent className="p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Role Permissions</h3>
+            <h3 className="font-semibold text-foreground mb-4">Role Permissions</h3>
             <div className="space-y-3">
               {(['ADMIN', 'MANAGER', 'DEVELOPER', 'VIEWER'] as Role[]).map((role) => (
                 <div key={role} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">

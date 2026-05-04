@@ -24,6 +24,7 @@ export default function Dashboard() {
 
   const activeProjects = projects.filter((p) => p.status === 'ACTIVE').length;
   const currentSprints = sprints.filter((s) => s.status === 'ACTIVE');
+  const activeSprintProjectCount = new Set(currentSprints.map((s) => s.projectId)).size;
   const pendingStories = stories.filter((s) => s.status !== 'DONE').length;
   const completedStories = stories.filter((s) => s.status === 'DONE').length;
   const totalStories = pendingStories + completedStories;
@@ -62,7 +63,9 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currentSprints.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Across 3 projects</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Across {activeSprintProjectCount} {activeSprintProjectCount === 1 ? 'project' : 'projects'}
+            </p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-md transition-shadow">
