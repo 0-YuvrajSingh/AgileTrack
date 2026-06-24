@@ -13,6 +13,7 @@ export const TaskBoardPage = () => {
     const { workspaceId, projectId } = useParams();
     const navigate = useNavigate();
     const [tasks, setTasks] = useState([]);
+    const [members, setMembers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [error, setError] = useState('');
@@ -21,20 +22,24 @@ export const TaskBoardPage = () => {
     const taskUrl = `/workspaces/${workspaceId}/projects/${projectId}/tasks`;
 
     useEffect(() => {
-        const fetchTasks = async () => {
+        const fetchBoardData = async () => {
             setIsLoading(true);
             setError('');
             try {
-                const response = await api.get(taskUrl);
-                setTasks(response.data || []);
+                const [tasksRes, membersRes] = await Promise.all([
+                    api.get(taskUrl),
+                    api.get(`/workspaces/${workspaceId}/members`)
+                ]);
+                setTasks(tasksRes.data || []);
+                setMembers(membersRes.data || []);
             } catch (err) {
-                setError(err.response?.data?.message || 'Unable to load tasks.');
+                setError(err.response?.data?.message || 'Unable to load board data.');
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchTasks();
-    }, [taskUrl]);
+        fetchBoardData();
+    }, [taskUrl, workspaceId]);
 
     const groupedTasks = useMemo(() => {
         return columns.reduce((groups, status) => {
@@ -118,7 +123,7 @@ export const TaskBoardPage = () => {
             </div>
 
             {error && <div className={styles.errorMessage}>{error}</div>}
-            {isLoading && <div className={styles.stateMessage}>Loading tasks...</div>}
+            {isLoading && <div className={styles.stateMessage}>Loading board data...</div>}
 
             {!isLoading && (
                 <div className={styles.boardGrid}>
@@ -139,6 +144,7 @@ export const TaskBoardPage = () => {
                                     <TaskCard 
                                         key={task.id} 
                                         task={task} 
+                                        members={members}
                                         onStatusChange={updateStatus} 
                                         onDelete={deleteTask} 
                                         onAssign={assignTask} 
@@ -150,8 +156,9 @@ export const TaskBoardPage = () => {
                 </div>
             )}
 
-            {isCreateOpen && <CreateTaskModal workspaceId={workspaceId} projectId={projectId} onClose={() => setIsCreateOpen(false)} onCreated={addTask} />}
+            {isCreateOpen && <CreateTaskModal workspaceId={workspaceId} projectId={projectId} members={members} onClose={() => setIsCreateOpen(false)} onCreated={addTask} />}
         </main>
     );
 };
+
 

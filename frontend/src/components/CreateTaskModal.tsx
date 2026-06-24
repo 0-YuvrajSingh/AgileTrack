@@ -4,11 +4,12 @@ import { X } from 'lucide-react';
 import { api } from '../api/axios';
 import styles from './Modal.module.css';
 
-export const CreateTaskModal = ({ workspaceId, projectId, onClose, onCreated }) => {
+export const CreateTaskModal = ({ workspaceId, projectId, members, onClose, onCreated }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState('MEDIUM');
     const [deadline, setDeadline] = useState('');
+    const [assigneeId, setAssigneeId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -22,7 +23,8 @@ export const CreateTaskModal = ({ workspaceId, projectId, onClose, onCreated }) 
                 title,
                 description,
                 priority,
-                deadline: deadline ? new Date(deadline).toISOString() : undefined
+                deadline: deadline ? new Date(deadline).toISOString() : undefined,
+                assigneeId: assigneeId || undefined
             };
             const response = await api.post(`/workspaces/${workspaceId}/projects/${projectId}/tasks`, payload);
             onCreated(response.data);
@@ -72,6 +74,18 @@ export const CreateTaskModal = ({ workspaceId, projectId, onClose, onCreated }) 
                                 <label htmlFor="deadline" className={styles.label}>Deadline (Optional)</label>
                                 <input id="deadline" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} className={styles.input} />
                             </div>
+                        </div>
+
+                        <div className={styles.inputGroup}>
+                            <label htmlFor="assignee" className={styles.label}>Assign To (Optional)</label>
+                            <select id="assignee" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} className={styles.select}>
+                                <option value="">Unassigned</option>
+                                {members?.map((member) => (
+                                    <option key={member.user.id} value={member.user.id}>
+                                        {member.user.email}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
