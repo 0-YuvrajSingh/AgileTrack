@@ -2,6 +2,7 @@ package com.agiletrack.backend.workspace.service;
 
 import com.agiletrack.backend.common.exception.UserNotFoundException;
 import com.agiletrack.backend.common.exception.WorkspaceNotFoundException;
+import com.agiletrack.backend.security.CustomUserDetails;
 import com.agiletrack.backend.user.entity.User;
 import com.agiletrack.backend.user.repository.UserRepository;
 import com.agiletrack.backend.workspace.dto.CreateWorkspaceRequest;
@@ -129,7 +130,13 @@ public class WorkspaceService {
 
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof CustomUserDetails userDetails) {
+            return userDetails.getUser();
+        }
+
+        return (User) principal;
     }
 
     public WorkspaceRole getMemberRole(UUID workspaceId, UUID userId) {

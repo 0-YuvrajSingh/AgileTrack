@@ -3,6 +3,7 @@ package com.agiletrack.backend.task.service;
 import com.agiletrack.backend.common.exception.TaskNotFoundException;
 import com.agiletrack.backend.common.exception.UserNotFoundException;
 import com.agiletrack.backend.project.entity.Project;
+import com.agiletrack.backend.security.CustomUserDetails;
 import com.agiletrack.backend.project.service.ProjectService;
 import com.agiletrack.backend.task.dto.CreateTaskRequest;
 import com.agiletrack.backend.task.dto.TaskResponse;
@@ -121,12 +122,22 @@ public class TaskService {
     }
 
     private void requireMutationAccess(UUID workspaceId) {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User currentUser = getCurrentUser();
         WorkspaceRole role = workspaceService.getMemberRole(workspaceId, currentUser.getId());
 
         if (role == WorkspaceRole.VIEWER) {
             throw new AccessDeniedException("VIEWER role cannot modify tasks");
         }
+    }
+
+    private User getCurrentUser() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if (principal instanceof CustomUserDetails userDetails) {
+            return userDetails.getUser();
+        }
+
+        return (User) principal;
     }
 
     private User getValidatedAssignee(UUID workspaceId, UUID assigneeId) {

@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-public class EndToEndIntegrationTest {
+class EndToEndIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -36,19 +36,75 @@ public class EndToEndIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Test
-    void ExecuteFullTaskLifeCycleAndEnforceRbac() throws Exception {
+    void executeFullTaskLifecycleAndEnforceRbac() throws Exception {
 
         // 1. Register and Login User A (OWNER)
         String userAToken = registerAndLogin("owner@agiletrack.com", "password123");
 
         // 2. Create Workspace
         CreateWorkspaceRequest wsReq = new CreateWorkspaceRequest("Alpha Corp", "Engineering");
-        String wsResponse = mockMvc.perform(post("/api/v1workspaces"))
-                .header("Authorization", "Bearer " + userAToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(wsReq))
+        String wsResponse = mockMvc.perform(post("/api/v1/workspaces")
+                        .header("Authorization", "Bearer " + userAToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(wsReq)))
                 .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
 
+        String workspaceId = extractJsonField(wsResponse, "id");
+        String ownerId = extractJsonField(wsResponse, "ownerId");
 
+        // 3. Create Project
+        CreateProjectRequest projReq = new CreateProjectRequest("Backend API", "Sprint 1");
+        String projResponse = mockMvc.perform(post("/api/v1/workspaces/" + workspaceId + "/projects")
+                        .header("Authorization", "Bearer " + userAToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(projReq)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String projectId = extractJsonField(projResponse, "id");
+
+        // 4. Create Task
+        CreateTaskRequest taskReq = new CreateTaskRequest(
+                "Setup Testing",
+                "Implement full integration suite",
+                TaskPriority.HIGH,
+                LocalDateTime.now().plusDays(2),
+                UUID.fromString(ownerId)
+        );
+
+        mockMvc.perform(post("/api/v1/workspaces/" + workspaceId + "/projects/" + projectId + "/tasks")
+                        .header("Authorization", "Bearer " + userAToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Setup Testing"))
+                .andExpect(jsonPath("$.status").value("TODO"));
+
+        // 5. Cross-Boundary RBAC Verification (Register User B -> Access User A's Data)
+        String userBToken = registerAndLogin("attacker@agiletrack.com", "password123");
+
+        mockMvc.perform(get("/api/v1/workspaces/" + workspaceId + "/projects")
+                        .header("Authorization", "Bearer " + userBToken))
+                .andExpect(status().isForbidden());
+    }
+
+    private String registerAndLogin(String email, String password) throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RegisterRequest(email, password))))
+                .andExpect(status().isOk());
+
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest(email, password))))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return extractJsonField(result.getResponse().getContentAsString(), "token");
+    }
+
+    private String extractJsonField(String json, String field) throws Exception {
+        return objectMapper.readTree(json).get(field).asText();
     }
 }

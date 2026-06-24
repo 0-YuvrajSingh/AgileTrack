@@ -16,9 +16,10 @@ public class TaskMapper {
                 task.getPriority(),
                 task.getDeadline(),
                 task.getProject().getId(),
-                task.getAssignee().getId(),
+                task.getAssignee() != null ? task.getAssignee().getId() : null,
                 task.getCreatedAt(),
                 task.getUpdatedAt()
         );
     }
 }
+

@@ -41,8 +41,14 @@ public class AuthService {
                 .build();
         userRepository.save(user);
         String jwtToken = jwtService.generateToken(new CustomUserDetails(user));
+
         return AuthResponse.builder()
                 .token(jwtToken)
+                .user(AuthResponse.UserDto.builder()
+                        .id(user.getId())
+                        .email(user.getEmail())
+                        .role(user.getRole().name())
+                        .build())
                 .build();
     }
 
@@ -57,8 +63,14 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         String jwtToken = jwtService.generateToken(new CustomUserDetails(user));
+
         return AuthResponse.builder()
                 .token(jwtToken)
+                .user(AuthResponse.UserDto.builder()
+                        .id(user.getId())
+                        .email(user.getEmail())
+                        .role(user.getRole().name())
+                        .build())
                 .build();
     }
 }
