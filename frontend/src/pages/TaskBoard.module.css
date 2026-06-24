@@ -1,0 +1,180 @@
+.boardContainer {
+  padding: 2.5rem 3rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.backBtn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--text-tertiary);
+}
+
+.headerTitle {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.headerSubtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.createBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--accent-primary);
+  color: white;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: none;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s ease;
+}
+
+.createBtn:hover {
+  background-color: var(--accent-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+.errorMessage {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--danger);
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stateMessage {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.boardGrid {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  flex: 1;
+  align-items: flex-start;
+}
+
+.column {
+  min-width: 320px;
+  max-width: 320px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.column.dragOver {
+  background-color: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+}
+
+.columnHeader {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.columnTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.columnCount {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.columnContent {
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 100px;
+}
+
+/* Scrollbar styling for board */
+.boardGrid::-webkit-scrollbar,
+.columnContent::-webkit-scrollbar {
+  height: 8px;
+  width: 6px;
+}
+
+.boardGrid::-webkit-scrollbar-track,
+.columnContent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.boardGrid::-webkit-scrollbar-thumb,
+.columnContent::-webkit-scrollbar-thumb {
+  background-color: var(--border-light);
+  border-radius: var(--radius-full);
+}
+
+.boardGrid::-webkit-scrollbar-thumb:hover,
+.columnContent::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-tertiary);
+}
