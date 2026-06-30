@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/axios';
-import { Workspace } from '../../types/workspace';
+import type { Workspace } from '../../types/workspace';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 
