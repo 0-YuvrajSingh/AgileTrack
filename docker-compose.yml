@@ -2,51 +2,45 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:16-alpine
-    container_name: agiletrack_db
-    restart: always
+    image: postgres:15-alpine
+    container_name: agiletrack-db
     environment:
-      POSTGRES_DB: agiletrack_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: agiletrack_user
+      POSTGRES_PASSWORD: agiletrack_password
+      POSTGRES_DB: agiletrack
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d agiletrack_db"]
+      test: ["CMD-SHELL", "pg_isready -U agiletrack_user -d agiletrack"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   backend:
-    build:
+    build: 
       context: ./backend
-      dockerfile: Dockerfile
-    container_name: agiletrack_backend
-    restart: always
+    container_name: agiletrack-backend
+    environment:
+      - DATABASE_URL=jdbc:postgresql://db:5432/agiletrack
+      - DATABASE_USERNAME=agiletrack_user
+      - DATABASE_PASSWORD=agiletrack_password
+      - JWT_SECRET=5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437
+    ports:
+      - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "8080:8080"
-    environment:
-      - DATABASE_URL=jdbc:postgresql://db:5432/agiletrack_db
-      - DATABASE_USERNAME=postgres
-      - DATABASE_PASSWORD=postgres
-      - JWT_SECRET=VGhpc0lzQVN1cGVyU2VjcmV0S2V5Rm9ySldUU2lnbmluZ1RoYXRNdXN0QmVBdExlYXN0MzJCeXRlc0xvbmc=
-      - JWT_EXPIRATION=86400000
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: agiletrack_frontend
-    restart: always
+    container_name: agiletrack-frontend
+    ports:
+      - "3000:80"
     depends_on:
       - backend
-    ports:
-      - "80:80"
 
 volumes:
-  pgdata:
+  postgres_data:
