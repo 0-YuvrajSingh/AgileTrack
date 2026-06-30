@@ -16,6 +16,7 @@ public record TaskResponse (
         UUID projectId,
         UUID assigneeId,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        Double position
 ) {
 }

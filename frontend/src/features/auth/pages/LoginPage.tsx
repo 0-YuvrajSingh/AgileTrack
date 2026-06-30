@@ -1,17 +1,18 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
-import { api } from '../../api/axios';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import { useAuth } from '../hooks/useAuth';
+import { authService } from '../services/authService';
+import { Button } from '../../../components/ui/Button';
+import { Input } from '../../../components/ui/Input';
+import { parseApiError } from '../../../lib/utils';
 
-export const Login = () => {
+export const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
-    const auth = useContext(AuthContext);
+    const { login } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -19,11 +20,11 @@ export const Login = () => {
         setIsLoading(true);
         setError('');
         try {
-            const res = await api.post('/auth/login', { email, password });
-            auth?.login(res.data);
+            const res = await authService.login({ email, password });
+            login(res);
             navigate('/dashboard');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Login failed');
+            setError(parseApiError(err, 'Login failed'));
         } finally {
             setIsLoading(false);
         }

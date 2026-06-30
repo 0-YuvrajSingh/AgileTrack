@@ -77,4 +77,12 @@ public class WorkspaceController {
         workspaceService.inviteMember(id, request);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/{id}/members")
+    @Operation(summary = "List workspace members", description = "Retrieves all members of a workspace. Requires membership.")
+    public ResponseEntity<List<com.agiletrack.backend.workspace.dto.WorkspaceMemberResponse>> getMembers(
+            @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok(workspaceService.getMembers(id));
+    }
 }

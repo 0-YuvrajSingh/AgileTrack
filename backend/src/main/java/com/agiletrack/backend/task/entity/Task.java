@@ -55,4 +55,7 @@ public class Task extends BaseEntity {
     @EqualsAndHashCode.Include
     @ToString.Include
     private LocalDateTime deadline;
+
+    @Column(nullable = false)
+    private Double position = 0.0;
 }

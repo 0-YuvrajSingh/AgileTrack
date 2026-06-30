@@ -128,6 +128,19 @@ public class WorkspaceService {
         return workspace;
     }
 
+    @Transactional(readOnly = true)
+    public List<com.agiletrack.backend.workspace.dto.WorkspaceMemberResponse> getMembers(UUID workspaceId) {
+        getWorkspaceIfMember(workspaceId);
+        return workspaceMemberRepository.findByWorkspaceId(workspaceId)
+                .stream()
+                .map(member -> new com.agiletrack.backend.workspace.dto.WorkspaceMemberResponse(
+                        member.getUser().getId(),
+                        member.getUser().getEmail(),
+                        member.getRole()
+                ))
+                .toList();
+    }
+
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Object principal = authentication.getPrincipal();

@@ -91,6 +91,9 @@ public class TaskService {
         requireMutationAccess(workspaceId);
         Task task = getTask(workspaceId, projectId, taskId);
         task.setStatus(request.status());
+        if (request.position() != null) {
+            task.setPosition(request.position());
+        }
         return taskMapper.toResponse(task);
     }
 
