@@ -57,23 +57,23 @@ export const WorkspaceDetailPage = () => {
         createMutation.mutate({ name: newProjectName, description: newProjectDesc });
     };
 
-    if (wsLoading) return <div className="p-12 text-center text-stripe-textLight">Loading workspace...</div>;
-    if (workspaceError) return <div className="p-12 text-center text-stripe-error">{parseApiError(workspaceError, 'Failed to load workspace')}</div>;
-    if (!workspace) return <div className="p-12 text-center text-stripe-textLight">Workspace not found.</div>;
+    if (wsLoading) return <div className="p-12 text-center text-gray-500">Loading workspace...</div>;
+    if (workspaceError) return <div className="p-12 text-center text-red-500">{parseApiError(workspaceError, 'Failed to load workspace')}</div>;
+    if (!workspace) return <div className="p-12 text-center text-gray-500">Workspace not found.</div>;
 
     return (
-        <div className="max-w-6xl mx-auto px-6 py-12">
-            <div className="flex flex-col justify-between gap-5 mb-8 lg:flex-row lg:items-center">
+        <div className="max-w-6xl mx-auto px-6 py-12 relative">
+            <div className="flex flex-col justify-between gap-5 mb-10 lg:flex-row lg:items-center relative z-10">
                 <div>
-                    <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4 text-xs px-0">
+                    <Button variant="ghost" onClick={() => navigate('/workspaces')} className="mb-4 text-xs px-0 text-zinc-500 hover:text-zinc-50">
                         &larr; Back to Workspaces
                     </Button>
-                    <h1 className="text-2xl font-bold text-stripe-textDark">{workspace.name}</h1>
-                    <p className="text-sm text-stripe-textLight mt-1">{workspace.description}</p>
+                    <h1 className="text-3xl font-bold text-zinc-50 tracking-tight">{workspace.name}</h1>
+                    <p className="text-base text-zinc-400 mt-2 max-w-xl leading-relaxed">{workspace.description}</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
                     {isOwner && (
-                        <Button variant="secondary" onClick={() => setIsSettingsModalOpen(true)}>Settings</Button>
+                        <Button variant="secondary" onClick={() => setIsSettingsModalOpen(true)}>Workspace Settings</Button>
                     )}
                     {!isViewer && (
                         <>
@@ -84,19 +84,21 @@ export const WorkspaceDetailPage = () => {
                 </div>
             </div>
 
-            <h2 className="text-lg font-semibold text-stripe-textDark mb-4">Projects</h2>
+            <h2 className="text-xl font-bold text-zinc-50 mb-6 relative z-10">Projects</h2>
             
             {projects && projects.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
                     {projects.map(p => (
-                        <Card key={p.id} onClick={() => navigate(`/workspaces/${workspace.id}/projects/${p.id}/board`)}>
-                            <div className="flex justify-between items-start">
-                                <h3 className="font-semibold text-stripe-textDark text-lg mb-1">{p.name}</h3>
+                        <Card key={p.id} onClick={() => navigate(`/workspaces/${workspace.id}/projects/${p.id}/board`)} className="group">
+                            <div className="flex justify-between items-start mb-2">
+                                <h3 className="font-bold text-zinc-50 text-lg group-hover:text-orange-500 transition-colors">{p.name}</h3>
                                 <div className="flex items-center gap-2">
-                                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">{p.status}</span>
+                                    <span className="bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded">
+                                        {p.status}
+                                    </span>
                                     {!isViewer && (
                                         <button 
-                                            className="text-gray-400 hover:text-stripe-primary transition-colors p-1"
+                                            className="text-zinc-500 hover:text-orange-500 transition-colors p-1.5 hover:bg-zinc-800 rounded-full"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setSelectedProject(p);
@@ -111,12 +113,12 @@ export const WorkspaceDetailPage = () => {
                                     )}
                                 </div>
                             </div>
-                            <p className="text-sm text-stripe-textLight mb-4 line-clamp-2">{p.description}</p>
+                            <p className="text-sm text-zinc-400 mb-4 line-clamp-2 leading-relaxed">{p.description}</p>
                         </Card>
                     ))}
                 </div>
             ) : (
-                <div className="bg-white border border-stripe-border rounded-lg p-8 text-center text-stripe-textLight">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center text-zinc-400 relative z-10">
                     No projects found in this workspace. Create one to get started.
                 </div>
             )}
@@ -139,9 +141,9 @@ export const WorkspaceDetailPage = () => {
                         value={newProjectDesc} 
                         onChange={e => setNewProjectDesc(e.target.value)} 
                     />
-                    <div className="flex justify-end gap-3 mt-6">
+                    <div className="flex justify-end gap-3 mt-8">
                         <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                        <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
+                        <Button type="submit" isLoading={createMutation.isPending}>Create Project</Button>
                     </div>
                 </form>
             </Modal>

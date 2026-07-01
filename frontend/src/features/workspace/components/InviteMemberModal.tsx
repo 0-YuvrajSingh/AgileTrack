@@ -46,7 +46,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Invite Team Member" closeOnOutsideClick={false}>
             <form onSubmit={handleSubmit}>
-                <div className="space-y-4 mb-6">
+                <div className="space-y-5 mb-6">
                     <Input 
                         label="Email address"
                         type="email"
@@ -57,11 +57,11 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                         autoFocus
                     />
                     <div>
-                        <label className="block text-sm font-medium text-stripe-textDark mb-1">
+                        <label className="block text-sm font-medium text-zinc-300 mb-1.5">
                             Role
                         </label>
                         <select
-                            className="w-full px-3 py-2 border border-stripe-border rounded-md focus:outline-none focus:ring-1 focus:ring-stripe-primary focus:border-stripe-primary text-sm bg-white"
+                            className="w-full px-3 py-2 border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm bg-zinc-950 text-zinc-50 hover:border-zinc-700 transition-colors"
                             value={role}
                             onChange={(e) => setRole(e.target.value as WorkspaceRole)}
                         >
@@ -71,7 +71,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                         </select>
                     </div>
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-stripe-border mt-4">
+                <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800 mt-6">
                     <Button type="button" variant="ghost" onClick={onClose} disabled={inviteMutation.isPending}>
                         Cancel
                     </Button>

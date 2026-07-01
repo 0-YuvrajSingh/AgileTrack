@@ -1,5 +1,6 @@
 import { Outlet, useMatch } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 import { workspaceService } from '../../features/workspace/services/workspaceService';
@@ -12,6 +13,8 @@ export const AppShell = () => {
     
     const workspaceId = workspaceMatch?.params.workspaceId;
     const projectId = projectMatch?.params.projectId;
+
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     const { data: workspace, isLoading: wsLoading, error: wsError } = useQuery({
         queryKey: ['workspace', workspaceId],
@@ -31,11 +34,11 @@ export const AppShell = () => {
 
     return (
         <WorkspaceContext.Provider value={{ workspace: workspace || null, projects: projects || null, activeProject, isLoading, error }}>
-            <div className="flex flex-col h-screen bg-stripe-bg">
-                <Navbar />
-                <div className="flex flex-1 overflow-hidden">
-                    <Sidebar />
-                    <main className="flex-1 overflow-y-auto">
+            <div className="flex flex-col h-screen bg-zinc-950 text-zinc-50 selection:bg-orange-500 selection:text-white">
+                <Navbar onToggleSidebar={() => setIsSidebarCollapsed(prev => !prev)} isSidebarCollapsed={isSidebarCollapsed} />
+                <div className="flex flex-1 overflow-hidden relative">
+                    <Sidebar isCollapsed={isSidebarCollapsed} />
+                    <main className="flex-1 overflow-y-auto relative">
                         <Outlet />
                     </main>
                 </div>

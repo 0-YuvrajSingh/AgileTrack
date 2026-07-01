@@ -85,21 +85,21 @@ const ProjectSettingsModalContent: React.FC<Omit<ProjectSettingsModalProps, 'isO
                         onChange={(e) => setDescription(e.target.value)}
                     />
                 </div>
-                <div className="flex justify-between items-center pt-4 border-t border-stripe-border mt-4">
+                <div className="flex justify-between items-center pt-6 border-t border-zinc-800 mt-6">
                     <Button 
                         type="button" 
                         variant="danger" 
                         onClick={() => setIsDeleteConfirmOpen(true)}
                         isLoading={deleteMutation.isPending}
                     >
-                        Delete
+                        Delete Project
                     </Button>
                     <div className="flex gap-3">
                         <Button type="button" variant="ghost" onClick={onClose} disabled={updateMutation.isPending}>
                             Cancel
                         </Button>
                         <Button type="submit" isLoading={updateMutation.isPending}>
-                            Save
+                            Save Changes
                         </Button>
                     </div>
                 </div>

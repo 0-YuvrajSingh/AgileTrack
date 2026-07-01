@@ -19,7 +19,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
         data: { task },
     });
 
-    // Helper to merge refs
     const setNodeRef = (node: HTMLElement | null) => {
         setDraggableNodeRef(node);
         setDroppableNodeRef(node);
@@ -27,8 +26,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
 
     const style = {
         transform: CSS.Translate.toString(transform),
-        opacity: isDragging ? 0.4 : 1,
+        opacity: isDragging ? 0.8 : 1,
         zIndex: isDragging ? 100 : 1,
+    };
+
+    const priorityColors = {
+        LOW: 'bg-zinc-800 text-zinc-300 border-zinc-700',
+        MEDIUM: 'bg-orange-950 text-orange-400 border-orange-900',
+        HIGH: 'bg-yellow-950 text-yellow-400 border-yellow-900',
+        URGENT: 'bg-red-950 text-red-400 border-red-900',
     };
 
     return (
@@ -38,10 +44,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
             {...attributes}
             onClick={onClick}
             style={style}
-            className={`bg-stripe-surface border border-stripe-border rounded-md p-4 shadow-sm hover:shadow-stripe cursor-grab transition-all ${isDragging ? 'shadow-lg border-stripe-primary' : ''} ${isOver ? 'border-indigo-400 bg-indigo-50' : ''}`}
+            className={`bg-zinc-950 border rounded-xl p-4 cursor-grab active:cursor-grabbing transition-all ${
+                isDragging ? 'border-orange-500/50 scale-105' : 'border-zinc-800 hover:border-orange-500/50'
+            } ${isOver && !isDragging ? 'border-orange-500/50 bg-orange-500/10' : ''}`}
         >
-            <div className="text-xs text-stripe-textLight mb-1">{task.priority}</div>
-            <h3 className="font-medium text-stripe-textDark text-sm">{task.title}</h3>
+            <div className="flex items-center justify-between mb-3">
+                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${priorityColors[task.priority]}`}>
+                    {task.priority}
+                </span>
+            </div>
+            <h3 className="font-semibold text-zinc-50 text-sm leading-snug">{task.title}</h3>
         </article>
     );
 };

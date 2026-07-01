@@ -107,95 +107,99 @@ const TaskDetailSlideOverContent: React.FC<Omit<TaskDetailSlideOverProps, 'isOpe
 
     return (
         <>
-            <div className="fixed inset-0 bg-black/20 z-40 transition-opacity" onClick={onClose} />
-            <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col animate-[slideInRight_0.2s_ease-out]">
-                <header className="px-6 py-4 border-b border-stripe-border flex justify-between items-start">
-                    <div>
-                        <div className="text-xs font-semibold text-stripe-textLight mb-1">{task.status.replace('_', ' ')}</div>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity animate-[fadeIn_0.2s_ease-out]" onClick={onClose} />
+            <div className="fixed inset-y-0 right-0 w-full max-w-md bg-zinc-950 shadow-2xl border-l border-zinc-800 z-50 flex flex-col animate-[slideInRight_0.3s_cubic-bezier(0.16,1,0.3,1)]">
+                <header className="px-6 py-5 border-b border-zinc-800 flex justify-between items-start bg-zinc-900">
+                    <div className="flex-1 mr-4">
+                        <div className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase mb-2 bg-zinc-800 inline-block px-2 py-0.5 rounded border border-zinc-700">
+                            {task.status.replace('_', ' ')}
+                        </div>
                         <Input
-                            className="text-xl font-bold text-stripe-textDark !px-2 !py-1 -ml-2 !border-transparent hover:!border-stripe-border focus:!border-stripe-primary focus:!bg-white bg-transparent shadow-none"
+                            className="text-xl font-bold text-zinc-50 !px-2 !py-1.5 -ml-2 !border-transparent hover:!border-zinc-700 focus:!border-orange-500 focus:!bg-zinc-950 bg-transparent shadow-none"
                             value={editedTitle}
                             onChange={(e) => setEditedTitle(e.target.value)}
                             onBlur={handleSaveInfo}
                         />
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 -mr-2">
+                    <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 p-2 -mr-2 bg-zinc-800 hover:bg-zinc-700 rounded-full transition-colors">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </header>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    <div className="flex items-center gap-4 text-sm">
-                        <div className="w-24 text-stripe-textLight font-medium">Status</div>
-                        <select
-                            className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary text-sm p-2 bg-gray-50 hover:bg-gray-100 transition-colors border outline-none"
-                            value={task.status}
-                            onChange={(e) => updateStatusMutation.mutate(e.target.value as TaskStatus)}
-                            disabled={updateStatusMutation.isPending}
-                        >
-                            <option value="TODO">To Do</option>
-                            <option value="IN_PROGRESS">In Progress</option>
-                            <option value="DONE">Done</option>
-                        </select>
+                <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-4 text-sm">
+                            <div className="w-24 text-zinc-400 font-medium">Status</div>
+                            <select
+                                className="flex-1 rounded-lg border-zinc-800 shadow-sm focus:border-orange-500 focus:ring-orange-500/20 text-sm p-2 bg-zinc-950 hover:border-zinc-700 transition-colors border outline-none text-zinc-50"
+                                value={task.status}
+                                onChange={(e) => updateStatusMutation.mutate(e.target.value as TaskStatus)}
+                                disabled={updateStatusMutation.isPending}
+                            >
+                                <option value="TODO">To Do</option>
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="DONE">Done</option>
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-sm">
+                            <div className="w-24 text-zinc-400 font-medium">Priority</div>
+                            <select
+                                className="flex-1 rounded-lg border-zinc-800 shadow-sm focus:border-orange-500 focus:ring-orange-500/20 text-sm p-2 bg-zinc-950 hover:border-zinc-700 transition-colors border outline-none text-zinc-50"
+                                value={editedPriority}
+                                onChange={(e) => {
+                                    const priority = e.target.value as TaskPriority;
+                                    setEditedPriority(priority);
+                                    updateMutation.mutate({
+                                        title: editedTitle,
+                                        description: editedDesc,
+                                        priority,
+                                        deadline: task.deadline,
+                                        assigneeId: task.assigneeId
+                                    });
+                                }}
+                            >
+                                <option value="LOW">Low</option>
+                                <option value="MEDIUM">Medium</option>
+                                <option value="HIGH">High</option>
+                                <option value="URGENT">Urgent</option>
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-sm">
+                            <div className="w-24 text-zinc-400 font-medium">Assignee</div>
+                            <select
+                                className="flex-1 rounded-lg border-zinc-800 shadow-sm focus:border-orange-500 focus:ring-orange-500/20 text-sm p-2 bg-zinc-950 hover:border-zinc-700 transition-colors border outline-none text-zinc-50"
+                                value={task.assigneeId || ''}
+                                onChange={(e) => assignMutation.mutate(e.target.value)}
+                                disabled={assignMutation.isPending}
+                            >
+                                <option value="">Unassigned</option>
+                                {members?.map(member => (
+                                    <option key={member.userId} value={member.userId}>
+                                        {member.email}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm">
-                        <div className="w-24 text-stripe-textLight font-medium">Priority</div>
-                        <select
-                            className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary text-sm p-2 bg-gray-50 hover:bg-gray-100 transition-colors border outline-none"
-                            value={editedPriority}
-                            onChange={(e) => {
-                                const priority = e.target.value as TaskPriority;
-                                setEditedPriority(priority);
-                                updateMutation.mutate({
-                                    title: editedTitle,
-                                    description: editedDesc,
-                                    priority,
-                                    deadline: task.deadline,
-                                    assigneeId: task.assigneeId
-                                });
-                            }}
-                        >
-                            <option value="LOW">Low</option>
-                            <option value="MEDIUM">Medium</option>
-                            <option value="HIGH">High</option>
-                            <option value="URGENT">Urgent</option>
-                        </select>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-sm">
-                        <div className="w-24 text-stripe-textLight font-medium">Assignee</div>
-                        <select
-                            className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary text-sm p-2 bg-gray-50 hover:bg-gray-100 transition-colors border outline-none"
-                            value={task.assigneeId || ''}
-                            onChange={(e) => assignMutation.mutate(e.target.value)}
-                            disabled={assignMutation.isPending}
-                        >
-                            <option value="">Unassigned</option>
-                            {members?.map(member => (
-                                <option key={member.userId} value={member.userId}>
-                                    {member.email}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="pt-4 border-t border-stripe-border">
-                        <h4 className="text-sm font-semibold text-stripe-textDark mb-3">Description</h4>
+                    <div className="pt-6 border-t border-zinc-800">
+                        <h4 className="text-sm font-semibold text-zinc-300 mb-4">Description</h4>
                         {isEditingDesc ? (
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 <textarea
-                                    className="w-full min-h-[150px] p-3 text-sm border border-stripe-border rounded-md focus:border-stripe-primary focus:ring-1 focus:ring-stripe-primary outline-none resize-y"
+                                    className="w-full min-h-[150px] p-4 text-sm border border-zinc-800 bg-zinc-950 text-zinc-50 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none resize-y transition-all"
                                     value={editedDesc}
                                     onChange={(e) => setEditedDesc(e.target.value)}
                                     placeholder="Add a description..."
                                     autoFocus
                                 />
                                 <div className="flex gap-2">
-                                    <Button onClick={handleSaveInfo} isLoading={updateMutation.isPending}>Save</Button>
-                                    <Button variant="secondary" onClick={() => {
+                                    <Button onClick={handleSaveInfo} isLoading={updateMutation.isPending}>Save Description</Button>
+                                    <Button variant="ghost" onClick={() => {
                                         setEditedDesc(task.description || '');
                                         setIsEditingDesc(false);
                                     }}>Cancel</Button>
@@ -203,7 +207,7 @@ const TaskDetailSlideOverContent: React.FC<Omit<TaskDetailSlideOverProps, 'isOpe
                             </div>
                         ) : (
                             <div 
-                                className={`text-sm p-3 rounded-md min-h-[100px] cursor-text border border-transparent hover:border-stripe-border transition-colors ${!task.description ? 'text-gray-400 italic bg-gray-50' : 'text-stripe-textDark whitespace-pre-wrap'}`}
+                                className={`text-sm p-4 rounded-lg min-h-[100px] cursor-text border border-transparent hover:border-zinc-800 hover:bg-zinc-900 transition-colors ${!task.description ? 'text-zinc-500 italic bg-zinc-900' : 'text-zinc-300 whitespace-pre-wrap'}`}
                                 onClick={() => setIsEditingDesc(true)}
                             >
                                 {task.description || 'Add a description...'}
@@ -212,7 +216,7 @@ const TaskDetailSlideOverContent: React.FC<Omit<TaskDetailSlideOverProps, 'isOpe
                     </div>
                 </div>
 
-                <div className="p-4 border-t border-stripe-border bg-gray-50 flex justify-end">
+                <div className="p-4 border-t border-zinc-800 bg-zinc-900 flex justify-end">
                     <Button 
                         variant="danger" 
                         isLoading={deleteMutation.isPending}

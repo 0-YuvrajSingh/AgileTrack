@@ -5,7 +5,7 @@ import { LandingCTA } from '../components/LandingCTA';
 
 export const LandingPage = () => {
     return (
-        <div className="min-h-screen bg-stripe-bg font-sans text-stripe-textLight selection:bg-stripe-primary selection:text-white">
+        <div className="min-h-screen bg-zinc-950 font-sans text-zinc-50 selection:bg-orange-500 selection:text-zinc-50">
             <LandingHeader />
             <main>
                 <LandingHero />

@@ -1,4 +1,5 @@
 import React, { useId, forwardRef } from 'react';
+import { motion } from 'framer-motion';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -13,19 +14,27 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full mb-4">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-stripe-textDark mb-1">
+          <label htmlFor={inputId} className="block text-sm font-medium text-zinc-300 mb-1.5">
             {label}
           </label>
         )}
-        <input
-          ref={ref}
-          id={inputId}
-          className={`w-full px-3 py-2 bg-white border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:shadow-stripe-focus transition-shadow ${
-            error ? 'border-stripe-error' : 'border-stripe-border focus:border-stripe-primary'
-          } ${className}`}
-          {...props}
-        />
-        {error && <p className="mt-1 text-sm text-stripe-error">{error}</p>}
+        <motion.div
+            initial={false}
+            animate={error ? { x: [-5, 5, -5, 5, 0] } : {}}
+            transition={{ duration: 0.4 }}
+        >
+            <input
+            ref={ref}
+            id={inputId}
+            className={`w-full px-4 py-2.5 bg-zinc-950 border rounded-md placeholder-zinc-500 text-zinc-50 focus:outline-none transition-all ${
+                error 
+                ? 'border-red-900/50 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                : 'border-zinc-800 hover:border-zinc-700 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20'
+            } ${className}`}
+            {...props}
+            />
+        </motion.div>
+        {error && <p className="mt-1.5 text-sm text-red-500 font-medium">{error}</p>}
       </div>
     );
   }

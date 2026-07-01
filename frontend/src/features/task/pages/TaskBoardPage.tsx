@@ -157,35 +157,36 @@ export const TaskBoardPage = () => {
         updateTaskStatusMutation.mutate({ taskId, status: newStatus, position: newPosition });
     };
 
-    if (projLoading) return <div className="p-12 text-center text-stripe-textLight">Loading project...</div>;
-    if (projectError) return <div className="p-12 text-center text-stripe-error">{parseApiError(projectError, 'Failed to load project')}</div>;
-    if (!project) return <div className="p-12 text-center text-stripe-textLight">Project not found.</div>;
+    if (projLoading) return <div className="p-12 text-center text-gray-500">Loading project...</div>;
+    if (projectError) return <div className="p-12 text-center text-red-500">{parseApiError(projectError, 'Failed to load project')}</div>;
+    if (!project) return <div className="p-12 text-center text-gray-500">Project not found.</div>;
 
     const statuses: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE'];
     const selectedTask = tasks?.find(task => task.id === selectedTaskId) ?? null;
 
     return (
-        <div className="flex flex-col h-screen bg-stripe-bg">
-            <header className="px-6 py-4 bg-white border-b border-stripe-border flex justify-between items-center shrink-0">
+        <div className="flex flex-col h-full bg-transparent">
+            <header className="px-8 py-5 bg-zinc-950 border-b border-zinc-800 flex justify-between items-center shrink-0">
                 <div>
-                    <Button variant="ghost" onClick={() => navigate(-1)} className="mb-2 text-xs px-0">
-                        &larr; Back
+                    <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 text-xs px-0 text-zinc-500 hover:text-zinc-50">
+                        &larr; Back to Workspaces
                     </Button>
-                    <h1 className="text-xl font-bold text-stripe-textDark">{project.name} Board</h1>
+                    <h1 className="text-2xl font-bold text-zinc-50">{project.name}</h1>
                 </div>
                 <Button onClick={() => setIsModalOpen(true)}>+ New Task</Button>
             </header>
 
-            <main className="flex-1 overflow-x-auto p-6">
+            <main className="flex-1 overflow-x-auto p-8 relative">
+                
                 {taskLoading ? (
-                    <div className="text-stripe-textLight">Loading tasks...</div>
+                    <div className="text-zinc-500 animate-pulse">Loading tasks...</div>
                 ) : tasksError ? (
-                    <div className="rounded-md border border-red-100 bg-red-50 p-4 text-sm text-stripe-error">
+                    <div className="rounded-lg border border-red-900/50 bg-red-950/30 p-4 text-sm text-red-400">
                         {parseApiError(tasksError, 'Failed to load tasks')}
                     </div>
                 ) : (
                     <DndContext sensors={sensors} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
-                        <div className="flex gap-6 h-full items-start">
+                        <div className="flex gap-6 h-full items-start relative z-10">
                             {statuses.map(status => (
                                 <TaskColumn key={status} status={status}>
                                     {tasks?.filter(t => t.status === status)
@@ -198,7 +199,7 @@ export const TaskBoardPage = () => {
                                         />
                                     ))}
                                     {tasks?.filter(t => t.status === status).length === 0 && (
-                                        <div className="text-center text-xs text-gray-400 py-4 border-2 border-dashed border-gray-200 rounded-md">
+                                        <div className="text-center text-xs text-zinc-500 py-6 border-2 border-dashed border-zinc-800 rounded-lg bg-zinc-900/50">
                                             Drop tasks here
                                         </div>
                                     )}
@@ -225,9 +226,9 @@ export const TaskBoardPage = () => {
                     />
                     <div className="grid grid-cols-2 gap-4 mt-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                            <label className="block text-sm font-medium text-zinc-300 mb-1.5">Priority</label>
                             <select
-                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary sm:text-sm p-2 border outline-none bg-gray-50 hover:bg-gray-100 transition-colors"
+                                className="w-full rounded-lg bg-zinc-950 border border-zinc-800 shadow-sm focus:border-orange-500 focus:ring-orange-500/20 sm:text-sm p-2.5 outline-none text-zinc-50 hover:border-zinc-700 transition-colors"
                                 value={newTaskPriority}
                                 onChange={(e) => setNewTaskPriority(e.target.value as TaskPriority)}
                             >
@@ -238,19 +239,19 @@ export const TaskBoardPage = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+                            <label className="block text-sm font-medium text-zinc-300 mb-1.5">Deadline</label>
                             <input
                                 type="date"
-                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary sm:text-sm p-2 border outline-none bg-gray-50 hover:bg-gray-100 transition-colors"
+                                className="w-full rounded-lg bg-zinc-950 border border-zinc-800 shadow-sm focus:border-orange-500 focus:ring-orange-500/20 sm:text-sm p-2.5 outline-none text-zinc-50 hover:border-zinc-700 transition-colors"
                                 value={newTaskDeadline}
                                 onChange={(e) => setNewTaskDeadline(e.target.value)}
                             />
                         </div>
                     </div>
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Assignee</label>
+                    <div className="mt-5">
+                        <label className="block text-sm font-medium text-zinc-300 mb-1.5">Assignee</label>
                         <select
-                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary sm:text-sm p-2 border outline-none bg-gray-50 hover:bg-gray-100 transition-colors"
+                            className="w-full rounded-lg bg-zinc-950 border border-zinc-800 shadow-sm focus:border-orange-500 focus:ring-orange-500/20 sm:text-sm p-2.5 outline-none text-zinc-50 hover:border-zinc-700 transition-colors"
                             value={newTaskAssigneeId}
                             onChange={(e) => setNewTaskAssigneeId(e.target.value)}
                         >
@@ -262,9 +263,9 @@ export const TaskBoardPage = () => {
                             ))}
                         </select>
                     </div>
-                    <div className="flex justify-end gap-3 mt-6">
+                    <div className="flex justify-end gap-3 mt-8">
                         <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                        <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
+                        <Button type="submit" isLoading={createMutation.isPending}>Create Task</Button>
                     </div>
                 </form>
             </Modal>

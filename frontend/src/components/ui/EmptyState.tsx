@@ -17,12 +17,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     icon 
 }) => {
     return (
-        <div className="flex flex-col items-center justify-center p-12 text-center bg-white border border-stripe-border rounded-lg shadow-sm">
-            {icon && <div className="mb-4 text-stripe-textLight">{icon}</div>}
-            <h3 className="text-lg font-medium text-stripe-textDark mb-2">{title}</h3>
-            <p className="text-sm text-stripe-textLight mb-6 max-w-md">{description}</p>
+        <div className="flex flex-col items-center justify-center p-16 text-center bg-zinc-900/40 border border-zinc-800/60 rounded-2xl shadow-sm backdrop-blur-sm">
+            {icon && <div className="mb-6 text-zinc-500 p-4 bg-zinc-800/50 rounded-full border border-zinc-700/50">{icon}</div>}
+            <h3 className="text-xl font-bold text-zinc-100 mb-3">{title}</h3>
+            <p className="text-base text-zinc-400 mb-8 max-w-md leading-relaxed">{description}</p>
             {actionLabel && onAction && (
-                <Button onClick={onAction}>{actionLabel}</Button>
+                <Button onClick={onAction} className="shadow-[0_0_15px_rgba(249,115,22,0.3)]">{actionLabel}</Button>
             )}
         </div>
     );

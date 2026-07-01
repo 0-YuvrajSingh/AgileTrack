@@ -3,24 +3,31 @@
 
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
-  
-  --color-stripe-bg: #f6f9fc;
-  --color-stripe-textDark: #0a2540;
-  --color-stripe-textLight: #425466;
-  --color-stripe-primary: #635bff;
-  --color-stripe-primaryHover: #0a2540;
-  --color-stripe-border: #e6ebf1;
-  --color-stripe-surface: #ffffff;
-  --color-stripe-error: #cd3d64;
-  --color-stripe-success: #00d924;
-
-  --shadow-stripe: 0 2px 5px -1px rgba(50,50,93,0.25), 0 1px 3px -1px rgba(0,0,0,0.3);
-  --shadow-stripe-hover: 0 6px 12px -2px rgba(50,50,93,0.25), 0 3px 7px -3px rgba(0,0,0,0.3);
-  --shadow-stripe-focus: 0 0 0 3px rgba(99, 91, 255, 0.4);
 }
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: var(--color-stripe-bg);
-  color: var(--color-stripe-textLight);
+  background-color: #09090b; /* zinc-950 */
+  color: #fafafa; /* zinc-50 */
+}
+
+/* Custom scrollbar for a clean, dark feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a; /* zinc-800 */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46; /* zinc-700 */
+}
+
+::selection {
+  background-color: #f97316; /* orange-500 */
+  color: white;
 }

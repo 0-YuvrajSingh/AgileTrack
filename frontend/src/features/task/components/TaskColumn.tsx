@@ -14,15 +14,15 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({ status, children }) => {
     return (
         <div 
             ref={setNodeRef}
-            className={`min-w-[320px] max-w-[320px] border rounded-lg flex flex-col shadow-stripe transition-colors ${
-                isOver ? 'bg-indigo-50 border-stripe-primary' : 'bg-stripe-bg border-stripe-border'
+            className={`min-w-[320px] max-w-[320px] border rounded-xl flex flex-col shadow-sm transition-colors ${
+                isOver ? 'bg-orange-500/10 border-orange-500/50' : 'bg-zinc-900 border-zinc-800'
             }`}
         >
-            <header className={`p-4 border-b flex items-center justify-between rounded-t-lg ${
-                isOver ? 'border-stripe-primary bg-indigo-100' : 'border-stripe-border bg-stripe-surface'
+            <header className={`p-4 border-b flex items-center justify-between rounded-t-xl ${
+                isOver ? 'border-orange-500/50 bg-orange-500/20' : 'border-zinc-800 bg-zinc-950'
             }`}>
                 <div>
-                    <strong className="text-sm font-semibold text-stripe-textDark uppercase tracking-wider">
+                    <strong className="text-sm font-bold text-zinc-400 uppercase tracking-wider">
                         {status.replace('_', ' ')}
                     </strong>
                 </div>

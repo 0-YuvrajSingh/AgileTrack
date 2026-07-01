@@ -27,8 +27,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 }) => {
     return (
         <Modal isOpen={isOpen} onClose={onCancel} title={title} closeOnOutsideClick={!isLoading}>
-            <p className="text-sm text-stripe-textLight mb-6">{message}</p>
-            <div className="flex justify-end gap-3 pt-4 border-t border-stripe-border">
+            <p className="text-sm text-zinc-400 mb-8 leading-relaxed">{message}</p>
+            <div className="flex justify-end gap-3 pt-5 border-t border-zinc-800">
                 <Button variant="ghost" onClick={onCancel} disabled={isLoading}>
                     {cancelLabel}
                 </Button>
