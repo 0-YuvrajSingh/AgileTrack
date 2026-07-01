@@ -4,7 +4,7 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string; onC
   return (
     <div 
       onClick={onClick}
-      className={`bg-zinc-900 rounded-xl border border-zinc-800 p-6 ${onClick ? 'cursor-pointer hover:border-orange-500/50 transition-all duration-200' : ''} ${className}`}
+      className={`bg-white rounded-xl border border-slate-200 p-6 ${onClick ? 'cursor-pointer hover:border-[#635BFF]/40 hover:shadow-md transition-all duration-200' : ''} ${className}`}
     >
       {children}
     </div>

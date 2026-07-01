@@ -1,44 +1,55 @@
-import React, { useState, createContext } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { User, AuthResponse, AuthContextType } from '../types';
+import type { User } from '../types';
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (token: string, userData: User) => void;
+  logout: () => void;
+}
 
-const getStoredUser = (): User | null => {
-  const token = localStorage.getItem('jwt_token');
-  const userStr = localStorage.getItem('user_data');
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-  if (!token || !userStr) {
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('user_data');
-    return null;
-  }
-  
-  try {
-    return JSON.parse(userStr) as User;
-  } catch {
-    return null;
-  }
-};
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => getStoredUser());
+  // Hydration Phase: Runs once on app mount
+  useEffect(() => {
+    const token = localStorage.getItem('agiletrack_token');
+    const storedUser = localStorage.getItem('agiletrack_user');
 
-  const login = (data: AuthResponse) => {
-    setUser(data.user);
-    localStorage.setItem('jwt_token', data.token);
-    localStorage.setItem('user_data', JSON.stringify(data.user));
+    if (token && storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setIsLoading(false);
+  }, []);
+
+  const login = (token: string, userData: User) => {
+    localStorage.setItem('agiletrack_token', token);
+    localStorage.setItem('agiletrack_user', JSON.stringify(userData));
+    setUser(userData);
   };
 
   const logout = () => {
+    localStorage.removeItem('agiletrack_token');
+    localStorage.removeItem('agiletrack_user');
     setUser(null);
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('user_data');
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

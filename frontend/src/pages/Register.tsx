@@ -6,10 +6,11 @@ import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../api/axios';
 
-export const Login = () => {
+export const Register = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
     
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -21,11 +22,11 @@ export const Login = () => {
         setIsLoading(true);
 
         try {
-            const response = await apiClient.post('/auth/login', { email, password });
+            const response = await apiClient.post('/auth/register', { name, email, password });
             login(response.data.token, response.data.user);
             navigate('/dashboard');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Invalid credentials');
+            setError(err.response?.data?.message || 'Registration failed');
         } finally {
             setIsLoading(false);
         }
@@ -35,8 +36,8 @@ export const Login = () => {
         <div className="w-full max-w-sm">
             <Card className="shadow-xl border-slate-200">
                 <div className="mb-8 text-center">
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome back</h1>
-                    <p className="text-sm text-slate-500 mt-2">Sign in to your account to continue</p>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Create an account</h1>
+                    <p className="text-sm text-slate-500 mt-2">Start managing your projects today</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -46,6 +47,15 @@ export const Login = () => {
                         </div>
                     )}
                     
+                    <Input
+                        label="Full Name"
+                        type="text"
+                        placeholder="John Doe"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                    />
+
                     <Input
                         label="Email Address"
                         type="email"
@@ -66,15 +76,15 @@ export const Login = () => {
 
                     <div className="pt-2">
                         <Button type="submit" className="w-full" isLoading={isLoading}>
-                            Sign In
+                            Sign Up
                         </Button>
                     </div>
                 </form>
                 
                 <div className="mt-6 text-center text-sm text-slate-500">
-                    Don't have an account?{' '}
-                    <Link to="/register" className="text-[#635BFF] hover:text-[#5449e5] font-medium transition-colors">
-                        Sign up
+                    Already have an account?{' '}
+                    <Link to="/login" className="text-[#635BFF] hover:text-[#5449e5] font-medium transition-colors">
+                        Sign in
                     </Link>
                 </div>
             </Card>
