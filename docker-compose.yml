@@ -5,15 +5,15 @@ services:
     image: postgres:15-alpine
     container_name: agiletrack-db
     environment:
-      POSTGRES_USER: agiletrack_user
-      POSTGRES_PASSWORD: agiletrack_password
-      POSTGRES_DB: agiletrack
+      POSTGRES_USER: ${POSTGRES_USER:-agiletrack_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agiletrack_password}
+      POSTGRES_DB: ${POSTGRES_DB:-agiletrack}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agiletrack_user -d agiletrack"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agiletrack_user} -d ${POSTGRES_DB:-agiletrack}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,10 +23,10 @@ services:
       context: ./backend
     container_name: agiletrack-backend
     environment:
-      - DATABASE_URL=jdbc:postgresql://db:5432/agiletrack
-      - DATABASE_USERNAME=agiletrack_user
-      - DATABASE_PASSWORD=agiletrack_password
-      - JWT_SECRET=VGhpc0lzQVN1cGVyU2VjcmV0S2V5Rm9ySldUU2lnbmluZ1RoYXRNdXN0QmVBdExlYXN0MzJCeXRlc0xvbmc=
+      - DATABASE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-agiletrack}
+      - DATABASE_USERNAME=${POSTGRES_USER:-agiletrack_user}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-agiletrack_password}
+      - JWT_SECRET=${JWT_SECRET:-VGhpc0lzQVN1cGVyU2VjcmV0S2V5Rm9ySldUU2lnbmluZ1RoYXRNdXN0QmVBdExlYXN0MzJCeXRlc0xvbmc=}
     ports:
       - "8080:8080"
     depends_on:
@@ -37,10 +37,25 @@ services:
     build:
       context: ./frontend
     container_name: agiletrack-frontend
-    ports:
-      - "3000:80"
     depends_on:
       - backend
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: agiletrack-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:

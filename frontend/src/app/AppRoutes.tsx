@@ -1,4 +1,5 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { ProtectedRoute } from '../components/layout/ProtectedRoute';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
@@ -8,9 +9,19 @@ import { TaskBoardPage } from '../features/task/pages/TaskBoardPage';
 import { NotFound } from '../components/layout/NotFound';
 import { AppShell } from '../components/layout/AppShell';
 
-import { LandingPage } from '../pages/LandingPage';
+import { LandingPage } from '../features/landing/pages/LandingPage';
 
 export const AppRoutes = () => {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const handleUnauthorized = () => {
+            navigate('/login');
+        };
+        window.addEventListener('auth:unauthorized', handleUnauthorized);
+        return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    }, [navigate]);
+
     return (
         <Routes>
             <Route path="/" element={<LandingPage />} />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import type { Task } from '../services/taskService';
+import type { Task } from '../types/task.types';
 
 interface TaskCardProps {
     task: Task;

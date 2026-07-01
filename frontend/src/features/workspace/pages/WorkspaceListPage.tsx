@@ -5,6 +5,7 @@ import { workspaceService } from '../services/workspaceService';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { Modal } from '../../../components/ui/Modal';
 import { parseApiError } from '../../../lib/utils';
 import toast from 'react-hot-toast';
 
@@ -68,26 +69,25 @@ export const WorkspaceListPage = () => {
                 </div>
             )}
 
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-stripe-hover animate-[fadeIn_0.2s_ease-out]">
-                        <h2 className="text-xl font-bold mb-4 text-stripe-textDark">Create Workspace</h2>
-                        <form onSubmit={handleCreate}>
-                            <Input 
-                                label="Workspace Name" 
-                                value={newWsName} 
-                                onChange={e => setNewWsName(e.target.value)} 
-                                required 
-                                autoFocus
-                            />
-                            <div className="flex justify-end gap-3 mt-6">
-                                <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                                <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
-                            </div>
-                        </form>
+            <Modal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                title="Create Workspace"
+            >
+                <form onSubmit={handleCreate}>
+                    <Input 
+                        label="Workspace Name" 
+                        value={newWsName} 
+                        onChange={e => setNewWsName(e.target.value)} 
+                        required 
+                        autoFocus
+                    />
+                    <div className="flex justify-end gap-3 mt-6">
+                        <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                        <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
                     </div>
-                </div>
-            )}
+                </form>
+            </Modal>
         </div>
     );
 };

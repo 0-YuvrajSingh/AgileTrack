@@ -1,30 +1,31 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { useAuth } from '../hooks/useAuth';
 import { authService } from '../services/authService';
+import type { LoginRequest } from '../types/auth.types';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { parseApiError } from '../../../lib/utils';
 
 export const LoginPage = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+    const [apiError, setApiError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
     const { login } = useAuth();
     const navigate = useNavigate();
+    
+    const { register, handleSubmit, formState: { errors } } = useForm<LoginRequest>();
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmit = async (data: LoginRequest) => {
         setIsLoading(true);
-        setError('');
+        setApiError('');
         try {
-            const res = await authService.login({ email, password });
+            const res = await authService.login(data);
             login(res);
             navigate('/dashboard');
         } catch (err: unknown) {
-            setError(parseApiError(err, 'Login failed'));
+            setApiError(parseApiError(err, 'Login failed'));
         } finally {
             setIsLoading(false);
         }
@@ -38,22 +39,20 @@ export const LoginPage = () => {
                 </div>
                 
                 <div className="bg-white rounded-xl shadow-stripe border border-stripe-border p-8">
-                    {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-stripe-error rounded-md text-sm">{error}</div>}
+                    {apiError && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-stripe-error rounded-md text-sm">{apiError}</div>}
                     
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit(onSubmit)}>
                         <Input 
                             label="Email address" 
                             type="email" 
-                            value={email} 
-                            onChange={(e) => setEmail(e.target.value)} 
-                            required 
+                            error={errors.email?.message}
+                            {...register('email', { required: 'Email is required' })}
                         />
                         <Input 
                             label="Password" 
                             type="password" 
-                            value={password} 
-                            onChange={(e) => setPassword(e.target.value)} 
-                            required 
+                            error={errors.password?.message}
+                            {...register('password', { required: 'Password is required' })}
                         />
                         <div className="mt-6">
                             <Button type="submit" className="w-full" isLoading={isLoading}>

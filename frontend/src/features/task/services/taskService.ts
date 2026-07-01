@@ -1,36 +1,12 @@
 import { api } from '../../../lib/axios';
-
-export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
-export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  deadline?: string | null;
-  projectId: string;
-  assigneeId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  position: number;
-}
-
-export interface TaskUpdatePayload {
-  title: string;
-  description?: string;
-  priority: TaskPriority;
-  deadline?: string | null;
-  assigneeId: string;
-}
+import type { Task, TaskStatus, TaskPriority, TaskUpdatePayload } from '../types/task.types';
 
 export const taskService = {
   getByProjectId: async (workspaceId: string, projectId: string): Promise<Task[]> => {
     const { data } = await api.get<Task[]>(`/workspaces/${workspaceId}/projects/${projectId}/tasks`);
     return data;
   },
-  create: async (workspaceId: string, projectId: string, payload: { title: string; description?: string; priority: TaskPriority; assigneeId: string }): Promise<Task> => {
+  create: async (workspaceId: string, projectId: string, payload: { title: string; description?: string; priority: TaskPriority; assigneeId?: string | null }): Promise<Task> => {
     const { data } = await api.post<Task>(`/workspaces/${workspaceId}/projects/${projectId}/tasks`, payload);
     return data;
   },
@@ -50,3 +26,4 @@ export const taskService = {
     await api.delete(`/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}`);
   }
 };
+

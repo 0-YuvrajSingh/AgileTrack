@@ -5,6 +5,7 @@ import type { Project } from '../types/project.types';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
+import { Modal } from '../../../components/ui/Modal';
 import { parseApiError } from '../../../lib/utils';
 import toast from 'react-hot-toast';
 
@@ -69,45 +70,40 @@ const ProjectSettingsModalContent: React.FC<Omit<ProjectSettingsModalProps, 'isO
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-[fadeIn_0.15s_ease-out]">
-            <div className="bg-white rounded-lg shadow-stripe-hover w-full max-w-md overflow-hidden animate-[slideUp_0.2s_ease-out]">
-                <form onSubmit={handleSubmit}>
-                    <div className="p-6">
-                        <h2 className="text-lg font-bold text-stripe-textDark mb-4">Edit Project</h2>
-                        <div className="space-y-4">
-                            <Input 
-                                label="Project Name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                required
-                            />
-                            <Input 
-                                label="Description"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <div className="px-6 py-4 bg-gray-50 flex justify-between items-center border-t border-stripe-border">
-                        <Button 
-                            type="button" 
-                            variant="danger" 
-                            onClick={() => setIsDeleteConfirmOpen(true)}
-                            isLoading={deleteMutation.isPending}
-                        >
-                            Delete
+        <Modal isOpen={true} onClose={onClose} title="Edit Project" closeOnOutsideClick={false}>
+            <form onSubmit={handleSubmit}>
+                <div className="space-y-4 mb-6">
+                    <Input 
+                        label="Project Name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                    />
+                    <Input 
+                        label="Description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                    />
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t border-stripe-border mt-4">
+                    <Button 
+                        type="button" 
+                        variant="danger" 
+                        onClick={() => setIsDeleteConfirmOpen(true)}
+                        isLoading={deleteMutation.isPending}
+                    >
+                        Delete
+                    </Button>
+                    <div className="flex gap-3">
+                        <Button type="button" variant="ghost" onClick={onClose} disabled={updateMutation.isPending}>
+                            Cancel
                         </Button>
-                        <div className="flex gap-3">
-                            <Button type="button" variant="ghost" onClick={onClose} disabled={updateMutation.isPending}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" isLoading={updateMutation.isPending}>
-                                Save Changes
-                            </Button>
-                        </div>
+                        <Button type="submit" isLoading={updateMutation.isPending}>
+                            Save
+                        </Button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
             <ConfirmDialog
                 isOpen={isDeleteConfirmOpen}
                 title="Delete project"
@@ -118,6 +114,6 @@ const ProjectSettingsModalContent: React.FC<Omit<ProjectSettingsModalProps, 'isO
                 onCancel={() => setIsDeleteConfirmOpen(false)}
                 onConfirm={() => deleteMutation.mutate()}
             />
-        </div>
+        </Modal>
     );
 };

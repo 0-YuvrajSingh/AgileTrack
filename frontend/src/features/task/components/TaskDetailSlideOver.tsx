@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskService } from '../services/taskService';
 import { workspaceService } from '../../workspace/services/workspaceService';
-import type { Task, TaskPriority, TaskStatus, TaskUpdatePayload } from '../services/taskService';
+import type { Task, TaskPriority, TaskStatus, TaskUpdatePayload } from '../types/task.types';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
@@ -95,11 +95,6 @@ const TaskDetailSlideOverContent: React.FC<Omit<TaskDetailSlideOverProps, 'isOpe
     });
 
     const handleSaveInfo = () => {
-        if (!task.assigneeId) {
-            toast.error('Task must have an assignee');
-            return;
-        }
-
         updateMutation.mutate({
             title: editedTitle,
             description: editedDesc,
@@ -154,15 +149,13 @@ const TaskDetailSlideOverContent: React.FC<Omit<TaskDetailSlideOverProps, 'isOpe
                             onChange={(e) => {
                                 const priority = e.target.value as TaskPriority;
                                 setEditedPriority(priority);
-                                if (task.assigneeId) {
-                                    updateMutation.mutate({
-                                        title: editedTitle,
-                                        description: editedDesc,
-                                        priority,
-                                        deadline: task.deadline,
-                                        assigneeId: task.assigneeId
-                                    });
-                                }
+                                updateMutation.mutate({
+                                    title: editedTitle,
+                                    description: editedDesc,
+                                    priority,
+                                    deadline: task.deadline,
+                                    assigneeId: task.assigneeId
+                                });
                             }}
                         >
                             <option value="LOW">Low</option>

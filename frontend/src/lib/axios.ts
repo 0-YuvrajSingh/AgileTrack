@@ -1,7 +1,9 @@
 import axios from 'axios';
+import { env } from '../config/env';
+import { storage } from './storage';
 
 export const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+    baseURL: env.VITE_API_URL,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -29,10 +31,8 @@ api.interceptors.response.use(
         if (error.response && error.response.status === 401) {
             // Token expired or invalid
             setAuthToken(null);
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            // Force reload to clear React state and trigger redirect
-            window.location.href = '/login';
+            storage.clearAuth();
+            window.dispatchEvent(new Event('auth:unauthorized'));
         }
         return Promise.reject(error);
     }

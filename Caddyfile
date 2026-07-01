@@ -1,0 +1,10 @@
+# Caddyfile for automatic HTTPS and Reverse Proxy
+# When you have a real domain, replace localhost with your domain:
+# agiletrack.yourdomain.com {
+#     reverse_proxy frontend:80
+# }
+
+localhost {
+    # Proxy all traffic to the frontend container (which handles static files and /api/ proxies to backend)
+    reverse_proxy frontend:80
+}

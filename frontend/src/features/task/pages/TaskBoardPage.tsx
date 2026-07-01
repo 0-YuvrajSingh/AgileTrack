@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DndContext, closestCorners } from '@dnd-kit/core';
+import { DndContext, closestCorners, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { projectService } from '../../project/services/projectService';
 import { taskService } from '../services/taskService';
 import { workspaceService } from '../../workspace/services/workspaceService';
-import type { Task, TaskStatus } from '../services/taskService';
+import type { Task, TaskStatus, TaskPriority } from '../types/task.types';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { Modal } from '../../../components/ui/Modal';
 import { TaskColumn } from '../components/TaskColumn';
 import { TaskCard } from '../components/TaskCard';
 import { TaskDetailSlideOver } from '../components/TaskDetailSlideOver';
@@ -36,9 +37,19 @@ export const TaskBoardPage = () => {
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskDesc, setNewTaskDesc] = useState('');
+    const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('MEDIUM');
+    const [newTaskDeadline, setNewTaskDeadline] = useState('');
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const [newTaskAssigneeId, setNewTaskAssigneeId] = useState(user?.id || '');
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        })
+    );
 
     const { data: members } = useQuery({
         queryKey: ['workspaceMembers', workspaceId],
@@ -47,13 +58,15 @@ export const TaskBoardPage = () => {
     });
 
     const createMutation = useMutation({
-        mutationFn: (payload: { title: string; description?: string; priority: 'MEDIUM'; assigneeId: string }) => 
+        mutationFn: (payload: { title: string; description?: string; priority: TaskPriority; deadline?: string; assigneeId?: string | null }) => 
             taskService.create(workspaceId!, projectId!, payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tasks', workspaceId, projectId] });
             setIsModalOpen(false);
             setNewTaskTitle('');
             setNewTaskDesc('');
+            setNewTaskPriority('MEDIUM');
+            setNewTaskDeadline('');
             setNewTaskAssigneeId(user?.id || '');
             toast.success('Task created');
         },
@@ -87,15 +100,12 @@ export const TaskBoardPage = () => {
 
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user?.id) {
-            toast.error('You must be logged in to create a task');
-            return;
-        }
         createMutation.mutate({ 
             title: newTaskTitle, 
             description: newTaskDesc,
-            priority: 'MEDIUM',
-            assigneeId: newTaskAssigneeId
+            priority: newTaskPriority,
+            deadline: newTaskDeadline || undefined,
+            assigneeId: newTaskAssigneeId || null
         });
     };
 
@@ -174,7 +184,7 @@ export const TaskBoardPage = () => {
                         {parseApiError(tasksError, 'Failed to load tasks')}
                     </div>
                 ) : (
-                    <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
+                    <DndContext sensors={sensors} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
                         <div className="flex gap-6 h-full items-start">
                             {statuses.map(status => (
                                 <TaskColumn key={status} status={status}>
@@ -199,46 +209,65 @@ export const TaskBoardPage = () => {
                 )}
             </main>
 
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-stripe-hover animate-[fadeIn_0.2s_ease-out]">
-                        <h2 className="text-xl font-bold mb-4 text-stripe-textDark">Create Task</h2>
-                        <form onSubmit={handleCreate}>
-                            <Input 
-                                label="Task Title" 
-                                value={newTaskTitle} 
-                                onChange={e => setNewTaskTitle(e.target.value)} 
-                                required 
-                                autoFocus
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Task">
+                <form onSubmit={handleCreate}>
+                    <Input 
+                        label="Task Title" 
+                        value={newTaskTitle} 
+                        onChange={e => setNewTaskTitle(e.target.value)} 
+                        required 
+                        autoFocus
+                    />
+                    <Input 
+                        label="Description (optional)" 
+                        value={newTaskDesc} 
+                        onChange={e => setNewTaskDesc(e.target.value)} 
+                    />
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                            <select
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary sm:text-sm p-2 border outline-none bg-gray-50 hover:bg-gray-100 transition-colors"
+                                value={newTaskPriority}
+                                onChange={(e) => setNewTaskPriority(e.target.value as TaskPriority)}
+                            >
+                                <option value="LOW">Low</option>
+                                <option value="MEDIUM">Medium</option>
+                                <option value="HIGH">High</option>
+                                <option value="URGENT">Urgent</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+                            <input
+                                type="date"
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary sm:text-sm p-2 border outline-none bg-gray-50 hover:bg-gray-100 transition-colors"
+                                value={newTaskDeadline}
+                                onChange={(e) => setNewTaskDeadline(e.target.value)}
                             />
-                            <Input 
-                                label="Description (optional)" 
-                                value={newTaskDesc} 
-                                onChange={e => setNewTaskDesc(e.target.value)} 
-                            />
-                            <div className="mt-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Assignee</label>
-                                <select
-                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary sm:text-sm p-2 border outline-none bg-gray-50 hover:bg-gray-100 transition-colors"
-                                    value={newTaskAssigneeId}
-                                    onChange={(e) => setNewTaskAssigneeId(e.target.value)}
-                                >
-                                    <option value="">Select Assignee</option>
-                                    {members?.map(member => (
-                                        <option key={member.userId} value={member.userId}>
-                                            {member.email}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="flex justify-end gap-3 mt-6">
-                                <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                                <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
-                            </div>
-                        </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                    <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Assignee</label>
+                        <select
+                            className="w-full rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary sm:text-sm p-2 border outline-none bg-gray-50 hover:bg-gray-100 transition-colors"
+                            value={newTaskAssigneeId}
+                            onChange={(e) => setNewTaskAssigneeId(e.target.value)}
+                        >
+                            <option value="">Unassigned</option>
+                            {members?.map(member => (
+                                <option key={member.userId} value={member.userId}>
+                                    {member.email}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex justify-end gap-3 mt-6">
+                        <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                        <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
+                    </div>
+                </form>
+            </Modal>
 
             <TaskDetailSlideOver 
                 isOpen={!!selectedTask} 

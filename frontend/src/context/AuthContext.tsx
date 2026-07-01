@@ -3,22 +3,19 @@ import type { ReactNode } from 'react';
 import { setAuthToken } from '../lib/axios';
 import type { User, AuthResponse } from '../features/auth/types/auth.types';
 import { AuthContext } from './authContextValue';
+import { storage } from '../lib/storage';
 
 const getStoredUser = (): User | null => {
-  const storedToken = localStorage.getItem('token');
-  const storedUser = localStorage.getItem('user');
+  const token = storage.getToken();
+  const user = storage.getUser();
 
-  if (!storedToken || !storedUser) return null;
-
-  try {
-    const parsedUser = JSON.parse(storedUser) as User;
-    setAuthToken(storedToken);
-    return parsedUser;
-  } catch {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  if (!token || !user) {
+    storage.clearAuth();
     return null;
   }
+
+  setAuthToken(token);
+  return user;
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -27,15 +24,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = (data: AuthResponse) => {
     setUser(data.user);
     setAuthToken(data.token);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    storage.setToken(data.token);
+    storage.setUser(data.user);
   };
 
   const logout = () => {
     setUser(null);
     setAuthToken(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    storage.clearAuth();
   };
 
   return (

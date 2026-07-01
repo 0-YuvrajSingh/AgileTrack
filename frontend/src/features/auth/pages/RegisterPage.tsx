@@ -1,26 +1,27 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { useAuth } from '../hooks/useAuth';
 import { authService } from '../services/authService';
+import type { RegisterRequest } from '../types/auth.types';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { parseApiError } from '../../../lib/utils';
 import toast from 'react-hot-toast';
 
 export const RegisterPage = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
     const { login } = useAuth();
     const navigate = useNavigate();
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const { register, handleSubmit, formState: { errors } } = useForm<RegisterRequest>();
+
+    const onSubmit = async (data: RegisterRequest) => {
         setIsLoading(true);
         try {
-            const data = await authService.register({ email, password });
-            login(data);
+            const res = await authService.register(data);
+            login(res);
             toast.success('Account created successfully!');
             navigate('/dashboard');
         } catch (err: unknown) {
@@ -38,20 +39,21 @@ export const RegisterPage = () => {
                 </div>
                 
                 <div className="bg-white rounded-xl shadow-stripe border border-stripe-border p-8">
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit(onSubmit)}>
                         <Input 
                             label="Email address" 
                             type="email" 
-                            value={email} 
-                            onChange={(e) => setEmail(e.target.value)} 
-                            required 
+                            error={errors.email?.message}
+                            {...register('email', { required: 'Email is required' })}
                         />
                         <Input 
                             label="Password" 
                             type="password" 
-                            value={password} 
-                            onChange={(e) => setPassword(e.target.value)} 
-                            required 
+                            error={errors.password?.message}
+                            {...register('password', { 
+                                required: 'Password is required',
+                                minLength: { value: 6, message: 'Password must be at least 6 characters' }
+                            })}
                         />
                         <div className="mt-6">
                             <Button type="submit" className="w-full" isLoading={isLoading}>
