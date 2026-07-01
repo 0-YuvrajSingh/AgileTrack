@@ -1,21 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, createContext } from 'react';
 import type { ReactNode } from 'react';
-import { setAuthToken } from '../lib/axios';
-import type { User, AuthResponse } from '../features/auth/types/auth.types';
-import { AuthContext } from './authContextValue';
-import { storage } from '../lib/storage';
+import type { User, AuthResponse, AuthContextType } from '../types';
+
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 const getStoredUser = (): User | null => {
-  const token = storage.getToken();
-  const user = storage.getUser();
+  const token = localStorage.getItem('jwt_token');
+  const userStr = localStorage.getItem('user');
 
-  if (!token || !user) {
-    storage.clearAuth();
+  if (!token || !userStr) {
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('user');
     return null;
   }
-
-  setAuthToken(token);
-  return user;
+  
+  try {
+    return JSON.parse(userStr) as User;
+  } catch {
+    return null;
+  }
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -23,19 +26,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = (data: AuthResponse) => {
     setUser(data.user);
-    setAuthToken(data.token);
-    storage.setToken(data.token);
-    storage.setUser(data.user);
+    localStorage.setItem('jwt_token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
   };
 
   const logout = () => {
     setUser(null);
-    setAuthToken(null);
-    storage.clearAuth();
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
