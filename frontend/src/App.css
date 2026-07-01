@@ -1,6 +1,0 @@
-/* App level global classes, if needed */
-.app-container {
-  display: flex;
-  min-height: 100vh;
-  background-color: var(--bg-tertiary);
-}

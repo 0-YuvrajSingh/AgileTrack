@@ -1,16 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useContext } from 'react';
-import { AuthContext } from './context/AuthContext';
-
-// Placeholders until you move your real UI files here
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-    const auth = useContext(AuthContext);
-    if (!auth?.isAuthenticated) return <Navigate to="/login" replace />;
-    return <>{children}</>;
-};
+import { ProtectedRoute } from './components/layout/ProtectedRoute';
 
 function App() {
     return (

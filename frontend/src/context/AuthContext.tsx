@@ -6,11 +6,11 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 const getStoredUser = (): User | null => {
   const token = localStorage.getItem('jwt_token');
-  const userStr = localStorage.getItem('user');
+  const userStr = localStorage.getItem('user_data');
 
   if (!token || !userStr) {
     localStorage.removeItem('jwt_token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('user_data');
     return null;
   }
   
@@ -27,13 +27,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = (data: AuthResponse) => {
     setUser(data.user);
     localStorage.setItem('jwt_token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem('user_data', JSON.stringify(data.user));
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('jwt_token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('user_data');
   };
 
   return (
