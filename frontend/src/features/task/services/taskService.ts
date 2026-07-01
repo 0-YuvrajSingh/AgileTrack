@@ -1,13 +1,27 @@
 import { api } from '../../../lib/axios';
 
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
 export interface Task {
   id: string;
-  key: string;
   title: string;
   description: string;
-  status: string;
-  priority: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  deadline?: string | null;
   projectId: string;
+  assigneeId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  position: number;
+}
+
+export interface TaskUpdatePayload {
+  title: string;
+  description?: string;
+  priority: TaskPriority;
+  deadline?: string | null;
   assigneeId: string;
 }
 
@@ -16,15 +30,15 @@ export const taskService = {
     const { data } = await api.get<Task[]>(`/workspaces/${workspaceId}/projects/${projectId}/tasks`);
     return data;
   },
-  create: async (workspaceId: string, projectId: string, payload: { title: string; description?: string; priority: string; assigneeId: string }): Promise<Task> => {
+  create: async (workspaceId: string, projectId: string, payload: { title: string; description?: string; priority: TaskPriority; assigneeId: string }): Promise<Task> => {
     const { data } = await api.post<Task>(`/workspaces/${workspaceId}/projects/${projectId}/tasks`, payload);
     return data;
   },
-  updateStatus: async (workspaceId: string, projectId: string, taskId: string, status: string, position?: number): Promise<Task> => {
+  updateStatus: async (workspaceId: string, projectId: string, taskId: string, status: TaskStatus, position?: number): Promise<Task> => {
     const { data } = await api.patch<Task>(`/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}/status`, { status, position });
     return data;
   },
-  update: async (workspaceId: string, projectId: string, taskId: string, payload: { title: string; description?: string; priority: string }): Promise<Task> => {
+  update: async (workspaceId: string, projectId: string, taskId: string, payload: TaskUpdatePayload): Promise<Task> => {
     const { data } = await api.put<Task>(`/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}`, payload);
     return data;
   },

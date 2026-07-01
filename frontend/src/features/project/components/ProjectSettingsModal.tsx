@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '../services/projectService';
 import type { Project } from '../types/project.types';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { parseApiError } from '../../../lib/utils';
 import toast from 'react-hot-toast';
 
@@ -20,19 +21,30 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
     workspaceId,
     project
 }) => {
-    const queryClient = useQueryClient();
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
+    if (!isOpen || !project) return null;
 
-    useEffect(() => {
-        if (project) {
-            setName(project.name);
-            setDescription(project.description || '');
-        }
-    }, [project]);
+    return (
+        <ProjectSettingsModalContent
+            key={project.id}
+            onClose={onClose}
+            workspaceId={workspaceId}
+            project={project}
+        />
+    );
+};
+
+const ProjectSettingsModalContent: React.FC<Omit<ProjectSettingsModalProps, 'isOpen'> & { project: Project }> = ({
+    onClose,
+    workspaceId,
+    project
+}) => {
+    const queryClient = useQueryClient();
+    const [name, setName] = useState(project.name);
+    const [description, setDescription] = useState(project.description || '');
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
     const updateMutation = useMutation({
-        mutationFn: () => projectService.update(workspaceId, project!.id, { name, description }),
+        mutationFn: () => projectService.update(workspaceId, project.id, { name, description }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['projects', workspaceId] });
             toast.success('Project updated');
@@ -42,7 +54,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
     });
 
     const deleteMutation = useMutation({
-        mutationFn: () => projectService.delete(workspaceId, project!.id),
+        mutationFn: () => projectService.delete(workspaceId, project.id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['projects', workspaceId] });
             toast.success('Project deleted');
@@ -50,8 +62,6 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
         },
         onError: (err) => toast.error(parseApiError(err, 'Failed to delete project'))
     });
-
-    if (!isOpen || !project) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -82,11 +92,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
                         <Button 
                             type="button" 
                             variant="danger" 
-                            onClick={() => {
-                                if (window.confirm('Are you sure you want to delete this project? All associated tasks will be lost.')) {
-                                    deleteMutation.mutate();
-                                }
-                            }}
+                            onClick={() => setIsDeleteConfirmOpen(true)}
                             isLoading={deleteMutation.isPending}
                         >
                             Delete
@@ -102,6 +108,16 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
                     </div>
                 </form>
             </div>
+            <ConfirmDialog
+                isOpen={isDeleteConfirmOpen}
+                title="Delete project"
+                message="All tasks in this project will be permanently removed."
+                confirmLabel="Delete"
+                isDestructive
+                isLoading={deleteMutation.isPending}
+                onCancel={() => setIsDeleteConfirmOpen(false)}
+                onConfirm={() => deleteMutation.mutate()}
+            />
         </div>
     );
 };

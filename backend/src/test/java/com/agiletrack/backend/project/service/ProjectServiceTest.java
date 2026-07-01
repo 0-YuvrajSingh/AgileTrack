@@ -66,7 +66,7 @@ class ProjectServiceTest {
 
     @Test
     void getProject_NotFound_ThrowsException() {
-        when(workspaceService.getOwnedWorkspace(workspaceId)).thenReturn(testWorkspace);
+        when(workspaceService.getWorkspaceIfMember(workspaceId)).thenReturn(testWorkspace);
         when(projectRepository.findByIdAndWorkspaceId(projectId, workspaceId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> projectService.getProject(workspaceId, projectId))

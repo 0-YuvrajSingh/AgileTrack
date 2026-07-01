@@ -40,7 +40,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
             style={style}
             className={`bg-stripe-surface border border-stripe-border rounded-md p-4 shadow-sm hover:shadow-stripe cursor-grab transition-all ${isDragging ? 'shadow-lg border-stripe-primary' : ''} ${isOver ? 'border-indigo-400 bg-indigo-50' : ''}`}
         >
-            <div className="text-xs text-stripe-textLight mb-1">{task.key}</div>
+            <div className="text-xs text-stripe-textLight mb-1">{task.priority}</div>
             <h3 className="font-medium text-stripe-textDark text-sm">{task.title}</h3>
         </article>
     );

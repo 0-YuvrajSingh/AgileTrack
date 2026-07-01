@@ -23,7 +23,7 @@ export const RegisterPage = () => {
             login(data);
             toast.success('Account created successfully!');
             navigate('/dashboard');
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(parseApiError(err, 'Registration failed'));
         } finally {
             setIsLoading(false);

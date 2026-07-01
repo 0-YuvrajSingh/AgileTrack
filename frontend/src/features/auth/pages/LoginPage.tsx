@@ -23,7 +23,7 @@ export const LoginPage = () => {
             const res = await authService.login({ email, password });
             login(res);
             navigate('/dashboard');
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(parseApiError(err, 'Login failed'));
         } finally {
             setIsLoading(false);

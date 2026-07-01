@@ -57,5 +57,6 @@ public class Task extends BaseEntity {
     private LocalDateTime deadline;
 
     @Column(nullable = false)
+    @Builder.Default
     private Double position = 0.0;
 }

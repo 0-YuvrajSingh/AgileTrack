@@ -45,7 +45,9 @@ export const WorkspaceListPage = () => {
             {isLoading ? (
                 <div className="flex justify-center p-12 text-stripe-textLight">Loading workspaces...</div>
             ) : error ? (
-                <div className="p-4 bg-red-50 text-red-600 rounded-md">Failed to load workspaces.</div>
+                <div className="rounded-md border border-red-100 bg-red-50 p-4 text-sm text-stripe-error">
+                    {parseApiError(error, 'Failed to load workspaces')}
+                </div>
             ) : workspaces && workspaces.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {workspaces.map(ws => (

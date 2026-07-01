@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { workspaceService } from '../services/workspaceService';
 import type { Workspace } from '../types/workspace.types';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { parseApiError } from '../../../lib/utils';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -19,17 +20,26 @@ export const WorkspaceSettingsModal: React.FC<WorkspaceSettingsModalProps> = ({
     onClose,
     workspace
 }) => {
+    if (!isOpen) return null;
+
+    return (
+        <WorkspaceSettingsModalContent
+            key={workspace.id}
+            onClose={onClose}
+            workspace={workspace}
+        />
+    );
+};
+
+const WorkspaceSettingsModalContent: React.FC<Omit<WorkspaceSettingsModalProps, 'isOpen'>> = ({
+    onClose,
+    workspace
+}) => {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-
-    useEffect(() => {
-        if (workspace) {
-            setName(workspace.name);
-            setDescription(workspace.description || '');
-        }
-    }, [workspace]);
+    const [name, setName] = useState(workspace.name);
+    const [description, setDescription] = useState(workspace.description || '');
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
     const updateMutation = useMutation({
         mutationFn: () => workspaceService.update(workspace.id, { name, description }),
@@ -51,8 +61,6 @@ export const WorkspaceSettingsModal: React.FC<WorkspaceSettingsModalProps> = ({
         },
         onError: (err) => toast.error(parseApiError(err, 'Failed to delete workspace'))
     });
-
-    if (!isOpen) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -83,11 +91,7 @@ export const WorkspaceSettingsModal: React.FC<WorkspaceSettingsModalProps> = ({
                         <Button 
                             type="button" 
                             variant="danger" 
-                            onClick={() => {
-                                if (window.confirm('Are you absolutely sure you want to delete this workspace? This action cannot be undone.')) {
-                                    deleteMutation.mutate();
-                                }
-                            }}
+                            onClick={() => setIsDeleteConfirmOpen(true)}
                             isLoading={deleteMutation.isPending}
                         >
                             Delete Workspace
@@ -103,6 +107,16 @@ export const WorkspaceSettingsModal: React.FC<WorkspaceSettingsModalProps> = ({
                     </div>
                 </form>
             </div>
+            <ConfirmDialog
+                isOpen={isDeleteConfirmOpen}
+                title="Delete workspace"
+                message="This workspace and its projects will be permanently removed."
+                confirmLabel="Delete"
+                isDestructive
+                isLoading={deleteMutation.isPending}
+                onCancel={() => setIsDeleteConfirmOpen(false)}
+                onConfirm={() => deleteMutation.mutate()}
+            />
         </div>
     );
 };

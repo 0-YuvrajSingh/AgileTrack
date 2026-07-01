@@ -6,7 +6,7 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { projectService } from '../../project/services/projectService';
 import { taskService } from '../services/taskService';
 import { workspaceService } from '../../workspace/services/workspaceService';
-import type { Task } from '../services/taskService';
+import type { Task, TaskStatus } from '../services/taskService';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { TaskColumn } from '../components/TaskColumn';
@@ -20,20 +20,20 @@ export const TaskBoardPage = () => {
     const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>();
     const navigate = useNavigate();
 
-    const { data: project, isLoading: projLoading } = useQuery({
+    const { data: project, isLoading: projLoading, error: projectError } = useQuery({
         queryKey: ['project', workspaceId, projectId],
         queryFn: () => projectService.getById(workspaceId!, projectId!),
         enabled: !!workspaceId && !!projectId
     });
 
-    const { data: tasks, isLoading: taskLoading } = useQuery({
+    const { data: tasks, isLoading: taskLoading, error: tasksError } = useQuery({
         queryKey: ['tasks', workspaceId, projectId],
         queryFn: () => taskService.getByProjectId(workspaceId!, projectId!),
         enabled: !!workspaceId && !!projectId
     });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskDesc, setNewTaskDesc] = useState('');
     const queryClient = useQueryClient();
@@ -47,7 +47,7 @@ export const TaskBoardPage = () => {
     });
 
     const createMutation = useMutation({
-        mutationFn: (payload: { title: string; description?: string; priority: string; assigneeId: string }) => 
+        mutationFn: (payload: { title: string; description?: string; priority: 'MEDIUM'; assigneeId: string }) => 
             taskService.create(workspaceId!, projectId!, payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tasks', workspaceId, projectId] });
@@ -61,7 +61,7 @@ export const TaskBoardPage = () => {
     });
 
     const updateTaskStatusMutation = useMutation({
-        mutationFn: ({ taskId, status, position }: { taskId: string; status: string, position?: number }) => 
+        mutationFn: ({ taskId, status, position }: { taskId: string; status: TaskStatus, position?: number }) => 
             taskService.updateStatus(workspaceId!, projectId!, taskId, status, position),
         onMutate: async ({ taskId, status, position }) => {
             await queryClient.cancelQueries({ queryKey: ['tasks', workspaceId, projectId] });
@@ -74,7 +74,7 @@ export const TaskBoardPage = () => {
             
             return { previousTasks };
         },
-        onError: (err, newTodo, context) => {
+        onError: (err, _variables, context) => {
             toast.error(parseApiError(err, 'Failed to update task status'));
             if (context?.previousTasks) {
                 queryClient.setQueryData(['tasks', workspaceId, projectId], context.previousTasks);
@@ -104,8 +104,8 @@ export const TaskBoardPage = () => {
         if (!over) return;
 
         const taskId = active.id as string;
-        let newStatus = over.id as string;
-        let newPosition: number | undefined = undefined;
+        let newStatus = over.id as TaskStatus;
+        let newPosition: number | undefined;
 
         const task = tasks?.find(t => t.id === taskId);
         if (!task) return;
@@ -148,9 +148,11 @@ export const TaskBoardPage = () => {
     };
 
     if (projLoading) return <div className="p-12 text-center text-stripe-textLight">Loading project...</div>;
+    if (projectError) return <div className="p-12 text-center text-stripe-error">{parseApiError(projectError, 'Failed to load project')}</div>;
     if (!project) return <div className="p-12 text-center text-stripe-textLight">Project not found.</div>;
 
-    const statuses = ['TODO', 'IN_PROGRESS', 'DONE'];
+    const statuses: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE'];
+    const selectedTask = tasks?.find(task => task.id === selectedTaskId) ?? null;
 
     return (
         <div className="flex flex-col h-screen bg-stripe-bg">
@@ -167,6 +169,10 @@ export const TaskBoardPage = () => {
             <main className="flex-1 overflow-x-auto p-6">
                 {taskLoading ? (
                     <div className="text-stripe-textLight">Loading tasks...</div>
+                ) : tasksError ? (
+                    <div className="rounded-md border border-red-100 bg-red-50 p-4 text-sm text-stripe-error">
+                        {parseApiError(tasksError, 'Failed to load tasks')}
+                    </div>
                 ) : (
                     <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
                         <div className="flex gap-6 h-full items-start">
@@ -178,7 +184,7 @@ export const TaskBoardPage = () => {
                                         <TaskCard 
                                             key={task.id} 
                                             task={task} 
-                                            onClick={() => setSelectedTask(task)} 
+                                            onClick={() => setSelectedTaskId(task.id)} 
                                         />
                                     ))}
                                     {tasks?.filter(t => t.status === status).length === 0 && (
@@ -236,7 +242,7 @@ export const TaskBoardPage = () => {
 
             <TaskDetailSlideOver 
                 isOpen={!!selectedTask} 
-                onClose={() => setSelectedTask(null)} 
+                onClose={() => setSelectedTaskId(null)} 
                 task={selectedTask} 
                 workspaceId={workspaceId!} 
                 projectId={projectId!} 

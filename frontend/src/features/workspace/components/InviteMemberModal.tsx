@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { workspaceService } from '../services/workspaceService';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import type { WorkspaceRole } from '../types/workspace.types';
 import { parseApiError } from '../../../lib/utils';
 import toast from 'react-hot-toast';
 
@@ -19,17 +20,17 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
 }) => {
     const queryClient = useQueryClient();
     const [email, setEmail] = useState('');
-    const [role, setRole] = useState('MEMBER');
+    const [role, setRole] = useState<WorkspaceRole>('MEMBER');
 
     const inviteMutation = useMutation({
         mutationFn: () => workspaceService.inviteMember(workspaceId, { email, role }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['workspace-members', workspaceId] });
+            queryClient.invalidateQueries({ queryKey: ['workspaceMembers', workspaceId] });
             toast.success(`Invitation sent to ${email}`);
             setEmail('');
             onClose();
         },
-        onError: (error: any) => {
+        onError: (error: unknown) => {
             toast.error(parseApiError(error, 'Failed to invite member'));
         }
     });
@@ -64,11 +65,11 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                                 <select
                                     className="w-full px-3 py-2 border border-stripe-border rounded-md focus:outline-none focus:ring-1 focus:ring-stripe-primary focus:border-stripe-primary text-sm bg-white"
                                     value={role}
-                                    onChange={(e) => setRole(e.target.value)}
+                                    onChange={(e) => setRole(e.target.value as WorkspaceRole)}
                                 >
                                     <option value="VIEWER">Viewer (Read-only)</option>
                                     <option value="MEMBER">Member (Can edit tasks)</option>
-                                    <option value="ADMIN">Admin (Can manage projects)</option>
+                                    <option value="OWNER">Owner (Full access)</option>
                                 </select>
                             </div>
                         </div>

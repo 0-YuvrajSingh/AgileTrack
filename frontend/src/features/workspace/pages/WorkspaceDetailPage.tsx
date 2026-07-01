@@ -25,13 +25,13 @@ export const WorkspaceDetailPage = () => {
     const [newProjectName, setNewProjectName] = useState('');
     const [newProjectDesc, setNewProjectDesc] = useState('');
 
-    const { data: workspace, isLoading: wsLoading } = useQuery({
+    const { data: workspace, isLoading: wsLoading, error: workspaceError } = useQuery({
         queryKey: ['workspace', id],
         queryFn: () => workspaceService.getById(id!),
         enabled: !!id
     });
 
-    const { data: projects, isLoading: projLoading } = useQuery({
+    const { data: projects, isLoading: projLoading, error: projectsError } = useQuery({
         queryKey: ['projects', id],
         queryFn: () => projectService.getByWorkspaceId(id!),
         enabled: !!id
@@ -55,11 +55,12 @@ export const WorkspaceDetailPage = () => {
     };
 
     if (wsLoading) return <div className="p-12 text-center text-stripe-textLight">Loading workspace...</div>;
+    if (workspaceError) return <div className="p-12 text-center text-stripe-error">{parseApiError(workspaceError, 'Failed to load workspace')}</div>;
     if (!workspace) return <div className="p-12 text-center text-stripe-textLight">Workspace not found.</div>;
 
     return (
         <div className="max-w-6xl mx-auto px-6 py-12">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col justify-between gap-5 mb-8 lg:flex-row lg:items-center">
                 <div>
                     <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4 text-xs px-0">
                         &larr; Back to Workspaces
@@ -67,7 +68,7 @@ export const WorkspaceDetailPage = () => {
                     <h1 className="text-2xl font-bold text-stripe-textDark">{workspace.name}</h1>
                     <p className="text-sm text-stripe-textLight mt-1">{workspace.description}</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                     <Button variant="secondary" onClick={() => setIsSettingsModalOpen(true)}>Settings</Button>
                     <Button variant="secondary" onClick={() => setIsInviteModalOpen(true)}>Invite Team</Button>
                     <Button onClick={() => setIsModalOpen(true)}>+ New Project</Button>
@@ -78,6 +79,10 @@ export const WorkspaceDetailPage = () => {
             
             {projLoading ? (
                 <div className="text-stripe-textLight text-sm">Loading projects...</div>
+            ) : projectsError ? (
+                <div className="rounded-md border border-red-100 bg-red-50 p-4 text-sm text-stripe-error">
+                    {parseApiError(projectsError, 'Failed to load projects')}
+                </div>
             ) : projects && projects.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {projects.map(p => (

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskService } from '../services/taskService';
 import { workspaceService } from '../../workspace/services/workspaceService';
-import type { Task } from '../services/taskService';
+import type { Task, TaskPriority, TaskStatus, TaskUpdatePayload } from '../services/taskService';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { parseApiError } from '../../../lib/utils';
 import toast from 'react-hot-toast';
 
@@ -23,30 +24,41 @@ export const TaskDetailSlideOver: React.FC<TaskDetailSlideOverProps> = ({
     workspaceId,
     projectId
 }) => {
+    if (!isOpen || !task) return null;
+
+    return (
+        <TaskDetailSlideOverContent
+            key={task.id}
+            onClose={onClose}
+            task={task}
+            workspaceId={workspaceId}
+            projectId={projectId}
+        />
+    );
+};
+
+const TaskDetailSlideOverContent: React.FC<Omit<TaskDetailSlideOverProps, 'isOpen' | 'task'> & { task: Task }> = ({
+    onClose,
+    task,
+    workspaceId,
+    projectId
+}) => {
     const queryClient = useQueryClient();
     const [isEditingDesc, setIsEditingDesc] = useState(false);
-    const [editedTitle, setEditedTitle] = useState('');
-    const [editedDesc, setEditedDesc] = useState('');
-    const [editedPriority, setEditedPriority] = useState('');
-
-    useEffect(() => {
-        if (task) {
-            setEditedTitle(task.title);
-            setEditedDesc(task.description || '');
-            setEditedPriority(task.priority);
-            setIsEditingDesc(false);
-        }
-    }, [task]);
+    const [editedTitle, setEditedTitle] = useState(task.title);
+    const [editedDesc, setEditedDesc] = useState(task.description || '');
+    const [editedPriority, setEditedPriority] = useState(task.priority);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
     const { data: members } = useQuery({
         queryKey: ['workspaceMembers', workspaceId],
         queryFn: () => workspaceService.getMembers(workspaceId),
-        enabled: !!workspaceId && isOpen
+        enabled: !!workspaceId
     });
 
     const updateMutation = useMutation({
-        mutationFn: (payload: { title: string; description?: string; priority: string }) =>
-            taskService.update(workspaceId, projectId, task!.id, payload),
+        mutationFn: (payload: TaskUpdatePayload) =>
+            taskService.update(workspaceId, projectId, task.id, payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tasks', workspaceId, projectId] });
             toast.success('Task updated');
@@ -55,7 +67,7 @@ export const TaskDetailSlideOver: React.FC<TaskDetailSlideOverProps> = ({
     });
 
     const updateStatusMutation = useMutation({
-        mutationFn: (status: string) => taskService.updateStatus(workspaceId, projectId, task!.id, status),
+        mutationFn: (status: TaskStatus) => taskService.updateStatus(workspaceId, projectId, task.id, status),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tasks', workspaceId, projectId] });
             toast.success('Status updated');
@@ -64,7 +76,7 @@ export const TaskDetailSlideOver: React.FC<TaskDetailSlideOverProps> = ({
     });
 
     const deleteMutation = useMutation({
-        mutationFn: () => taskService.delete(workspaceId, projectId, task!.id),
+        mutationFn: () => taskService.delete(workspaceId, projectId, task.id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tasks', workspaceId, projectId] });
             toast.success('Task deleted');
@@ -74,7 +86,7 @@ export const TaskDetailSlideOver: React.FC<TaskDetailSlideOverProps> = ({
     });
 
     const assignMutation = useMutation({
-        mutationFn: (assigneeId: string) => taskService.assign(workspaceId, projectId, task!.id, assigneeId),
+        mutationFn: (assigneeId: string) => taskService.assign(workspaceId, projectId, task.id, assigneeId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tasks', workspaceId, projectId] });
             toast.success('Assignee updated');
@@ -82,13 +94,18 @@ export const TaskDetailSlideOver: React.FC<TaskDetailSlideOverProps> = ({
         onError: (err) => toast.error(parseApiError(err, 'Failed to update assignee'))
     });
 
-    if (!isOpen || !task) return null;
-
     const handleSaveInfo = () => {
+        if (!task.assigneeId) {
+            toast.error('Task must have an assignee');
+            return;
+        }
+
         updateMutation.mutate({
             title: editedTitle,
             description: editedDesc,
-            priority: editedPriority
+            priority: editedPriority,
+            deadline: task.deadline,
+            assigneeId: task.assigneeId
         });
         setIsEditingDesc(false);
     };
@@ -99,7 +116,7 @@ export const TaskDetailSlideOver: React.FC<TaskDetailSlideOverProps> = ({
             <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col animate-[slideInRight_0.2s_ease-out]">
                 <header className="px-6 py-4 border-b border-stripe-border flex justify-between items-start">
                     <div>
-                        <div className="text-xs font-semibold text-stripe-textLight mb-1">{task.key}</div>
+                        <div className="text-xs font-semibold text-stripe-textLight mb-1">{task.status.replace('_', ' ')}</div>
                         <Input
                             className="text-xl font-bold text-stripe-textDark !px-2 !py-1 -ml-2 !border-transparent hover:!border-stripe-border focus:!border-stripe-primary focus:!bg-white bg-transparent shadow-none"
                             value={editedTitle}
@@ -120,7 +137,7 @@ export const TaskDetailSlideOver: React.FC<TaskDetailSlideOverProps> = ({
                         <select
                             className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary text-sm p-2 bg-gray-50 hover:bg-gray-100 transition-colors border outline-none"
                             value={task.status}
-                            onChange={(e) => updateStatusMutation.mutate(e.target.value)}
+                            onChange={(e) => updateStatusMutation.mutate(e.target.value as TaskStatus)}
                             disabled={updateStatusMutation.isPending}
                         >
                             <option value="TODO">To Do</option>
@@ -135,8 +152,17 @@ export const TaskDetailSlideOver: React.FC<TaskDetailSlideOverProps> = ({
                             className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-stripe-primary focus:ring-stripe-primary text-sm p-2 bg-gray-50 hover:bg-gray-100 transition-colors border outline-none"
                             value={editedPriority}
                             onChange={(e) => {
-                                setEditedPriority(e.target.value);
-                                updateMutation.mutate({ title: editedTitle, description: editedDesc, priority: e.target.value });
+                                const priority = e.target.value as TaskPriority;
+                                setEditedPriority(priority);
+                                if (task.assigneeId) {
+                                    updateMutation.mutate({
+                                        title: editedTitle,
+                                        description: editedDesc,
+                                        priority,
+                                        deadline: task.deadline,
+                                        assigneeId: task.assigneeId
+                                    });
+                                }
                             }}
                         >
                             <option value="LOW">Low</option>
@@ -197,16 +223,22 @@ export const TaskDetailSlideOver: React.FC<TaskDetailSlideOverProps> = ({
                     <Button 
                         variant="danger" 
                         isLoading={deleteMutation.isPending}
-                        onClick={() => {
-                            if (window.confirm('Are you sure you want to delete this task?')) {
-                                deleteMutation.mutate();
-                            }
-                        }}
+                        onClick={() => setIsDeleteConfirmOpen(true)}
                     >
                         Delete Task
                     </Button>
                 </div>
             </div>
+            <ConfirmDialog
+                isOpen={isDeleteConfirmOpen}
+                title="Delete task"
+                message="This task will be permanently removed from the board."
+                confirmLabel="Delete"
+                isDestructive
+                isLoading={deleteMutation.isPending}
+                onCancel={() => setIsDeleteConfirmOpen(false)}
+                onConfirm={() => deleteMutation.mutate()}
+            />
         </>
     );
 };

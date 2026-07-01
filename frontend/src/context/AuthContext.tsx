@@ -1,35 +1,28 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { ReactNode } from 'react';
 import { setAuthToken } from '../lib/axios';
 import type { User, AuthResponse } from '../features/auth/types/auth.types';
+import { AuthContext } from './authContextValue';
 
-interface AuthContextType {
-  user: User | null;
-  login: (data: AuthResponse) => void;
-  logout: () => void;
-}
+const getStoredUser = (): User | null => {
+  const storedToken = localStorage.getItem('token');
+  const storedUser = localStorage.getItem('user');
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+  if (!storedToken || !storedUser) return null;
+
+  try {
+    const parsedUser = JSON.parse(storedUser) as User;
+    setAuthToken(storedToken);
+    return parsedUser;
+  } catch {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    return null;
+  }
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    // Rehydrate on mount
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setAuthToken(storedToken);
-      } catch (e) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
-    }
-  }, []);
+  const [user, setUser] = useState<User | null>(() => getStoredUser());
 
   const login = (data: AuthResponse) => {
     setUser(data.user);

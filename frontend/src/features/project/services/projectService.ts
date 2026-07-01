@@ -1,5 +1,5 @@
 import { api } from '../../../lib/axios';
-import type { Project } from '../types/project.types';
+import type { Project, ProjectStatus } from '../types/project.types';
 
 export const projectService = {
   getByWorkspaceId: async (workspaceId: string): Promise<Project[]> => {
@@ -14,7 +14,7 @@ export const projectService = {
     const { data } = await api.post<Project>(`/workspaces/${workspaceId}/projects`, payload);
     return data;
   },
-  update: async (workspaceId: string, projectId: string, payload: { name: string; description?: string; status?: string }): Promise<Project> => {
+  update: async (workspaceId: string, projectId: string, payload: { name: string; description?: string; status?: ProjectStatus }): Promise<Project> => {
     const { data } = await api.put<Project>(`/workspaces/${workspaceId}/projects/${projectId}`, payload);
     return data;
   },
