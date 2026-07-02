@@ -13,8 +13,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   const location = useLocation();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -48,6 +48,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 className="flex items-center space-x-1.5 text-sm hover:text-gray-200 transition focus:outline-none"
+                aria-label="Open profile menu"
+                aria-expanded={profileDropdownOpen}
               >
                 <div className="w-7 h-7 bg-cf-orange text-white text-xs font-bold rounded-full flex items-center justify-center uppercase">
                   {user?.email ? user.email.slice(0, 2) : 'US'}
@@ -68,6 +70,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
                         handleLogout();
                       }}
                       className="w-full text-left flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-cf-bgLight transition"
+                      aria-label="Log out"
                     >
                       <LogOut size={16} />
                       <span>Log Out</span>

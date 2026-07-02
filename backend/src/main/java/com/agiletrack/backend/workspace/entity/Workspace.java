@@ -11,7 +11,10 @@ import java.util.UUID;
 @Setter
 @Builder
 @Entity
-@Table(name = "workspaces")
+@Table(
+        name = "workspaces",
+        indexes = @Index(name = "idx_workspaces_owner_id", columnList = "owner_id")
+)
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)

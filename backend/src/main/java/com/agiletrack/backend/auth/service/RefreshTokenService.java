@@ -53,6 +53,25 @@ public class RefreshTokenService {
     }
 
     @Transactional
+    public RefreshToken rotateRefreshToken(RefreshToken token) {
+        User user = token.getUser();
+        refreshTokenRepository.delete(token);
+
+        RefreshToken refreshToken = RefreshToken.builder()
+                .user(user)
+                .token(UUID.randomUUID().toString())
+                .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
+                .build();
+
+        return refreshTokenRepository.save(refreshToken);
+    }
+
+    @Transactional
+    public void deleteByToken(String token) {
+        refreshTokenRepository.deleteByToken(token);
+    }
+
+    @Transactional
     public void deleteByUserId(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));

@@ -28,9 +28,11 @@ public class User extends BaseEntity {
     @ToString.Include
     private String email;
 
+    @Column(nullable = false)
     private String password;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     @ToString.Include
     private Role role;
 }

@@ -42,6 +42,7 @@ public class ProjectService {
         return projectMapper.toResponse(project);
     }
 
+    @Transactional(readOnly = true)
     public Page<ProjectResponse> getProjectsByWorkspace(UUID workspaceId, String search, Pageable pageable) {
         workspaceService.getWorkspaceIfMember(workspaceId);
 
@@ -55,6 +56,7 @@ public class ProjectService {
         return projects.map(projectMapper::toResponse);
     }
 
+    @Transactional(readOnly = true)
     public ProjectResponse getProjectById(UUID workspaceId, UUID id) {
         Project project = getProject(workspaceId, id);
         return projectMapper.toResponse(project);
@@ -62,7 +64,7 @@ public class ProjectService {
 
     @Transactional
     public ProjectResponse updateProject(UUID workspaceId, UUID id, @Valid UpdateProjectRequest request) {
-        Workspace workspace = workspaceService.getWorkspaceForMutation(workspaceId);
+        workspaceService.getWorkspaceForMutation(workspaceId);
         Project project = getProject(workspaceId, id);
 
         project.setName(request.name());
@@ -72,7 +74,7 @@ public class ProjectService {
 
     @Transactional
     public ProjectResponse updateProjectStatus(UUID workspaceId, UUID id, @Valid UpdateProjectStatusRequest request) {
-        Workspace workspace = workspaceService.getWorkspaceForMutation(workspaceId);
+        workspaceService.getWorkspaceForMutation(workspaceId);
         Project project = getProject(workspaceId, id);
 
         project.setStatus(request.status());
@@ -81,12 +83,13 @@ public class ProjectService {
 
     @Transactional
     public void deleteProject(UUID workspaceId, UUID id) {
-        Workspace workspace = workspaceService.getWorkspaceForMutation(workspaceId);
+        workspaceService.getWorkspaceForMutation(workspaceId);
         Project project = getProject(workspaceId, id);
 
         projectRepository.delete(project);
     }
 
+    @Transactional(readOnly = true)
     public Project getProject(UUID workspaceId, UUID projectId) {
         workspaceService.getWorkspaceIfMember(workspaceId);
         return projectRepository.findByIdAndWorkspaceId(projectId, workspaceId)

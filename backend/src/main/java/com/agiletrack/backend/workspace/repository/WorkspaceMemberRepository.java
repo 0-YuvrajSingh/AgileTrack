@@ -1,6 +1,7 @@
 package com.agiletrack.backend.workspace.repository;
 
 import com.agiletrack.backend.workspace.entity.WorkspaceMember;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,11 +12,13 @@ import java.util.UUID;
 @Repository
 public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember, UUID> {
 
+    @EntityGraph(attributePaths = {"workspace", "workspace.owner"})
     List<WorkspaceMember> findByUserId(UUID userId);
 
     Optional<WorkspaceMember> findByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
 
     boolean existsByWorkspaceIdAndUserId(UUID workspaceId, UUID userId);
 
+    @EntityGraph(attributePaths = "user")
     List<WorkspaceMember> findByWorkspaceId(UUID workspaceId);
 }

@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiClient } from '../api/axios';
-import type { Workspace } from '../types';
+import { getApiErrorMessage } from '../api/axios';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -10,31 +9,16 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { FolderPlus, ArrowRight, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useWorkspaces } from '../hooks/useWorkspaces';
+import { workspaceService } from '../services/workspaceService';
 
 export const WorkspaceList: React.FC = () => {
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { workspaces, loading, error, refetch } = useWorkspaces();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
-
-  const fetchWorkspaces = async () => {
-    try {
-      const response = await apiClient.get<Workspace[]>('/workspaces');
-      setWorkspaces(response.data);
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to load workspaces');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchWorkspaces();
-  }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,15 +26,15 @@ export const WorkspaceList: React.FC = () => {
 
     setCreating(true);
     try {
-      await apiClient.post<Workspace>('/workspaces', { name, description });
+      await workspaceService.create({ name, description });
       toast.success('Workspace created successfully!');
-      await fetchWorkspaces();
+      await refetch();
       setShowCreateModal(false);
       setName('');
       setDescription('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to create workspace.');
+      toast.error(getApiErrorMessage(err, 'Failed to create workspace.'));
     } finally {
       setCreating(false);
     }
@@ -60,12 +44,12 @@ export const WorkspaceList: React.FC = () => {
     if (!deleteDialog.id) return;
 
     try {
-      await apiClient.delete(`/workspaces/${deleteDialog.id}`);
+      await workspaceService.remove(deleteDialog.id);
       toast.success('Workspace deleted successfully');
-      await fetchWorkspaces();
-    } catch (err: any) {
+      await refetch();
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to delete workspace.');
+      toast.error(getApiErrorMessage(err, 'Failed to delete workspace.'));
     } finally {
       setDeleteDialog({ isOpen: false, id: null });
     }
@@ -90,6 +74,20 @@ export const WorkspaceList: React.FC = () => {
             </div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <EmptyState
+          icon={FolderPlus}
+          title="Workspaces could not load"
+          description={getApiErrorMessage(error, 'Something went wrong while loading workspaces.')}
+          actionLabel="Try Again"
+          onAction={refetch}
+        />
       </div>
     );
   }
@@ -133,7 +131,7 @@ export const WorkspaceList: React.FC = () => {
                     <button
                       onClick={() => setDeleteDialog({ isOpen: true, id: ws.id })}
                       className="text-cf-textMuted hover:text-red-600 transition p-1 hover:bg-white rounded"
-                      title="Delete Workspace"
+                      aria-label={`Delete workspace ${ws.name}`}
                     >
                       <Trash2 size={15} />
                     </button>

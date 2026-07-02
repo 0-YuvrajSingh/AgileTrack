@@ -4,6 +4,20 @@ export interface User {
   role: string;
 }
 
+export interface AuthResponse {
+  token: string;
+  refreshToken: string;
+  user: User;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
 export interface Workspace {
   id: string;
   name: string;

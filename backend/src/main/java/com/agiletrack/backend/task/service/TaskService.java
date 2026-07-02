@@ -81,13 +81,13 @@ public class TaskService {
     public TaskResponse updateTask(UUID workspaceId, UUID projectId, UUID taskId, UpdateTaskRequest request) {
         requireMutationAccess(workspaceId);
         Task task = getTask(workspaceId, projectId, taskId);
-        User assignee = getValidatedAssignee(workspaceId, request.assigneeId());
-
         task.setTitle(request.title());
         task.setDescription(request.description());
         task.setPriority(request.priority());
         task.setDeadline(request.deadline());
-        task.setAssignee(assignee);
+        task.setAssignee(request.assigneeId() != null
+                ? getValidatedAssignee(workspaceId, request.assigneeId())
+                : null);
 
         return taskMapper.toResponse(task);
     }

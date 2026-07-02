@@ -74,6 +74,13 @@ public class GlobalExceptionHandler {
                 return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
         }
 
+        @ExceptionHandler(TokenRefreshException.class)
+        public ResponseEntity<ErrorResponse> handleTokenRefresh(
+                        TokenRefreshException ex,
+                        HttpServletRequest request) {
+                return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+        }
+
         @ExceptionHandler(AccessDeniedException.class)
         public ResponseEntity<ErrorResponse> handleAccessDenied(
                         AccessDeniedException ex,

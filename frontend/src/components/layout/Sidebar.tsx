@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { apiClient } from '../../api/axios';
-import type { Workspace } from '../../types';
 import { X, LayoutDashboard, FolderKanban } from 'lucide-react';
+import { useWorkspaces } from '../../hooks/useWorkspaces';
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -14,32 +13,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose }) => {
   const location = useLocation();
   const { workspaceId } = useParams<{ workspaceId?: string }>();
   
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
-
-  useEffect(() => {
-    // Fetch workspaces to list in switcher
-    apiClient.get<Workspace[]>('/workspaces')
-      .then((res) => {
-        setWorkspaces(res.data);
-        if (workspaceId) {
-          const ws = res.data.find(w => w.id === workspaceId);
-          if (ws) setSelectedWorkspace(ws);
-        }
-      })
-      .catch((err) => console.error('Failed to load workspaces in sidebar', err));
-  }, [workspaceId]);
-
-  useEffect(() => {
-    if (workspaceId && workspaces.length > 0) {
-      const ws = workspaces.find(w => w.id === workspaceId);
-      if (ws) {
-        setSelectedWorkspace(ws);
-      }
-    } else if (!workspaceId) {
-      setSelectedWorkspace(null);
-    }
-  }, [workspaceId, workspaces]);
+  const { workspaces } = useWorkspaces();
+  const selectedWorkspace = useMemo(
+    () => workspaces.find(w => w.id === workspaceId) || null,
+    [workspaceId, workspaces]
+  );
 
   const handleWorkspaceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
@@ -120,7 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose }) => {
           <div className="relative w-64 bg-cf-navy text-white flex flex-col z-10 shadow-2xl">
             <div className="p-4 flex items-center justify-between border-b border-cf-navyDark">
               <span className="font-bold text-base text-cf-orange">Navigation</span>
-              <button onClick={onClose} className="text-gray-400 hover:text-white">
+              <button onClick={onClose} className="text-gray-400 hover:text-white" aria-label="Close navigation menu">
                 <X size={20} />
               </button>
             </div>

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { apiClient } from '../api/axios';
+import { apiClient, getApiErrorMessage } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import type { Project, Task, TaskPriority, TaskStatus, Workspace } from '../types';
+import type { PageResponse, Project, Task, TaskPriority, TaskStatus, Workspace } from '../types';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -12,13 +12,18 @@ import { toast } from 'react-hot-toast';
 const STATUSES: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
 const PRIORITIES: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
 
+const sortTasks = (items: Task[]) => {
+  return [...items].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+};
+
+const formatLocalDateTimeForInput = (value: string) => value.slice(0, 16);
+
 export const TaskBoard: React.FC = () => {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>();
   const { user } = useAuth();
   
   const [project, setProject] = useState<Project | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -43,71 +48,48 @@ export const TaskBoard: React.FC = () => {
   // Drag state
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
 
-  const fetchTasks = async (targetWorkspaceId = workspaceId) => {
-    if (!targetWorkspaceId || !projectId) {
+  const fetchTasks = useCallback(async () => {
+    if (!workspaceId || !projectId) {
       return;
     }
 
-    const tasksRes = await apiClient.get<any>(`/workspaces/${targetWorkspaceId}/projects/${projectId}/tasks`, {
-      params: { search: debouncedSearch }
+    const tasksRes = await apiClient.get<PageResponse<Task>>(`/workspaces/${workspaceId}/projects/${projectId}/tasks`, {
+      params: { search: debouncedSearch, sort: 'position,asc' }
     });
-    setTasks(tasksRes.data.content || []);
-  };
+    setTasks(sortTasks(tasksRes.data.content));
+  }, [workspaceId, projectId, debouncedSearch]);
 
-  const resolveWorkspaceAndLoad = async () => {
+  const loadBoard = useCallback(async () => {
+    if (!workspaceId || !projectId) {
+      return;
+    }
+
     try {
-      // Find workspace that owns this project by listing workspaces and searching their projects
-      const wsRes = await apiClient.get<Workspace[]>('/workspaces');
-      let foundWorkspace = null;
-      let foundWorkspaceId = null;
-      let foundProject = null;
-      
-      for (const ws of wsRes.data) {
-        try {
-          const projsRes = await apiClient.get<Project[]>(`/workspaces/${ws.id}/projects`);
-          const match = projsRes.data.find(p => p.id === projectId);
-          if (match) {
-            foundWorkspace = ws;
-            foundWorkspaceId = ws.id;
-            foundProject = match;
-            break;
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      if (!foundWorkspaceId || !foundProject) {
-        toast.error('Project not found in any workspace');
-        setLoading(false);
-        return;
-      }
-
-      setWorkspaceId(foundWorkspaceId);
-      setWorkspace(foundWorkspace);
-      setProject(foundProject);
-
-      // Fetch tasks in this project
-      await fetchTasks(foundWorkspaceId);
+      const [wsRes, projectRes] = await Promise.all([
+        apiClient.get<Workspace>(`/workspaces/${workspaceId}`),
+        apiClient.get<Project>(`/workspaces/${workspaceId}/projects/${projectId}`)
+      ]);
+      setWorkspace(wsRes.data);
+      setProject(projectRes.data);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load task board data');
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    if (projectId) {
-      resolveWorkspaceAndLoad();
-    }
-  }, [projectId]);
+  }, [workspaceId, projectId]);
 
   useEffect(() => {
     if (workspaceId && projectId) {
+      loadBoard();
+    }
+  }, [workspaceId, projectId, loadBoard]);
+
+  useEffect(() => {
+    if (workspaceId && projectId && !loading) {
       fetchTasks();
     }
-  }, [debouncedSearch]);
+  }, [workspaceId, projectId, loading, fetchTasks]);
 
   const handleOpenCreate = () => {
     setEditingTask(null);
@@ -124,10 +106,7 @@ export const TaskBoard: React.FC = () => {
     setDescription(task.description || '');
     setPriority(task.priority);
     if (task.deadline) {
-      // Format LocalDateTime string to datetime-local input (YYYY-MM-DDTHH:MM)
-      const date = new Date(task.deadline);
-      const formatted = date.toISOString().slice(0, 16);
-      setDeadline(formatted);
+      setDeadline(formatLocalDateTimeForInput(task.deadline));
     } else {
       setDeadline('');
     }
@@ -147,8 +126,8 @@ export const TaskBoard: React.FC = () => {
         title,
         description,
         priority,
-        deadline: deadline ? new Date(deadline).toISOString().slice(0, 19) : null,
-        assigneeId: user.id // Set current user as assignee automatically to satisfy backend validation
+        deadline: deadline || null,
+        assigneeId: editingTask ? editingTask.assigneeId : user.id
       };
 
       if (editingTask) {
@@ -169,24 +148,22 @@ export const TaskBoard: React.FC = () => {
         toast.success('Task created successfully');
       }
       setShowModal(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to save task.');
+      toast.error(getApiErrorMessage(err, 'Failed to save task.'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-      await fetchTasks();
-
     try {
       await apiClient.delete(`/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}`);
-      setTasks(tasks.filter(t => t.id !== taskId));
+      await fetchTasks();
       toast.success('Task deleted successfully');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to delete task.');
+      toast.error(getApiErrorMessage(err, 'Failed to delete task.'));
     }
   };
 
@@ -207,15 +184,19 @@ export const TaskBoard: React.FC = () => {
 
     const task = tasks.find(t => t.id === taskId);
     if (!task || task.status === newStatus) return;
+    const targetColumnTasks = sortTasks(tasks.filter(t => t.status === newStatus));
+    const nextPosition = targetColumnTasks.length === 0
+      ? 0
+      : Math.max(...targetColumnTasks.map(t => t.position ?? 0)) + 1;
 
     try {
       await apiClient.patch(
         `/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}/status`,
-        { status: newStatus }
+        { status: newStatus, position: nextPosition }
       );
       await fetchTasks();
       toast.success(`Task moved to ${newStatus}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       toast.error('Failed to update task status. Reverting change.');
     } finally {
@@ -234,7 +215,7 @@ export const TaskBoard: React.FC = () => {
       );
       await fetchTasks();
       toast.success(`Status updated to ${newStatus}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       toast.error('Failed to update task status.');
     }
@@ -325,14 +306,14 @@ export const TaskBoard: React.FC = () => {
                           <button
                             onClick={() => handleOpenEdit(task)}
                             className="p-1 text-cf-textMuted hover:text-cf-orange transition"
-                            title="Edit Task"
+                            aria-label={`Edit task ${task.title}`}
                           >
                             <Edit2 size={13} />
                           </button>
                           <button
                             onClick={() => handleDeleteTask(task.id)}
                             className="p-1 text-cf-textMuted hover:text-red-600 transition"
-                            title="Delete Task"
+                            aria-label={`Delete task ${task.title}`}
                           >
                             <Trash2 size={13} />
                           </button>

@@ -24,7 +24,6 @@ public record UpdateTaskRequest(
         @Future(message = "Deadline must be in the future")
         LocalDateTime deadline,
 
-        @NotNull(message = "AssigneeId is required")
         UUID assigneeId
 ) {
 }

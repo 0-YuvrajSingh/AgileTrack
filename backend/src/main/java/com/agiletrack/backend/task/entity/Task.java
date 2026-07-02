@@ -10,7 +10,16 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tasks")
+@Table(
+        name = "tasks",
+        indexes = {
+                @Index(name = "idx_tasks_project_id", columnList = "project_id"),
+                @Index(name = "idx_tasks_assignee_id", columnList = "assignee_id"),
+                @Index(name = "idx_tasks_status", columnList = "status"),
+                @Index(name = "idx_tasks_deadline", columnList = "deadline"),
+                @Index(name = "idx_tasks_project_status_position", columnList = "project_id,status,position")
+        }
+)
 @Getter
 @Setter
 @AllArgsConstructor

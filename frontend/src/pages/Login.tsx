@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiClient } from '../api/axios';
+import { apiClient, getApiErrorMessage } from '../api/axios';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { toast } from 'react-hot-toast';
+import type { AuthResponse } from '../types';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
@@ -23,13 +24,13 @@ export const Login: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await apiClient.post('/auth/login', { email, password });
+      const response = await apiClient.post<AuthResponse>('/auth/login', { email, password });
       login(response.data.token, response.data.refreshToken, response.data.user);
       toast.success('Logged in successfully!');
       navigate('/dashboard');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Invalid credentials. Please try again.');
+      toast.error(getApiErrorMessage(err, 'Invalid credentials. Please try again.'));
     } finally {
       setLoading(false);
     }

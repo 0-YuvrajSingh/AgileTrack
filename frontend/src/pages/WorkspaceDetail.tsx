@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { apiClient } from '../api/axios';
-import type { Project, Workspace } from '../types';
+import { apiClient, getApiErrorMessage } from '../api/axios';
+import type { PageResponse, Project, Workspace } from '../types';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Pagination } from '../components/ui/Pagination';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { FolderPlus, Calendar, ArrowRight, Trash2, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -24,6 +25,7 @@ export const WorkspaceDetail: React.FC = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [creating, setCreating] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -33,30 +35,30 @@ export const WorkspaceDetail: React.FC = () => {
     return () => clearTimeout(handler);
   }, [search]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [wsRes, projsRes] = await Promise.all([
         apiClient.get<Workspace>(`/workspaces/${workspaceId}`),
-        apiClient.get<any>(`/workspaces/${workspaceId}/projects`, {
+        apiClient.get<PageResponse<Project>>(`/workspaces/${workspaceId}/projects`, {
           params: { page, size: 9, search: debouncedSearch }
         })
       ]);
       setWorkspace(wsRes.data);
-      setProjects(projsRes.data.content || []);
-      setTotalPages(projsRes.data.totalPages || 0);
+      setProjects(projsRes.data.content);
+      setTotalPages(projsRes.data.totalPages);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load workspace detail or projects list');
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspaceId, page, debouncedSearch]);
 
   useEffect(() => {
     if (workspaceId) {
       fetchData();
     }
-  }, [workspaceId, page, debouncedSearch]);
+  }, [workspaceId, fetchData]);
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,26 +75,26 @@ export const WorkspaceDetail: React.FC = () => {
       setShowCreateModal(false);
       setName('');
       setDescription('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to create project.');
+      toast.error(getApiErrorMessage(err, 'Failed to create project.'));
     } finally {
       setCreating(false);
     }
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (!window.confirm('Are you sure you want to delete this project and all its tasks?')) {
-      return;
-    }
+  const executeDeleteProject = async () => {
+    if (!deleteDialog.id) return;
 
     try {
-      await apiClient.delete(`/workspaces/${workspaceId}/projects/${projectId}`);
+      await apiClient.delete(`/workspaces/${workspaceId}/projects/${deleteDialog.id}`);
       toast.success('Project deleted successfully');
       await fetchData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to delete project.');
+      toast.error(getApiErrorMessage(err, 'Failed to delete project.'));
+    } finally {
+      setDeleteDialog({ isOpen: false, id: null });
     }
   };
 
@@ -174,9 +176,9 @@ export const WorkspaceDetail: React.FC = () => {
                 </div>
                 {workspace?.myRole !== 'VIEWER' && (
                   <button
-                    onClick={() => handleDeleteProject(proj.id)}
+                    onClick={() => setDeleteDialog({ isOpen: true, id: proj.id })}
                     className="text-cf-textMuted hover:text-red-600 transition p-1 hover:bg-white rounded"
-                    title="Delete Project"
+                    aria-label={`Delete project ${proj.name}`}
                   >
                     <Trash2 size={15} />
                   </button>
@@ -192,7 +194,7 @@ export const WorkspaceDetail: React.FC = () => {
                   <Calendar size={12} />
                   <span>{new Date(proj.createdAt).toLocaleDateString()}</span>
                 </span>
-                <Link to={`/projects/${proj.id}`}>
+                <Link to={`/workspaces/${workspaceId}/projects/${proj.id}`}>
                   <Button size="sm" className="text-xs font-semibold flex items-center gap-1">
                     <span>Task Board</span>
                     <ArrowRight size={12} />
@@ -207,6 +209,16 @@ export const WorkspaceDetail: React.FC = () => {
       {projects.length > 0 && (
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
       )}
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        title="Delete Project"
+        message="Are you sure you want to delete this project and all its tasks? This action is irreversible."
+        confirmLabel="Delete Project"
+        isDestructive={true}
+        onConfirm={executeDeleteProject}
+        onCancel={() => setDeleteDialog({ isOpen: false, id: null })}
+      />
 
       {/* Create Project Modal */}
       {showCreateModal && (

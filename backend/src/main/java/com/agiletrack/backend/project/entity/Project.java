@@ -11,7 +11,13 @@ import java.util.UUID;
 @Setter
 @Builder
 @Entity
-@Table(name ="projects")
+@Table(
+        name = "projects",
+        indexes = {
+                @Index(name = "idx_projects_workspace_id", columnList = "workspace_id"),
+                @Index(name = "idx_projects_status", columnList = "status")
+        }
+)
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
@@ -35,6 +41,7 @@ public class Project extends BaseEntity {
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     @EqualsAndHashCode.Include
     @ToString.Include
     private ProjectStatus status;

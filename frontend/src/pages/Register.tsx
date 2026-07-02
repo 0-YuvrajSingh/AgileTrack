@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiClient } from '../api/axios';
+import { apiClient, getApiErrorMessage } from '../api/axios';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { toast } from 'react-hot-toast';
+import type { AuthResponse } from '../types';
 
 export const Register: React.FC = () => {
   const { login } = useAuth();
@@ -32,13 +33,13 @@ export const Register: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await apiClient.post('/auth/register', { email, password });
+      const response = await apiClient.post<AuthResponse>('/auth/register', { email, password });
       login(response.data.token, response.data.refreshToken, response.data.user);
       toast.success('Account created successfully!');
       navigate('/dashboard');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to register account.');
+      toast.error(getApiErrorMessage(err, 'Failed to register account.'));
     } finally {
       setLoading(false);
     }

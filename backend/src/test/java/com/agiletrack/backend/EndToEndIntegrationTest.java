@@ -2,6 +2,7 @@ package com.agiletrack.backend;
 
 import com.agiletrack.backend.auth.dto.LoginRequest;
 import com.agiletrack.backend.auth.dto.RegisterRequest;
+import com.agiletrack.backend.auth.dto.TokenRefreshRequest;
 import com.agiletrack.backend.project.dto.CreateProjectRequest;
 import com.agiletrack.backend.project.dto.UpdateProjectRequest;
 import com.agiletrack.backend.task.dto.CreateTaskRequest;
@@ -46,11 +47,52 @@ class EndToEndIntegrationTest {
     @Test
     void registerAndLogin_work() throws Exception {
         mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new RegisterRequest("auth@agiletrack.com", "password123"))))
-                .andExpect(status().isOk())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new RegisterRequest("auth@agiletrack.com", "password123"))))
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.user.email").value("auth@agiletrack.com"));
+    }
+
+    @Test
+    void refreshRotatesTokenAndLogoutInvalidatesRefreshToken() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RegisterRequest("refresh@agiletrack.com", "password123"))))
+                .andExpect(status().isCreated());
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest("refresh@agiletrack.com", "password123"))))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String refreshToken = extractJsonField(loginResult.getResponse().getContentAsString(), "refreshToken");
+
+        MvcResult refreshResult = mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new TokenRefreshRequest(refreshToken))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andReturn();
+
+        String rotatedRefreshToken = extractJsonField(refreshResult.getResponse().getContentAsString(), "refreshToken");
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new TokenRefreshRequest(refreshToken))))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new TokenRefreshRequest(rotatedRefreshToken))))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new TokenRefreshRequest(rotatedRefreshToken))))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -211,9 +253,9 @@ class EndToEndIntegrationTest {
 
     private String registerAndLogin(String email, String password) throws Exception {
         mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new RegisterRequest(email, password))))
-                .andExpect(status().isOk());
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new RegisterRequest(email, password))))
+                .andExpect(status().isCreated());
 
         MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

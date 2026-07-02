@@ -1,30 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/axios';
-import type { Workspace, Project } from '../types';
+import type { PageResponse, Project } from '../types';
 import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { FolderKanban, Plus, ListTodo, Clock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useWorkspaces } from '../hooks/useWorkspaces';
 
 export const Dashboard: React.FC = () => {
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { workspaces, loading, error } = useWorkspaces();
   const [projectCount, setProjectCount] = useState(0);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const wsRes = await apiClient.get<Workspace[]>('/workspaces');
-        setWorkspaces(wsRes.data);
-        
-        // Fetch project counts for workspaces to show stats
         let totalProjects = 0;
-        for (const ws of wsRes.data) {
+        for (const ws of workspaces) {
           try {
-            const projRes = await apiClient.get<Project[]>(`/workspaces/${ws.id}/projects`);
-            totalProjects += projRes.data.length;
-          } catch (e) {
+            const projRes = await apiClient.get<PageResponse<Project>>(`/workspaces/${ws.id}/projects`, {
+              params: { page: 0, size: 1 }
+            });
+            totalProjects += projRes.data.totalElements;
+          } catch {
             console.error('Failed to load projects for workspace', ws.id);
           }
         }
@@ -32,18 +30,30 @@ export const Dashboard: React.FC = () => {
       } catch (err) {
         console.error(err);
         toast.error('Failed to load dashboard data');
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, []);
+    if (!loading && !error) {
+      fetchDashboardData();
+    }
+  }, [workspaces, loading, error]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cf-orange"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <Card>
+          <CardBody className="text-sm text-cf-textMuted">
+            Dashboard data could not be loaded. Please try again.
+          </CardBody>
+        </Card>
       </div>
     );
   }
@@ -54,7 +64,7 @@ export const Dashboard: React.FC = () => {
       <div className="bg-cf-navy text-white p-6 rounded shadow-cf-card flex flex-col md:flex-row md:items-center md:justify-between border border-cf-navyDark">
         <div>
           <h1 className="text-2xl font-bold font-sans">System Overview</h1>
-          <p className="text-sm text-gray-300 mt-1">Status: Operational. Track issues and projects across your workspaces.</p>
+          <p className="text-sm text-gray-300 mt-1">Track projects across {workspaces.length} workspace{workspaces.length === 1 ? '' : 's'}.</p>
         </div>
         <div className="mt-4 md:mt-0 flex gap-3">
           <Link to="/workspaces">
@@ -97,11 +107,8 @@ export const Dashboard: React.FC = () => {
               <Clock size={24} />
             </div>
             <div>
-              <p className="text-xs text-cf-textMuted font-semibold uppercase tracking-wider">Operational Status</p>
-              <h3 className="text-lg font-bold text-green-600 mt-1.5 flex items-center">
-                <span className="w-2.5 h-2.5 bg-green-500 rounded-full inline-block mr-2 animate-pulse"></span>
-                Active
-              </h3>
+              <p className="text-xs text-cf-textMuted font-semibold uppercase tracking-wider">Recent Workspaces</p>
+              <h3 className="text-2xl font-bold text-cf-textDark mt-0.5">{Math.min(workspaces.length, 5)}</h3>
             </div>
           </CardBody>
         </Card>

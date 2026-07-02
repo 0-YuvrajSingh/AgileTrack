@@ -7,7 +7,14 @@ import lombok.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "workspace_members")
+@Table(
+        name = "workspace_members",
+        uniqueConstraints = @UniqueConstraint(name = "uk_workspace_user", columnNames = {"workspace_id", "user_id"}),
+        indexes = {
+                @Index(name = "idx_workspace_members_workspace_id", columnList = "workspace_id"),
+                @Index(name = "idx_workspace_members_user_id", columnList = "user_id")
+        }
+)
 @Getter
 @Setter
 @Builder

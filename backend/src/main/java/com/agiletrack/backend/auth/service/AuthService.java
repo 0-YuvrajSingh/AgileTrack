@@ -22,6 +22,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +34,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
 
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -59,6 +61,7 @@ public class AuthService {
                 .build();
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -83,16 +86,23 @@ public class AuthService {
                 .build();
     }
 
+    @Transactional
     public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
         String requestRefreshToken = request.getRefreshToken();
 
         return refreshTokenService.findByToken(requestRefreshToken)
                 .map(refreshTokenService::verifyExpiration)
-                .map(RefreshToken::getUser)
-                .map(user -> {
+                .map(refreshToken -> {
+                    User user = refreshToken.getUser();
                     String token = jwtService.generateToken(new CustomUserDetails(user));
-                    return new TokenRefreshResponse(token, requestRefreshToken);
+                    RefreshToken rotatedRefreshToken = refreshTokenService.rotateRefreshToken(refreshToken);
+                    return new TokenRefreshResponse(token, rotatedRefreshToken.getToken());
                 })
                 .orElseThrow(() -> new TokenRefreshException("Refresh token is not in database!"));
+    }
+
+    @Transactional
+    public void logout(TokenRefreshRequest request) {
+        refreshTokenService.deleteByToken(request.getRefreshToken());
     }
 }

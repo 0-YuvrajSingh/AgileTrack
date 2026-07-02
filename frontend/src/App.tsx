@@ -77,7 +77,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/workspaces" element={<WorkspaceList />} />
         <Route path="/workspaces/:workspaceId" element={<WorkspaceDetail />} />
-        <Route path="/projects/:projectId" element={<TaskBoard />} />
+        <Route path="/workspaces/:workspaceId/projects/:projectId" element={<TaskBoard />} />
       </Route>
 
       {/* Fallback */}
