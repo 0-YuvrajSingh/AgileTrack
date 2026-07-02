@@ -16,7 +16,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 @Service
@@ -28,7 +29,7 @@ public class ProjectService {
 
     @Transactional
     public ProjectResponse createProject(UUID workspaceId, @Valid CreateProjectRequest request) {
-        Workspace workspace = workspaceService.getOwnedWorkspace(workspaceId);
+        Workspace workspace = workspaceService.getWorkspaceForMutation(workspaceId);
 
         Project project = Project.builder()
                 .name(request.name())
@@ -41,13 +42,17 @@ public class ProjectService {
         return projectMapper.toResponse(project);
     }
 
-    public List<ProjectResponse> getProjectsByWorkspace(UUID workspaceId) {
+    public Page<ProjectResponse> getProjectsByWorkspace(UUID workspaceId, String search, Pageable pageable) {
         workspaceService.getWorkspaceIfMember(workspaceId);
 
-        return projectRepository.findByWorkspaceId(workspaceId)
-                .stream()
-                .map(projectMapper::toResponse)
-                .toList();
+        Page<Project> projects;
+        if (search != null && !search.trim().isEmpty()) {
+            projects = projectRepository.findByWorkspaceIdAndSearch(workspaceId, search.trim(), pageable);
+        } else {
+            projects = projectRepository.findByWorkspaceId(workspaceId, pageable);
+        }
+
+        return projects.map(projectMapper::toResponse);
     }
 
     public ProjectResponse getProjectById(UUID workspaceId, UUID id) {
@@ -57,7 +62,7 @@ public class ProjectService {
 
     @Transactional
     public ProjectResponse updateProject(UUID workspaceId, UUID id, @Valid UpdateProjectRequest request) {
-        Workspace workspace = workspaceService.getOwnedWorkspace(workspaceId);
+        Workspace workspace = workspaceService.getWorkspaceForMutation(workspaceId);
         Project project = getProject(workspaceId, id);
 
         project.setName(request.name());
@@ -67,7 +72,7 @@ public class ProjectService {
 
     @Transactional
     public ProjectResponse updateProjectStatus(UUID workspaceId, UUID id, @Valid UpdateProjectStatusRequest request) {
-        Workspace workspace = workspaceService.getOwnedWorkspace(workspaceId);
+        Workspace workspace = workspaceService.getWorkspaceForMutation(workspaceId);
         Project project = getProject(workspaceId, id);
 
         project.setStatus(request.status());
@@ -76,7 +81,7 @@ public class ProjectService {
 
     @Transactional
     public void deleteProject(UUID workspaceId, UUID id) {
-        Workspace workspace = workspaceService.getOwnedWorkspace(workspaceId);
+        Workspace workspace = workspaceService.getWorkspaceForMutation(workspaceId);
         Project project = getProject(workspaceId, id);
 
         projectRepository.delete(project);

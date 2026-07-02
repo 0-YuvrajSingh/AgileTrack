@@ -5,7 +5,8 @@ import type { Project, Workspace } from '../types';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { FolderPlus, Calendar, ArrowRight, Trash2 } from 'lucide-react';
+import { Pagination } from '../components/ui/Pagination';
+import { FolderPlus, Calendar, ArrowRight, Trash2, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export const WorkspaceDetail: React.FC = () => {
@@ -14,19 +15,35 @@ export const WorkspaceDetail: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [creating, setCreating] = useState(false);
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   const fetchData = async () => {
     try {
       const [wsRes, projsRes] = await Promise.all([
         apiClient.get<Workspace>(`/workspaces/${workspaceId}`),
-        apiClient.get<Project[]>(`/workspaces/${workspaceId}/projects`)
+        apiClient.get<any>(`/workspaces/${workspaceId}/projects`, {
+          params: { page, size: 9, search: debouncedSearch }
+        })
       ]);
       setWorkspace(wsRes.data);
-      setProjects(projsRes.data);
+      setProjects(projsRes.data.content || []);
+      setTotalPages(projsRes.data.totalPages || 0);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load workspace detail or projects list');
@@ -39,7 +56,7 @@ export const WorkspaceDetail: React.FC = () => {
     if (workspaceId) {
       fetchData();
     }
-  }, [workspaceId]);
+  }, [workspaceId, page, debouncedSearch]);
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,9 +129,24 @@ export const WorkspaceDetail: React.FC = () => {
           <p className="text-xs text-cf-textMuted mt-1">Manage project pipelines inside this workspace</p>
         </div>
 
-        <Button onClick={() => setShowCreateModal(true)} size="sm" className="text-xs font-semibold">
-          <FolderPlus size={14} className="mr-1.5" /> New Project
-        </Button>
+        {workspace?.myRole !== 'VIEWER' && (
+          <Button onClick={() => setShowCreateModal(true)} size="sm" className="text-xs font-semibold">
+            <FolderPlus size={14} className="mr-1.5" /> New Project
+          </Button>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <div className="relative max-w-sm w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-cf-textMuted" size={16} />
+          <input
+            type="text"
+            placeholder="Search projects..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-white border border-cf-border rounded-md text-sm focus:outline-none focus:border-cf-orange focus:ring-1 focus:ring-cf-orange transition"
+          />
+        </div>
       </div>
 
       {/* Projects list */}
@@ -122,9 +154,11 @@ export const WorkspaceDetail: React.FC = () => {
         <Card className="text-center py-12">
           <CardBody className="space-y-4">
             <p className="text-sm text-cf-textMuted font-sans">No projects found in this workspace.</p>
-            <Button onClick={() => setShowCreateModal(true)} size="sm">
-              Create your first Project
-            </Button>
+            {workspace?.myRole !== 'VIEWER' && (
+              <Button onClick={() => setShowCreateModal(true)} size="sm">
+                Create your first Project
+              </Button>
+            )}
           </CardBody>
         </Card>
       ) : (
@@ -138,13 +172,15 @@ export const WorkspaceDetail: React.FC = () => {
                     {proj.status}
                   </span>
                 </div>
-                <button
-                  onClick={() => handleDeleteProject(proj.id)}
-                  className="text-cf-textMuted hover:text-red-600 transition p-1 hover:bg-white rounded"
-                  title="Delete Project"
-                >
-                  <Trash2 size={15} />
-                </button>
+                {workspace?.myRole !== 'VIEWER' && (
+                  <button
+                    onClick={() => handleDeleteProject(proj.id)}
+                    className="text-cf-textMuted hover:text-red-600 transition p-1 hover:bg-white rounded"
+                    title="Delete Project"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </CardHeader>
               <CardBody className="flex-grow">
                 <p className="text-xs text-cf-textMuted line-clamp-3 leading-relaxed">
@@ -166,6 +202,10 @@ export const WorkspaceDetail: React.FC = () => {
             </Card>
           ))}
         </div>
+      )}
+
+      {projects.length > 0 && (
+        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
       )}
 
       {/* Create Project Modal */}

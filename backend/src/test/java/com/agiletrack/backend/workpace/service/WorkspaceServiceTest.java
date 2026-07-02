@@ -59,9 +59,9 @@ class WorkspaceServiceTest {
         when(workspaceRepository.save(any(Workspace.class))).thenReturn(testWorkspace);
 
         WorkspaceResponse mockResponse = new WorkspaceResponse(
-                testWorkspace.getId(), "Test WS", "Desc", testUser.getId(), null, null
+                testWorkspace.getId(), "Test WS", "Desc", testUser.getId(), com.agiletrack.backend.workspace.entity.WorkspaceRole.OWNER, null, null
         );
-        when(workspaceMapper.toResponse(any())).thenReturn(mockResponse);
+        when(workspaceMapper.toResponse(any(), any())).thenReturn(mockResponse);
 
         WorkspaceResponse response = workspaceService.create(new CreateWorkspaceRequest("Test WS", "Desc"));
 
@@ -78,6 +78,26 @@ class WorkspaceServiceTest {
         when(workspaceRepository.findById(wsId)).thenReturn(Optional.of(testWorkspace));
         when(workspaceMemberRepository.findByWorkspaceIdAndUserId(wsId, testUser.getId()))
                 .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> workspaceService.getOwnedWorkspace(wsId))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void getOwnedWorkspace_UserIsViewer_ThrowsAccessDenied() {
+        UUID wsId = testWorkspace.getId();
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(testUser);
+        when(workspaceRepository.findById(wsId)).thenReturn(Optional.of(testWorkspace));
+        
+        WorkspaceMember viewerMember = WorkspaceMember.builder()
+                .user(testUser)
+                .workspace(testWorkspace)
+                .role(com.agiletrack.backend.workspace.entity.WorkspaceRole.VIEWER)
+                .build();
+                
+        when(workspaceMemberRepository.findByWorkspaceIdAndUserId(wsId, testUser.getId()))
+                .thenReturn(Optional.of(viewerMember));
 
         assertThatThrownBy(() -> workspaceService.getOwnedWorkspace(wsId))
                 .isInstanceOf(AccessDeniedException.class);

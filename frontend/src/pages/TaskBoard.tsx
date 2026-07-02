@@ -6,7 +6,7 @@ import type { Project, Task, TaskPriority, TaskStatus, Workspace } from '../type
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Plus, User, ArrowLeftRight, Trash2, Edit2, Calendar } from 'lucide-react';
+import { Plus, User, ArrowLeftRight, Trash2, Edit2, Calendar, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const STATUSES: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
@@ -17,9 +17,19 @@ export const TaskBoard: React.FC = () => {
   const { user } = useAuth();
   
   const [project, setProject] = useState<Project | null>(null);
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   // Create/Edit Modal State
   const [showModal, setShowModal] = useState(false);
@@ -38,14 +48,17 @@ export const TaskBoard: React.FC = () => {
       return;
     }
 
-    const tasksRes = await apiClient.get<Task[]>(`/workspaces/${targetWorkspaceId}/projects/${projectId}/tasks`);
-    setTasks(tasksRes.data);
+    const tasksRes = await apiClient.get<any>(`/workspaces/${targetWorkspaceId}/projects/${projectId}/tasks`, {
+      params: { search: debouncedSearch }
+    });
+    setTasks(tasksRes.data.content || []);
   };
 
   const resolveWorkspaceAndLoad = async () => {
     try {
       // Find workspace that owns this project by listing workspaces and searching their projects
       const wsRes = await apiClient.get<Workspace[]>('/workspaces');
+      let foundWorkspace = null;
       let foundWorkspaceId = null;
       let foundProject = null;
       
@@ -54,6 +67,7 @@ export const TaskBoard: React.FC = () => {
           const projsRes = await apiClient.get<Project[]>(`/workspaces/${ws.id}/projects`);
           const match = projsRes.data.find(p => p.id === projectId);
           if (match) {
+            foundWorkspace = ws;
             foundWorkspaceId = ws.id;
             foundProject = match;
             break;
@@ -70,6 +84,7 @@ export const TaskBoard: React.FC = () => {
       }
 
       setWorkspaceId(foundWorkspaceId);
+      setWorkspace(foundWorkspace);
       setProject(foundProject);
 
       // Fetch tasks in this project
@@ -87,6 +102,12 @@ export const TaskBoard: React.FC = () => {
       resolveWorkspaceAndLoad();
     }
   }, [projectId]);
+
+  useEffect(() => {
+    if (workspaceId && projectId) {
+      fetchTasks();
+    }
+  }, [debouncedSearch]);
 
   const handleOpenCreate = () => {
     setEditingTask(null);
@@ -251,9 +272,24 @@ export const TaskBoard: React.FC = () => {
           <h1 className="text-xl font-bold text-cf-textDark mt-1">{project?.name} Task Board</h1>
         </div>
 
-        <Button onClick={handleOpenCreate} size="sm" className="text-xs font-semibold">
-          <Plus size={14} className="mr-1.5" /> Add Task
-        </Button>
+        {workspace?.myRole !== 'VIEWER' && (
+          <Button onClick={handleOpenCreate} size="sm" className="text-xs font-semibold whitespace-nowrap">
+            <Plus size={14} className="mr-1.5" /> Add Task
+          </Button>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+        <div className="relative max-w-sm w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-cf-textMuted" size={16} />
+          <input
+            type="text"
+            placeholder="Search tasks by title or description..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-white border border-cf-border rounded-md text-sm focus:outline-none focus:border-cf-orange focus:ring-1 focus:ring-cf-orange transition"
+          />
+        </div>
       </div>
 
       {/* Board Columns Grid */}
@@ -278,28 +314,30 @@ export const TaskBoard: React.FC = () => {
                 {statusTasks.map((task) => (
                   <div
                     key={task.id}
-                    draggable
+                    draggable={workspace?.myRole !== 'VIEWER'}
                     onDragStart={(e) => handleDragStart(e, task.id)}
                     className="bg-white border border-cf-border rounded p-4 shadow-cf-card cursor-grab hover:shadow-md transition active:cursor-grabbing relative group"
                   >
                     <div className="flex items-start justify-between">
                       <h4 className="font-bold text-sm text-cf-textDark line-clamp-2 pr-6">{task.title}</h4>
-                      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition absolute right-2 top-2 bg-white pl-1 rounded">
-                        <button
-                          onClick={() => handleOpenEdit(task)}
-                          className="p-1 text-cf-textMuted hover:text-cf-orange transition"
-                          title="Edit Task"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="p-1 text-cf-textMuted hover:text-red-600 transition"
-                          title="Delete Task"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
+                      {workspace?.myRole !== 'VIEWER' && (
+                        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition absolute right-2 top-2 bg-white pl-1 rounded">
+                          <button
+                            onClick={() => handleOpenEdit(task)}
+                            className="p-1 text-cf-textMuted hover:text-cf-orange transition"
+                            title="Edit Task"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="p-1 text-cf-textMuted hover:text-red-600 transition"
+                            title="Delete Task"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <p className="text-xs text-cf-textMuted mt-2 line-clamp-3 leading-relaxed">
@@ -326,20 +364,22 @@ export const TaskBoard: React.FC = () => {
                       )}
 
                       {/* Dropdown status switcher for touch/mobile devices */}
-                      <div className="mt-2 flex items-center justify-between text-[10px] border-t border-dashed border-cf-border pt-2 md:hidden">
-                        <span className="text-cf-textMuted flex items-center gap-1">
-                          <ArrowLeftRight size={10} /> Move:
-                        </span>
-                        <select
-                          value={task.status}
-                          onChange={(e) => handleStatusChangeClick(task.id, e.target.value as TaskStatus)}
-                          className="bg-cf-bgLight border border-cf-border rounded text-[9px] px-1 py-0.5 text-cf-textDark focus:outline-none"
-                        >
-                          {STATUSES.map(st => (
-                            <option key={st} value={st}>{st.replace('_', ' ')}</option>
-                          ))}
-                        </select>
-                      </div>
+                      {workspace?.myRole !== 'VIEWER' && (
+                        <div className="mt-2 flex items-center justify-between text-[10px] border-t border-dashed border-cf-border pt-2 md:hidden">
+                          <span className="text-cf-textMuted flex items-center gap-1">
+                            <ArrowLeftRight size={10} /> Move:
+                          </span>
+                          <select
+                            value={task.status}
+                            onChange={(e) => handleStatusChangeClick(task.id, e.target.value as TaskStatus)}
+                            className="bg-cf-bgLight border border-cf-border rounded text-[9px] px-1 py-0.5 text-cf-textDark focus:outline-none"
+                          >
+                            {STATUSES.map(st => (
+                              <option key={st} value={st}>{st.replace('_', ' ')}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

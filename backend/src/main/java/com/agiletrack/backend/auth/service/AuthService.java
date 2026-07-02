@@ -9,6 +9,10 @@ import com.agiletrack.backend.user.entity.Role;
 import com.agiletrack.backend.user.entity.User;
 import com.agiletrack.backend.user.repository.UserRepository;
 import com.agiletrack.backend.security.JwtService;
+import com.agiletrack.backend.auth.dto.TokenRefreshRequest;
+import com.agiletrack.backend.auth.dto.TokenRefreshResponse;
+import com.agiletrack.backend.auth.entity.RefreshToken;
+import com.agiletrack.backend.common.exception.TokenRefreshException;
 import com.agiletrack.backend.security.CustomUserDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -27,6 +31,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthResponse register(RegisterRequest request) {
 
@@ -41,9 +46,11 @@ public class AuthService {
                 .build();
         userRepository.save(user);
         String jwtToken = jwtService.generateToken(new CustomUserDetails(user));
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         return AuthResponse.builder()
                 .token(jwtToken)
+                .refreshToken(refreshToken.getToken())
                 .user(AuthResponse.UserDto.builder()
                         .id(user.getId())
                         .email(user.getEmail())
@@ -63,14 +70,29 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         String jwtToken = jwtService.generateToken(new CustomUserDetails(user));
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         return AuthResponse.builder()
                 .token(jwtToken)
+                .refreshToken(refreshToken.getToken())
                 .user(AuthResponse.UserDto.builder()
                         .id(user.getId())
                         .email(user.getEmail())
                         .role(user.getRole().name())
                         .build())
                 .build();
+    }
+
+    public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
+        String requestRefreshToken = request.getRefreshToken();
+
+        return refreshTokenService.findByToken(requestRefreshToken)
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String token = jwtService.generateToken(new CustomUserDetails(user));
+                    return new TokenRefreshResponse(token, requestRefreshToken);
+                })
+                .orElseThrow(() -> new TokenRefreshException("Refresh token is not in database!"));
     }
 }

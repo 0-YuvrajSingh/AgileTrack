@@ -13,7 +13,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import java.util.UUID;
 
 @RestController
@@ -36,12 +39,14 @@ public class ProjectController {
     }
 
     @GetMapping
-    @Operation(summary = "List workspace projects", description = "Retrieves all projects belonging to the specified workspace.")
-    public ResponseEntity<List<ProjectResponse>> getProjectsByWorkspace(
-            @PathVariable UUID workspaceId
+    @Operation(summary = "List workspace projects", description = "Retrieves projects belonging to the specified workspace with pagination.")
+    public ResponseEntity<Page<ProjectResponse>> getProjectsByWorkspace(
+            @PathVariable UUID workspaceId,
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 10) Pageable pageable
     ) {
         return ResponseEntity.ok(
-                projectService.getProjectsByWorkspace(workspaceId)
+                projectService.getProjectsByWorkspace(workspaceId, search, pageable)
         );
     }
 

@@ -82,6 +82,17 @@ class TaskServiceTest {
         verify(taskRepository).delete(task);
     }
 
+    @Test
+    void deleteTask_Viewer_ThrowsException() {
+        setCurrentUser();
+        when(workspaceService.getMemberRole(workspaceId, userId)).thenReturn(WorkspaceRole.VIEWER);
+
+        assertThatThrownBy(() -> taskService.deleteTask(workspaceId, projectId, taskId))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        
+        verify(taskRepository, never()).delete(any());
+    }
+
     private void setCurrentUser() {
         User user = User.builder()
                 .id(userId)

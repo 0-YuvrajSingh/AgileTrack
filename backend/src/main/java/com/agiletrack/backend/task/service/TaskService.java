@@ -24,7 +24,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 @Service
@@ -58,12 +59,17 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
-    public List<TaskResponse> getTasksByProject(UUID workspaceId, UUID projectId) {
+    public Page<TaskResponse> getTasksByProject(UUID workspaceId, UUID projectId, String search, Pageable pageable) {
         getProject(workspaceId, projectId);
-        return taskRepository.findByProjectId(projectId)
-                .stream()
-                .map(taskMapper::toResponse)
-                .toList();
+        
+        Page<Task> tasks;
+        if (search != null && !search.trim().isEmpty()) {
+            tasks = taskRepository.findByProjectIdAndSearch(projectId, search.trim(), pageable);
+        } else {
+            tasks = taskRepository.findByProjectId(projectId, pageable);
+        }
+        
+        return tasks.map(taskMapper::toResponse);
     }
 
     @Transactional(readOnly = true)

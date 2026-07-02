@@ -1,5 +1,7 @@
 # AgileTrack
 
+[![Build & Test](https://github.com/0-YuvrajSingh/AgileTrack/actions/workflows/build.yml/badge.svg)](https://github.com/0-YuvrajSingh/AgileTrack/actions)
+
 AgileTrack is a high-performance Agile Management Portal that simplifies project tracking, task boards, and team workflows. It features a modern, responsive React frontend and a robust Spring Boot backend powered by PostgreSQL.
 
 ---
@@ -34,6 +36,51 @@ graph TD
     Backend -->|Port 8080| DB[(PostgreSQL Database)]
 ```
 
+### Database Schema
+
+```mermaid
+erDiagram
+    USER ||--o{ WORKSPACE_MEMBER : has
+    WORKSPACE ||--o{ WORKSPACE_MEMBER : has
+    WORKSPACE ||--o{ PROJECT : contains
+    PROJECT ||--o{ TASK : contains
+    USER ||--o{ TASK : "assigned to"
+    
+    USER {
+        uuid id PK
+        string email
+        string password
+        string role
+    }
+    WORKSPACE {
+        uuid id PK
+        string name
+        string description
+    }
+    WORKSPACE_MEMBER {
+        uuid id PK
+        uuid user_id FK
+        uuid workspace_id FK
+        string role
+    }
+    PROJECT {
+        uuid id PK
+        uuid workspace_id FK
+        string name
+        string description
+    }
+    TASK {
+        uuid id PK
+        uuid project_id FK
+        uuid assignee_id FK
+        string title
+        string description
+        string status
+        string priority
+        int position
+    }
+```
+
 ### Tech Stack
 - **Frontend**: React (v19), TypeScript, TailwindCSS, Lucide React (Icons), React Router, Axios.
 - **Backend**: Java 21, Spring Boot (v3.3.5), Spring Security (JWT), Spring Data JPA, Hibernate, Flyway.
@@ -43,6 +90,11 @@ graph TD
 ---
 
 ## Getting Started
+
+### Live Deployment
+- **Frontend**: [https://your-frontend-url.vercel.app](https://your-frontend-url.vercel.app)
+- **Backend API**: [https://your-backend-url.onrender.com](https://your-backend-url.onrender.com)
+- **API Docs (Swagger)**: [https://your-backend-url.onrender.com/swagger-ui/index.html](https://your-backend-url.onrender.com/swagger-ui/index.html)
 
 ### Quick Start with Docker (Recommended)
 

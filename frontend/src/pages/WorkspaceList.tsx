@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/axios';
-import { useAuth } from '../context/AuthContext';
 import type { Workspace } from '../types';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Skeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { FolderPlus, ArrowRight, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export const WorkspaceList: React.FC = () => {
-  const { user } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [creating, setCreating] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
 
   const fetchWorkspaces = async () => {
     try {
@@ -54,25 +56,40 @@ export const WorkspaceList: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this workspace and all its contents? This action is irreversible.')) {
-      return;
-    }
+  const executeDelete = async () => {
+    if (!deleteDialog.id) return;
 
     try {
-      await apiClient.delete(`/workspaces/${id}`);
+      await apiClient.delete(`/workspaces/${deleteDialog.id}`);
       toast.success('Workspace deleted successfully');
       await fetchWorkspaces();
     } catch (err: any) {
       console.error(err);
       toast.error(err.response?.data?.message || 'Failed to delete workspace.');
+    } finally {
+      setDeleteDialog({ isOpen: false, id: null });
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cf-orange"></div>
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex justify-between items-center pb-4 border-b border-cf-border">
+          <div>
+            <Skeleton className="h-6 w-32 mb-2" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-8 w-32" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border border-cf-border rounded-lg p-5 bg-white flex flex-col h-40">
+              <Skeleton className="h-5 w-2/3 mb-4" />
+              <Skeleton className="h-3 w-full mb-2" />
+              <Skeleton className="h-3 w-4/5 mt-auto" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -92,30 +109,29 @@ export const WorkspaceList: React.FC = () => {
 
       {/* Grid of Workspaces */}
       {workspaces.length === 0 ? (
-        <Card className="text-center py-12">
-          <CardBody className="space-y-4">
-            <p className="text-sm text-cf-textMuted">You don't belong to any workspaces yet.</p>
-            <Button onClick={() => setShowCreateModal(true)} size="sm">
-              Create your first Workspace
-            </Button>
-          </CardBody>
-        </Card>
+        <EmptyState 
+          icon={FolderPlus}
+          title="No workspaces found"
+          description="You don't belong to any workspaces yet. Create one to start collaborating with your team."
+          actionLabel="Create Workspace"
+          onAction={() => setShowCreateModal(true)}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {workspaces.map((ws) => {
-            const isOwner = ws.ownerId === user?.id;
+            const isOwner = ws.myRole === 'OWNER';
             return (
               <Card key={ws.id} hoverable className="flex flex-col h-full border border-cf-border">
                 <CardHeader className="bg-cf-bgLight flex justify-between items-start">
                   <div>
                     <h3 className="font-bold text-cf-textDark truncate max-w-[180px]">{ws.name}</h3>
                     <span className="text-[10px] bg-cf-navy text-white px-1.5 py-0.5 rounded font-mono uppercase mt-1 inline-block">
-                      {isOwner ? 'Owner' : 'Member'}
+                      {ws.myRole}
                     </span>
                   </div>
                   {isOwner && (
                     <button
-                      onClick={() => handleDelete(ws.id)}
+                      onClick={() => setDeleteDialog({ isOpen: true, id: ws.id })}
                       className="text-cf-textMuted hover:text-red-600 transition p-1 hover:bg-white rounded"
                       title="Delete Workspace"
                     >
@@ -195,6 +211,16 @@ export const WorkspaceList: React.FC = () => {
           </Card>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        title="Delete Workspace"
+        message="Are you sure you want to delete this workspace and all its contents? This action is irreversible."
+        confirmLabel="Delete Workspace"
+        isDestructive={true}
+        onConfirm={executeDelete}
+        onCancel={() => setDeleteDialog({ isOpen: false, id: null })}
+      />
     </div>
   );
 };

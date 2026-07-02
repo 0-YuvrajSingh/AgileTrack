@@ -33,7 +33,7 @@ export const Register: React.FC = () => {
     setLoading(true);
     try {
       const response = await apiClient.post('/auth/register', { email, password });
-      login(response.data.token, response.data.user);
+      login(response.data.token, response.data.refreshToken, response.data.user);
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (err: any) {

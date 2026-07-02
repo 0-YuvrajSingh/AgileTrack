@@ -9,11 +9,12 @@ export interface Workspace {
   name: string;
   description: string;
   ownerId: string;
+  myRole: WorkspaceRole;
   createdAt: string;
   updatedAt: string;
 }
 
-export type WorkspaceRole = 'OWNER' | 'ADMIN' | 'MEMBER';
+export type WorkspaceRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
 
 export interface WorkspaceMember {
   userId: string;

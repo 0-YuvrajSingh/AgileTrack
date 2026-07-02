@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (token: string, user: User) => void;
+  login: (token: string, refreshToken: string, user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -25,8 +25,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = (newToken: string, newUser: User) => {
-    saveStoredAuth(newToken, newUser);
+  const login = (newToken: string, newRefreshToken: string, newUser: User) => {
+    saveStoredAuth(newToken, newRefreshToken, newUser);
     setToken(newToken);
     setUser(newUser);
   };

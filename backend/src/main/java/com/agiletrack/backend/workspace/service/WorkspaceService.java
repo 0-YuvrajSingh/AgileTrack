@@ -52,28 +52,31 @@ public class WorkspaceService {
                 .build();
         workspaceMemberRepository.save(member);
 
-        return workspaceMapper.toResponse(workspace);
+        return workspaceMapper.toResponse(workspace, WorkspaceRole.OWNER);
     }
 
     @Transactional(readOnly = true)
     public List<WorkspaceResponse> findAll() {
         return workspaceMemberRepository.findByUserId(getCurrentUser().getId())
                 .stream()
-                .map(member -> workspaceMapper.toResponse(member.getWorkspace()))
+                .map(member -> workspaceMapper.toResponse(member.getWorkspace(), member.getRole()))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public WorkspaceResponse findById(UUID id) {
-        return workspaceMapper.toResponse(getWorkspaceIfMember(id));
+        Workspace workspace = getWorkspaceIfMember(id);
+        WorkspaceRole role = getMemberRole(id, getCurrentUser().getId());
+        return workspaceMapper.toResponse(workspace, role);
     }
 
     @Transactional
     public WorkspaceResponse update(UpdateWorkspaceRequest request, UUID id) {
-        Workspace workspace = getOwnedWorkspace(id);
+        Workspace workspace = getWorkspaceForAdmin(id);
         workspace.setName(request.name());
         workspace.setDescription(request.description());
-        return workspaceMapper.toResponse(workspace);
+        WorkspaceRole role = getMemberRole(id, getCurrentUser().getId());
+        return workspaceMapper.toResponse(workspace, role);
     }
 
     @Transactional
@@ -84,7 +87,7 @@ public class WorkspaceService {
 
     @Transactional
     public void inviteMember(UUID workspaceId, InviteMemberRequest request) {
-        Workspace workspace = getOwnedWorkspace(workspaceId);
+        Workspace workspace = getWorkspaceForAdmin(workspaceId);
 
         User invitee = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -112,6 +115,36 @@ public class WorkspaceService {
 
         if (member.getRole() != WorkspaceRole.OWNER) {
             throw new AccessDeniedException("Requires OWNER role to perform this action");
+        }
+
+        return workspace;
+    }
+
+    public Workspace getWorkspaceForAdmin(UUID workspaceId) {
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new WorkspaceNotFoundException("Workspace not found"));
+
+        WorkspaceMember member = workspaceMemberRepository
+                .findByWorkspaceIdAndUserId(workspaceId, getCurrentUser().getId())
+                .orElseThrow(() -> new AccessDeniedException("Access denied"));
+
+        if (member.getRole() != WorkspaceRole.OWNER && member.getRole() != WorkspaceRole.ADMIN) {
+            throw new AccessDeniedException("Requires ADMIN or OWNER role to perform this action");
+        }
+
+        return workspace;
+    }
+
+    public Workspace getWorkspaceForMutation(UUID workspaceId) {
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new WorkspaceNotFoundException("Workspace not found"));
+
+        WorkspaceMember member = workspaceMemberRepository
+                .findByWorkspaceIdAndUserId(workspaceId, getCurrentUser().getId())
+                .orElseThrow(() -> new AccessDeniedException("Access denied"));
+
+        if (member.getRole() == WorkspaceRole.VIEWER) {
+            throw new AccessDeniedException("VIEWER role cannot perform this action");
         }
 
         return workspace;

@@ -50,7 +50,7 @@ class ProjectServiceTest {
     @Test
     void createProject_Success() {
         CreateProjectRequest request = new CreateProjectRequest("Proj", "Desc");
-        when(workspaceService.getOwnedWorkspace(workspaceId)).thenReturn(testWorkspace);
+        when(workspaceService.getWorkspaceForMutation(workspaceId)).thenReturn(testWorkspace);
         when(projectRepository.save(any(Project.class))).thenReturn(testProject);
 
         ProjectResponse mockResponse = new ProjectResponse(
@@ -62,6 +62,18 @@ class ProjectServiceTest {
 
         assertThat(response.name()).isEqualTo("Proj");
         verify(projectRepository).save(any(Project.class));
+    }
+
+    @Test
+    void createProject_Viewer_ThrowsException() {
+        CreateProjectRequest request = new CreateProjectRequest("Proj", "Desc");
+        when(workspaceService.getWorkspaceForMutation(workspaceId))
+                .thenThrow(new org.springframework.security.access.AccessDeniedException("VIEWER role cannot perform this action"));
+
+        assertThatThrownBy(() -> projectService.createProject(workspaceId, request))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        
+        verify(projectRepository, never()).save(any());
     }
 
     @Test
