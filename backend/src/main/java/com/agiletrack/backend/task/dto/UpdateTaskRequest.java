@@ -1,7 +1,6 @@
 package com.agiletrack.backend.task.dto;
 
 import com.agiletrack.backend.task.entity.TaskPriority;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -21,7 +20,6 @@ public record UpdateTaskRequest(
         @NotNull(message = "Priority is required")
         TaskPriority priority,
 
-        @Future(message = "Deadline must be in the future")
         LocalDateTime deadline,
 
         UUID assigneeId

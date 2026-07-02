@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getApiErrorMessage } from '../api/axios';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
@@ -19,6 +19,19 @@ export const WorkspaceList: React.FC = () => {
   const [description, setDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
+
+  // Escape key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowCreateModal(false);
+      }
+    };
+    if (showCreateModal) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showCreateModal]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,8 +172,11 @@ export const WorkspaceList: React.FC = () => {
 
       {/* Create Workspace Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-cf-navy/60 backdrop-blur-sm">
-          <Card className="w-full max-w-md shadow-2xl">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-cf-navy/60 backdrop-blur-sm"
+          onClick={() => setShowCreateModal(false)}
+        >
+          <Card className="w-full max-w-md shadow-2xl" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <CardHeader className="bg-cf-navy text-white">
               <h3 className="font-bold text-base">New Workspace</h3>
               <p className="text-[11px] text-gray-300">Create a high-level container for projects and members</p>

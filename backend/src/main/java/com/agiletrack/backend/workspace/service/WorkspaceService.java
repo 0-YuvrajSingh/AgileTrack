@@ -74,7 +74,8 @@ public class WorkspaceService {
     public WorkspaceResponse update(UpdateWorkspaceRequest request, UUID id) {
         Workspace workspace = getWorkspaceForAdmin(id);
         workspace.setName(request.name());
-        workspace.setDescription(request.description());
+        if (request.description() != null) workspace.setDescription(request.description());
+        workspaceRepository.save(workspace);
         WorkspaceRole role = getMemberRole(id, getCurrentUser().getId());
         return workspaceMapper.toResponse(workspace, role);
     }

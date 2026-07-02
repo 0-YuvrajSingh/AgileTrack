@@ -16,16 +16,21 @@ export const Dashboard: React.FC = () => {
     const fetchDashboardData = async () => {
       try {
         let totalProjects = 0;
-        for (const ws of workspaces) {
-          try {
-            const projRes = await apiClient.get<PageResponse<Project>>(`/workspaces/${ws.id}/projects`, {
-              params: { page: 0, size: 1 }
-            });
-            totalProjects += projRes.data.totalElements;
-          } catch {
-            console.error('Failed to load projects for workspace', ws.id);
+        const promises = workspaces.map(ws => 
+          apiClient.get<PageResponse<Project>>(`/workspaces/${ws.id}/projects`, {
+            params: { page: 0, size: 1 }
+          }).catch(err => {
+            console.error('Failed to load projects for workspace', ws.id, err);
+            return null;
+          })
+        );
+        
+        const results = await Promise.all(promises);
+        results.forEach(res => {
+          if (res && res.data) {
+            totalProjects += res.data.totalElements;
           }
-        }
+        });
         setProjectCount(totalProjects);
       } catch (err) {
         console.error(err);

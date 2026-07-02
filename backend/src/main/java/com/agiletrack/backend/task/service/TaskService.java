@@ -42,7 +42,7 @@ public class TaskService {
     public TaskResponse createTask(UUID workspaceId, UUID projectId, CreateTaskRequest request) {
         requireMutationAccess(workspaceId);
         Project project = getProject(workspaceId, projectId);
-        User assignee = getValidatedAssignee(workspaceId, request.assigneeId());
+        User assignee = request.assigneeId() != null ? getValidatedAssignee(workspaceId, request.assigneeId()) : null;
 
         Task task = Task.builder()
                 .title(request.title())

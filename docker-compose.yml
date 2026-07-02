@@ -26,7 +26,7 @@ services:
       - DATABASE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-agiletrack}
       - DATABASE_USERNAME=${POSTGRES_USER:-agiletrack_user}
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-agiletrack_password}
-      - JWT_SECRET=${JWT_SECRET:-VGhpc0lzQVN1cGVyU2VjcmV0S2V5Rm9ySldUU2lnbmluZ1RoYXRNdXN0QmVBdExlYXN0MzJCeXRlc0xvbmc=}
+      - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-604800000}
       - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost}
     ports:

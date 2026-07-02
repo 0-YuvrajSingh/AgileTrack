@@ -27,6 +27,19 @@ export const WorkspaceDetail: React.FC = () => {
   const [creating, setCreating] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
 
+  // Escape key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowCreateModal(false);
+      }
+    };
+    if (showCreateModal) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showCreateModal]);
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -222,8 +235,11 @@ export const WorkspaceDetail: React.FC = () => {
 
       {/* Create Project Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-cf-navy/60 backdrop-blur-sm">
-          <Card className="w-full max-w-md shadow-2xl">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-cf-navy/60 backdrop-blur-sm"
+          onClick={() => setShowCreateModal(false)}
+        >
+          <Card className="w-full max-w-md shadow-2xl" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <CardHeader className="bg-cf-navy text-white">
               <h3 className="font-bold text-base">New Project</h3>
               <p className="text-[11px] text-gray-300">Create a task container in this workspace</p>

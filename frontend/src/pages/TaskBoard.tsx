@@ -6,6 +6,7 @@ import type { PageResponse, Project, Task, TaskPriority, TaskStatus, Workspace }
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { Plus, User, ArrowLeftRight, Trash2, Edit2, Calendar, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -44,6 +45,20 @@ export const TaskBoard: React.FC = () => {
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
   const [deadline, setDeadline] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
+
+  // Escape key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowModal(false);
+      }
+    };
+    if (showModal) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showModal]);
 
   // Drag state
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
@@ -156,14 +171,17 @@ export const TaskBoard: React.FC = () => {
     }
   };
 
-  const handleDeleteTask = async (taskId: string) => {
+  const executeDeleteTask = async () => {
+    if (!deleteDialog.id) return;
     try {
-      await apiClient.delete(`/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}`);
+      await apiClient.delete(`/workspaces/${workspaceId}/projects/${projectId}/tasks/${deleteDialog.id}`);
       await fetchTasks();
       toast.success('Task deleted successfully');
     } catch (err: unknown) {
       console.error(err);
       toast.error(getApiErrorMessage(err, 'Failed to delete task.'));
+    } finally {
+      setDeleteDialog({ isOpen: false, id: null });
     }
   };
 
@@ -286,7 +304,7 @@ export const TaskBoard: React.FC = () => {
             >
               {/* Column Header */}
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-cf-border flex-shrink-0">
-                <span className="font-bold text-xs uppercase tracking-wider text-cf-textDark">{status.replace('_', ' ')}</span>
+                <span className="font-bold text-xs uppercase tracking-wider text-cf-textDark">{status.replaceAll('_', ' ')}</span>
                 <span className="text-[10px] bg-cf-navy text-white px-2 py-0.5 rounded-full font-mono">{statusTasks.length}</span>
               </div>
 
@@ -311,7 +329,7 @@ export const TaskBoard: React.FC = () => {
                             <Edit2 size={13} />
                           </button>
                           <button
-                            onClick={() => handleDeleteTask(task.id)}
+                            onClick={() => setDeleteDialog({ isOpen: true, id: task.id })}
                             className="p-1 text-cf-textMuted hover:text-red-600 transition"
                             aria-label={`Delete task ${task.title}`}
                           >
@@ -356,7 +374,7 @@ export const TaskBoard: React.FC = () => {
                             className="bg-cf-bgLight border border-cf-border rounded text-[9px] px-1 py-0.5 text-cf-textDark focus:outline-none"
                           >
                             {STATUSES.map(st => (
-                              <option key={st} value={st}>{st.replace('_', ' ')}</option>
+                              <option key={st} value={st}>{st.replaceAll('_', ' ')}</option>
                             ))}
                           </select>
                         </div>
@@ -378,8 +396,11 @@ export const TaskBoard: React.FC = () => {
 
       {/* Task Create / Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-cf-navy/60 backdrop-blur-sm">
-          <Card className="w-full max-w-lg shadow-2xl">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-cf-navy/60 backdrop-blur-sm"
+          onClick={() => setShowModal(false)}
+        >
+          <Card className="w-full max-w-lg shadow-2xl" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <CardHeader className="bg-cf-navy text-white">
               <h3 className="font-bold text-base">{editingTask ? 'Edit Task' : 'Add Task'}</h3>
               <p className="text-[11px] text-gray-300">Fill in task parameters. Assignment is managed automatically.</p>
@@ -457,6 +478,16 @@ export const TaskBoard: React.FC = () => {
           </Card>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        title="Delete Task"
+        message="Are you sure you want to delete this task? This action is irreversible."
+        confirmLabel="Delete Task"
+        isDestructive={true}
+        onConfirm={executeDeleteTask}
+        onCancel={() => setDeleteDialog({ isOpen: false, id: null })}
+      />
     </div>
   );
 };

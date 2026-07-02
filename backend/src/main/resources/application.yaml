@@ -17,7 +17,7 @@ spring:
     database: postgresql
     open-in-view: false
 jwt:
-  secret: ${JWT_SECRET:VGhpc0lzQVN1cGVyU2VjcmV0S2V5Rm9ySldUU2lnbmluZ1RoYXRNdXN0QmVBdExlYXN0MzJCeXRlc0xvbmc=}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}
   refresh:
     expiration: ${JWT_REFRESH_EXPIRATION:604800000}
@@ -25,6 +25,9 @@ jwt:
 app:
   cors:
     allowed-origin: ${FRONTEND_ORIGIN:http://localhost}
+
+spring.data.web.pageable:
+  max-page-size: 100
 
 management:
   endpoints:
