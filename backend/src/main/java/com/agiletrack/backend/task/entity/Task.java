@@ -26,7 +26,7 @@ public class Task extends BaseEntity {
     @ToString.Include
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     @EqualsAndHashCode.Include
     @ToString.Include
     private String title;

@@ -47,12 +47,12 @@ export const WorkspaceDetail: React.FC = () => {
 
     setCreating(true);
     try {
-      const res = await apiClient.post<Project>(`/workspaces/${workspaceId}/projects`, {
+      await apiClient.post<Project>(`/workspaces/${workspaceId}/projects`, {
         name,
         description
       });
       toast.success('Project created successfully!');
-      setProjects([...projects, res.data]);
+      await fetchData();
       setShowCreateModal(false);
       setName('');
       setDescription('');
@@ -72,7 +72,7 @@ export const WorkspaceDetail: React.FC = () => {
     try {
       await apiClient.delete(`/workspaces/${workspaceId}/projects/${projectId}`);
       toast.success('Project deleted successfully');
-      setProjects(projects.filter(p => p.id !== projectId));
+      await fetchData();
     } catch (err: any) {
       console.error(err);
       toast.error(err.response?.data?.message || 'Failed to delete project.');

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearStoredAuth, readStoredAuth } from '../utils/authStorage';
 
 export const apiClient = axios.create({
   baseURL: '/api/v1',
@@ -9,7 +10,7 @@ export const apiClient = axios.create({
 
 // Request Interceptor: Inject token automatically
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('agiletrack_token');
+  const token = readStoredAuth().token;
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -21,8 +22,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('agiletrack_token');
-      localStorage.removeItem('agiletrack_user');
+      clearStoredAuth();
       // Hard redirect to login page for unauthenticated attempts
       if (
         window.location.pathname !== '/login' &&

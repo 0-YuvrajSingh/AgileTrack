@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiClient } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import type { Task, TaskStatus, TaskPriority, Project } from '../types';
+import type { Project, Task, TaskPriority, TaskStatus, Workspace } from '../types';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -33,10 +33,19 @@ export const TaskBoard: React.FC = () => {
   // Drag state
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
 
+  const fetchTasks = async (targetWorkspaceId = workspaceId) => {
+    if (!targetWorkspaceId || !projectId) {
+      return;
+    }
+
+    const tasksRes = await apiClient.get<Task[]>(`/workspaces/${targetWorkspaceId}/projects/${projectId}/tasks`);
+    setTasks(tasksRes.data);
+  };
+
   const resolveWorkspaceAndLoad = async () => {
     try {
       // Find workspace that owns this project by listing workspaces and searching their projects
-      const wsRes = await apiClient.get<any[]>('/workspaces');
+      const wsRes = await apiClient.get<Workspace[]>('/workspaces');
       let foundWorkspaceId = null;
       let foundProject = null;
       
@@ -64,8 +73,7 @@ export const TaskBoard: React.FC = () => {
       setProject(foundProject);
 
       // Fetch tasks in this project
-      const tasksRes = await apiClient.get<Task[]>(`/workspaces/${foundWorkspaceId}/projects/${projectId}/tasks`);
-      setTasks(tasksRes.data);
+      await fetchTasks(foundWorkspaceId);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load task board data');
@@ -124,19 +132,19 @@ export const TaskBoard: React.FC = () => {
 
       if (editingTask) {
         // Edit task
-        const res = await apiClient.put<Task>(
+        await apiClient.put<Task>(
           `/workspaces/${workspaceId}/projects/${projectId}/tasks/${editingTask.id}`,
           payload
         );
-        setTasks(tasks.map(t => t.id === editingTask.id ? res.data : t));
+        await fetchTasks();
         toast.success('Task updated successfully');
       } else {
         // Create task
-        const res = await apiClient.post<Task>(
+        await apiClient.post<Task>(
           `/workspaces/${workspaceId}/projects/${projectId}/tasks`,
           payload
         );
-        setTasks([...tasks, res.data]);
+        await fetchTasks();
         toast.success('Task created successfully');
       }
       setShowModal(false);
@@ -149,7 +157,7 @@ export const TaskBoard: React.FC = () => {
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) return;
+      await fetchTasks();
 
     try {
       await apiClient.delete(`/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}`);
@@ -179,20 +187,16 @@ export const TaskBoard: React.FC = () => {
     const task = tasks.find(t => t.id === taskId);
     if (!task || task.status === newStatus) return;
 
-    // Optimistic status update
-    setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
-
     try {
       await apiClient.patch(
         `/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}/status`,
         { status: newStatus }
       );
+      await fetchTasks();
       toast.success(`Task moved to ${newStatus}`);
     } catch (err: any) {
       console.error(err);
       toast.error('Failed to update task status. Reverting change.');
-      // Revert status
-      setTasks(tasks.map(t => t.id === taskId ? { ...t, status: task.status } : t));
     } finally {
       setDraggingTaskId(null);
     }
@@ -203,11 +207,11 @@ export const TaskBoard: React.FC = () => {
     if (!task || task.status === newStatus) return;
 
     try {
-      const res = await apiClient.patch<Task>(
+      await apiClient.patch<Task>(
         `/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}/status`,
         { status: newStatus }
       );
-      setTasks(tasks.map(t => t.id === taskId ? res.data : t));
+      await fetchTasks();
       toast.success(`Status updated to ${newStatus}`);
     } catch (err: any) {
       console.error(err);

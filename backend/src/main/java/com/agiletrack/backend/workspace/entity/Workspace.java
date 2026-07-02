@@ -26,10 +26,12 @@ public class Workspace extends BaseEntity {
 
     @EqualsAndHashCode.Include
     @ToString.Include
+    @Column(nullable = false, length = 100)
     private String name;
 
     @EqualsAndHashCode.Include
     @ToString.Include
+    @Column(length = 500)
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)

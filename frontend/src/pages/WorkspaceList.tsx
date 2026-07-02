@@ -6,7 +6,7 @@ import type { Workspace } from '../types';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { FolderPlus, Settings, ArrowRight, Trash2 } from 'lucide-react';
+import { FolderPlus, ArrowRight, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export const WorkspaceList: React.FC = () => {
@@ -40,9 +40,9 @@ export const WorkspaceList: React.FC = () => {
 
     setCreating(true);
     try {
-      const res = await apiClient.post<Workspace>('/workspaces', { name, description });
+      await apiClient.post<Workspace>('/workspaces', { name, description });
       toast.success('Workspace created successfully!');
-      setWorkspaces([...workspaces, res.data]);
+      await fetchWorkspaces();
       setShowCreateModal(false);
       setName('');
       setDescription('');
@@ -62,7 +62,7 @@ export const WorkspaceList: React.FC = () => {
     try {
       await apiClient.delete(`/workspaces/${id}`);
       toast.success('Workspace deleted successfully');
-      setWorkspaces(workspaces.filter(ws => ws.id !== id));
+      await fetchWorkspaces();
     } catch (err: any) {
       console.error(err);
       toast.error(err.response?.data?.message || 'Failed to delete workspace.');
@@ -129,10 +129,7 @@ export const WorkspaceList: React.FC = () => {
                   </p>
                 </CardBody>
                 <CardFooter className="flex items-center justify-between">
-                  <Link to={`/workspaces/${ws.id}/settings`} className="text-xs text-cf-textMuted hover:text-cf-orange flex items-center gap-1 transition">
-                    <Settings size={14} />
-                    <span>Settings & Members</span>
-                  </Link>
+                  <span className="text-xs text-cf-textMuted">Workspace details</span>
                   <Link to={`/workspaces/${ws.id}`}>
                     <Button size="sm" variant="secondary" className="text-xs font-semibold flex items-center gap-1">
                       <span>Enter</span>

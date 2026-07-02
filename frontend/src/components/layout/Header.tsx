@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Menu, ChevronDown, Bell, LogOut } from 'lucide-react';
+import { Menu, ChevronDown, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -44,11 +44,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
       <div className="flex items-center space-x-4">
         {isAuthenticated ? (
           <>
-            <button className="text-gray-300 hover:text-white p-1 hover:bg-cf-navyDark rounded transition relative">
-              <Bell size={18} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-cf-orange rounded-full"></span>
-            </button>
-            
             <div className="relative">
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}

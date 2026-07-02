@@ -32,12 +32,32 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-cf-bgLight">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cf-orange"></div>
+      </div>
+    );
+  }
+
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>;
+};
+
 function AppRoutes() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route element={<PublicLayout />}>
-        <Route path="/" element={<Home />} />
+      <Route path="/" element={<Home />} />
+      <Route
+        element={
+          <PublicRoute>
+            <PublicLayout />
+          </PublicRoute>
+        }
+      >
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Route>

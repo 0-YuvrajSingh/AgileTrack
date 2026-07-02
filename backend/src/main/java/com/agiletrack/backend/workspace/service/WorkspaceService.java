@@ -143,13 +143,21 @@ public class WorkspaceService {
 
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new AccessDeniedException("Access denied");
+        }
+
         Object principal = authentication.getPrincipal();
 
         if (principal instanceof CustomUserDetails userDetails) {
             return userDetails.getUser();
         }
 
-        return (User) principal;
+        if (principal instanceof User user) {
+            return user;
+        }
+
+        throw new AccessDeniedException("Access denied");
     }
 
     public WorkspaceRole getMemberRole(UUID workspaceId, UUID userId) {

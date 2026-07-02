@@ -27,6 +27,7 @@ services:
       - DATABASE_USERNAME=${POSTGRES_USER:-agiletrack_user}
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-agiletrack_password}
       - JWT_SECRET=${JWT_SECRET:-VGhpc0lzQVN1cGVyU2VjcmV0S2V5Rm9ySldUU2lnbmluZ1RoYXRNdXN0QmVBdExlYXN0MzJCeXRlc0xvbmc=}
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost}
     ports:
       - "8080:8080"
     depends_on:
@@ -37,25 +38,10 @@ services:
     build:
       context: ./frontend
     container_name: agiletrack-frontend
+    ports:
+      - "80:80"
     depends_on:
       - backend
 
-  caddy:
-    image: caddy:2-alpine
-    container_name: agiletrack-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - frontend
-
 volumes:
   postgres_data:
-  caddy_data:
-  caddy_config:

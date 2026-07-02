@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from '../types';
+import { clearStoredAuth, readStoredAuth, saveStoredAuth } from '../utils/authStorage';
 
 interface AuthContextType {
   user: User | null;
@@ -18,25 +19,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('agiletrack_token');
-    const storedUser = localStorage.getItem('agiletrack_user');
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
+    const storedAuth = readStoredAuth();
+    setToken(storedAuth.token);
+    setUser(storedAuth.user);
     setLoading(false);
   }, []);
 
   const login = (newToken: string, newUser: User) => {
-    localStorage.setItem('agiletrack_token', newToken);
-    localStorage.setItem('agiletrack_user', JSON.stringify(newUser));
+    saveStoredAuth(newToken, newUser);
     setToken(newToken);
     setUser(newUser);
   };
 
   const logout = () => {
-    localStorage.removeItem('agiletrack_token');
-    localStorage.removeItem('agiletrack_user');
+    clearStoredAuth();
     setToken(null);
     setUser(null);
   };

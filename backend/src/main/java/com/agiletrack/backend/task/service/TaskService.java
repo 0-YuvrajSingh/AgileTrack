@@ -134,13 +134,21 @@ public class TaskService {
     }
 
     private User getCurrentUser() {
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            throw new AccessDeniedException("Access denied");
+        }
+
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         if (principal instanceof CustomUserDetails userDetails) {
             return userDetails.getUser();
         }
 
-        return (User) principal;
+        if (principal instanceof User user) {
+            return user;
+        }
+
+        throw new AccessDeniedException("Access denied");
     }
 
     private User getValidatedAssignee(UUID workspaceId, UUID assigneeId) {

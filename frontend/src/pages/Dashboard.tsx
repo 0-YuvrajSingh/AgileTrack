@@ -4,7 +4,7 @@ import { apiClient } from '../api/axios';
 import type { Workspace, Project } from '../types';
 import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { FolderKanban, Plus, Clock, ListTodo } from 'lucide-react';
+import { FolderKanban, Plus, ListTodo, Clock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export const Dashboard: React.FC = () => {
@@ -140,10 +140,15 @@ export const Dashboard: React.FC = () => {
 
         <Card>
           <CardHeader>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-cf-textMuted">My Tasks Due Soon</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-cf-textMuted">Next Step</h2>
           </CardHeader>
-          <CardBody className="p-6 text-center text-sm text-cf-textMuted">
-            Select a workspace and project to view and manage task details.
+          <CardBody className="p-6 space-y-4 text-sm text-cf-textMuted">
+            <p>Open a workspace, create a project, and then move into the task board to manage work in Kanban.</p>
+            <Link to="/workspaces">
+              <Button variant="secondary" size="sm" className="text-xs font-semibold">
+                Browse Workspaces
+              </Button>
+            </Link>
           </CardBody>
         </Card>
       </div>

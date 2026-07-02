@@ -31,6 +31,7 @@ public class Project extends BaseEntity {
 
     @EqualsAndHashCode.Include
     @ToString.Include
+    @Column(length = 255)
     private String description;
 
     @Enumerated(EnumType.STRING)

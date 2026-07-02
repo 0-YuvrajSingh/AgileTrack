@@ -19,3 +19,7 @@ spring:
 jwt:
   secret: ${JWT_SECRET:VGhpc0lzQVN1cGVyU2VjcmV0S2V5Rm9ySldUU2lnbmluZ1RoYXRNdXN0QmVBdExlYXN0MzJCeXRlc0xvbmc=}
   expiration: ${JWT_EXPIRATION:86400000}
+
+app:
+  cors:
+    allowed-origin: ${FRONTEND_ORIGIN:http://localhost}
