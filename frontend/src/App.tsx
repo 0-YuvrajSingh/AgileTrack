@@ -50,7 +50,11 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={
+        <PublicRoute>
+          <Home />
+        </PublicRoute>
+      } />
       <Route
         element={
           <PublicRoute>

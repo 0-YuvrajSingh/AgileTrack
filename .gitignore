@@ -30,7 +30,7 @@ target/
 *.log
 !mvnw
 !mvnw.cmd
-.mvn/wrapper/maven-wrapper.jar
+
 
 # Docker & Infrastructure Data
 postgres_data/
