@@ -1,15 +1,12 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
     container_name: agiletrack-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-agiletrack_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agiletrack_password}
       POSTGRES_DB: ${POSTGRES_DB:-agiletrack}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,15 +19,16 @@ services:
     build: 
       context: ./backend
     container_name: agiletrack-backend
+    restart: unless-stopped
     environment:
       - DATABASE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-agiletrack}
       - DATABASE_USERNAME=${POSTGRES_USER:-agiletrack_user}
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-agiletrack_password}
       - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
       - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-604800000}
-      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost}
-    ports:
-      - "8080:8080"
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost:3000}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
     depends_on:
       db:
         condition: service_healthy
@@ -44,8 +42,9 @@ services:
     build:
       context: ./frontend
     container_name: agiletrack-frontend
+    restart: unless-stopped
     ports:
-      - "80:80"
+      - "3000:8080"
     depends_on:
       backend:
         condition: service_healthy
