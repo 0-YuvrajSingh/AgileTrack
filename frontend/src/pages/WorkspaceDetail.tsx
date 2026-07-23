@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import type React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiClient, getApiErrorMessage } from '../api/axios';
 import type { PageResponse, Project, Workspace } from '../types';
@@ -48,18 +49,20 @@ export const WorkspaceDetail: React.FC = () => {
     return () => clearTimeout(handler);
   }, [search]);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     try {
       const [wsRes, projsRes] = await Promise.all([
-        apiClient.get<Workspace>(`/workspaces/${workspaceId}`),
+        apiClient.get<Workspace>(`/workspaces/${workspaceId}`, { signal }),
         apiClient.get<PageResponse<Project>>(`/workspaces/${workspaceId}/projects`, {
-          params: { page, size: 9, search: debouncedSearch }
+          params: { page, size: 9, search: debouncedSearch },
+          signal
         })
       ]);
       setWorkspace(wsRes.data);
       setProjects(projsRes.data.content);
       setTotalPages(projsRes.data.totalPages);
     } catch (err) {
+      if (signal?.aborted) return;
       console.error(err);
       toast.error('Failed to load workspace detail or projects list');
     } finally {
@@ -68,9 +71,11 @@ export const WorkspaceDetail: React.FC = () => {
   }, [workspaceId, page, debouncedSearch]);
 
   useEffect(() => {
+    const controller = new AbortController();
     if (workspaceId) {
-      fetchData();
+      fetchData(controller.signal);
     }
+    return () => controller.abort();
   }, [workspaceId, fetchData]);
 
   const handleCreateProject = async (e: React.FormEvent) => {
@@ -113,12 +118,12 @@ export const WorkspaceDetail: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ACTIVE': return 'bg-green-100 text-green-800 border-green-200';
-      case 'PLANNING': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'ON_HOLD': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'COMPLETED': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'ARCHIVED': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'ACTIVE': return 'bg-status-successBg text-status-success border-status-success/20';
+      case 'PLANNING': return 'bg-status-infoBg text-status-info border-status-info/20';
+      case 'ON_HOLD': return 'bg-status-warningBg text-status-warning border-status-warning/20';
+      case 'COMPLETED': return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'ARCHIVED': return 'bg-gray-100 text-gray-500 border-gray-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
