@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/axios';
 import type { PageResponse, Project } from '../types';
@@ -13,13 +14,16 @@ export const Dashboard: React.FC = () => {
   const [projectCount, setProjectCount] = useState(0);
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchDashboardData = async () => {
       try {
         let totalProjects = 0;
         const promises = workspaces.map(ws => 
           apiClient.get<PageResponse<Project>>(`/workspaces/${ws.id}/projects`, {
-            params: { page: 0, size: 1 }
+            params: { page: 0, size: 1 },
+            signal: controller.signal
           }).catch(err => {
+            if (controller.signal.aborted) return null;
             console.error('Failed to load projects for workspace', ws.id, err);
             return null;
           })
@@ -33,6 +37,7 @@ export const Dashboard: React.FC = () => {
         });
         setProjectCount(totalProjects);
       } catch (err) {
+        if (controller.signal.aborted) return;
         console.error(err);
         toast.error('Failed to load dashboard data');
       }
@@ -41,6 +46,8 @@ export const Dashboard: React.FC = () => {
     if (!loading && !error) {
       fetchDashboardData();
     }
+
+    return () => controller.abort();
   }, [workspaces, loading, error]);
 
   if (loading) {
@@ -82,7 +89,7 @@ export const Dashboard: React.FC = () => {
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+        <Card hoverable>
           <CardBody className="flex items-center space-x-4">
             <div className="p-3 bg-cf-orange/10 text-cf-orange rounded">
               <FolderKanban size={24} />
@@ -94,7 +101,7 @@ export const Dashboard: React.FC = () => {
           </CardBody>
         </Card>
         
-        <Card>
+        <Card hoverable>
           <CardBody className="flex items-center space-x-4">
             <div className="p-3 bg-cf-orange/10 text-cf-orange rounded">
               <ListTodo size={24} />
@@ -106,7 +113,7 @@ export const Dashboard: React.FC = () => {
           </CardBody>
         </Card>
 
-        <Card>
+        <Card hoverable>
           <CardBody className="flex items-center space-x-4">
             <div className="p-3 bg-cf-orange/10 text-cf-orange rounded">
               <Clock size={24} />
