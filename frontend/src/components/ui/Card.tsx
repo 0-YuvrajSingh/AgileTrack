@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   hoverable?: boolean;
@@ -10,8 +10,8 @@ export const Card: React.FC<CardProps> = ({
   className = '',
   ...props
 }) => {
-  const baseStyle = 'bg-white border border-cf-border rounded shadow-cf-card overflow-hidden';
-  const hoverStyle = hoverable ? 'transition-shadow duration-150 hover:shadow-md' : '';
+  const baseStyle = 'bg-white border border-cf-border rounded-lg shadow-cf-card overflow-hidden';
+  const hoverStyle = hoverable ? 'transition duration-200 hover:shadow-cf-card-lg hover:-translate-y-0.5 hover:border-cf-orange/30' : '';
 
   return (
     <div
