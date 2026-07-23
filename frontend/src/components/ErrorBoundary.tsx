@@ -1,4 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { Button } from './ui/Button';
 
 interface Props {
@@ -30,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="bg-white p-8 rounded shadow-cf-card max-w-md w-full text-center border border-cf-border">
             <h2 className="text-xl font-bold text-cf-textDark mb-4">Something went wrong</h2>
             <p className="text-sm text-cf-textMuted mb-6">
-              {this.state.error?.message || "An unexpected error occurred in the application."}
+              An unexpected error occurred. Please try reloading the application.
             </p>
             <Button onClick={() => window.location.reload()}>
               Reload Application
