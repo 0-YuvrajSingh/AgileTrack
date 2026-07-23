@@ -125,8 +125,8 @@ If you prefer to run the services individually without Docker, configure your lo
 - Create a PostgreSQL database named `agiletrack_db` on port `5432`.
 - Update credentials in `backend/src/main/resources/application.yaml` or set environment variables:
   ```bash
-  POSTGRES_USER=postgres
-  POSTGRES_PASSWORD=postgres
+  DATABASE_USERNAME=postgres
+  DATABASE_PASSWORD=postgres
   ```
 
 #### 2. Start the Backend
@@ -195,19 +195,20 @@ Copy `.env.example` to `.env` and fill in:
 | `JWT_EXPIRATION` | Access token TTL in ms (default 24h) | `86400000` |
 | `JWT_REFRESH_EXPIRATION` | Refresh token TTL in ms (default 7d) | `604800000` |
 | `FRONTEND_ORIGIN` | Allowed CORS origin for the API | `https://your-frontend.vercel.app` |
-| `POSTGRES_*` | Database credentials | See `.env.example` |
+| `DATABASE_*` | Database credentials | See `.env.example` |
 
 ### Deploy to Vercel + Render (Recommended for Students)
 
 **Frontend (Vercel):**
 1. Push to GitHub, import in [vercel.com](https://vercel.com)
-2. Set env var `VITE_API_BASE_URL` to your backend URL (e.g. `https://your-app.onrender.com/api/v1`)
+2. Set env var `VITE_API_BASE_URL` to your backend URL (e.g. `https://your-app.onrender.com/api/v1`). Note: This variable is baked into the frontend static bundle at build time and is also used for dev proxying locally.
 
 **Backend (Render):**
 1. Create a free Web Service on [render.com](https://render.com)
-2. Build command: `cd backend && ./mvnw clean package -DskipTests`
-3. Start command: `java -jar backend/target/*.jar`
-4. Add env vars: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_ORIGIN`, etc.
+2. Set the Root Directory to: `backend`
+3. Build command: `./mvnw clean package -DskipTests`
+4. Start command: `java -jar target/backend-0.0.1-SNAPSHOT.jar`
+5. Add env vars: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_ORIGIN`, etc.
 
 **Database (Neon or Supabase free tier):**
 1. Create a PostgreSQL database
