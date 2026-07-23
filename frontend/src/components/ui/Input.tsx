@@ -1,11 +1,12 @@
-import React from 'react';
+import { forwardRef } from 'react';
+import type { InputHTMLAttributes } from 'react';
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
 }
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, className = '', type = 'text', ...props }, ref) => {
     return (
       <div className="w-full mb-4">
