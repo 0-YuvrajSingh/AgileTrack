@@ -106,9 +106,9 @@ To run the entire stack (Frontend, Backend, and Database) with a single command,
 docker-compose up --build
 ```
 
-- **Frontend Application**: accessible at [http://localhost](http://localhost)
-- **Backend REST API**: accessible at [http://localhost:8080](http://localhost:8080)
-- **Database Port**: bound to `localhost:5432`
+- **Frontend Application**: accessible at [http://localhost:3000](http://localhost:3000)
+- **Backend REST API**: proxied through the frontend at `/api/v1`
+- **Database**: PostgreSQL on port `5432` (internal only)
 
 To stop the containers and keep database volumes:
 ```bash
