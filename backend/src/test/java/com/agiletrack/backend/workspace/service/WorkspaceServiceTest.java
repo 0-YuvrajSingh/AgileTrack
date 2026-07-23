@@ -1,5 +1,4 @@
-
-package com.agiletrack.backend.workpace.service;
+package com.agiletrack.backend.workspace.service;
 
 import com.agiletrack.backend.user.entity.User;
 import com.agiletrack.backend.workspace.dto.CreateWorkspaceRequest;
