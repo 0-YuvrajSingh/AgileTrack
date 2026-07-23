@@ -1,19 +1,20 @@
-import React, { useMemo } from 'react';
+import type React from 'react';
+import { useMemo } from 'react';
 import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { X, LayoutDashboard, FolderKanban } from 'lucide-react';
-import { useWorkspaces } from '../../hooks/useWorkspaces';
+import type { Workspace } from '../../types';
 
 interface SidebarProps {
+  workspaces: Workspace[];
   mobileOpen: boolean;
   onClose: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ workspaces, mobileOpen, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { workspaceId } = useParams<{ workspaceId?: string }>();
   
-  const { workspaces } = useWorkspaces();
   const selectedWorkspace = useMemo(
     () => workspaces.find(w => w.id === workspaceId) || null,
     [workspaceId, workspaces]
