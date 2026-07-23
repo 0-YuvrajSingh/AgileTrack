@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import type React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiClient, getApiErrorMessage } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -68,43 +69,61 @@ export const TaskBoard: React.FC = () => {
       return;
     }
 
-    const tasksRes = await apiClient.get<PageResponse<Task>>(`/workspaces/${workspaceId}/projects/${projectId}/tasks`, {
-      params: { search: debouncedSearch, sort: 'position,asc' }
-    });
-    setTasks(sortTasks(tasksRes.data.content));
-  }, [workspaceId, projectId, debouncedSearch]);
-
-  const loadBoard = useCallback(async () => {
-    if (!workspaceId || !projectId) {
-      return;
-    }
-
     try {
-      const [wsRes, projectRes] = await Promise.all([
-        apiClient.get<Workspace>(`/workspaces/${workspaceId}`),
-        apiClient.get<Project>(`/workspaces/${workspaceId}/projects/${projectId}`)
-      ]);
-      setWorkspace(wsRes.data);
-      setProject(projectRes.data);
+      const tasksRes = await apiClient.get<PageResponse<Task>>(`/workspaces/${workspaceId}/projects/${projectId}/tasks`, {
+        params: { search: debouncedSearch, sort: 'position,asc' }
+      });
+      setTasks(sortTasks(tasksRes.data.content));
     } catch (err) {
       console.error(err);
-      toast.error('Failed to load task board data');
-    } finally {
-      setLoading(false);
+      toast.error('Failed to load tasks');
     }
+  }, [workspaceId, projectId, debouncedSearch]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    if (workspaceId && projectId) {
+      const load = async () => {
+        try {
+          const [wsRes, projectRes] = await Promise.all([
+            apiClient.get<Workspace>(`/workspaces/${workspaceId}`, { signal: controller.signal }),
+            apiClient.get<Project>(`/workspaces/${workspaceId}/projects/${projectId}`, { signal: controller.signal })
+          ]);
+          setWorkspace(wsRes.data);
+          setProject(projectRes.data);
+        } catch (err) {
+          if (controller.signal.aborted) return;
+          console.error(err);
+          toast.error('Failed to load task board data');
+        } finally {
+          setLoading(false);
+        }
+      };
+      load();
+    }
+    return () => controller.abort();
   }, [workspaceId, projectId]);
 
   useEffect(() => {
-    if (workspaceId && projectId) {
-      loadBoard();
-    }
-  }, [workspaceId, projectId, loadBoard]);
-
-  useEffect(() => {
+    const controller = new AbortController();
     if (workspaceId && projectId && !loading) {
-      fetchTasks();
+      const load = async () => {
+        try {
+          const tasksRes = await apiClient.get<PageResponse<Task>>(`/workspaces/${workspaceId}/projects/${projectId}/tasks`, {
+            params: { search: debouncedSearch, sort: 'position,asc' },
+            signal: controller.signal
+          });
+          setTasks(sortTasks(tasksRes.data.content));
+        } catch (err) {
+          if (controller.signal.aborted) return;
+          console.error(err);
+          toast.error('Failed to load tasks');
+        }
+      };
+      load();
     }
-  }, [workspaceId, projectId, loading, fetchTasks]);
+    return () => controller.abort();
+  }, [workspaceId, projectId, loading, debouncedSearch]);
 
   const handleOpenCreate = () => {
     setEditingTask(null);
@@ -241,10 +260,10 @@ export const TaskBoard: React.FC = () => {
 
   const getPriorityBadge = (p: TaskPriority) => {
     switch (p) {
-      case 'URGENT': return 'bg-red-100 text-red-800 border-red-200';
-      case 'HIGH': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'MEDIUM': return 'bg-green-100 text-green-800 border-green-200';
-      case 'LOW': return 'bg-gray-100 text-gray-800 border-cf-border';
+      case 'URGENT': return 'bg-red-50 text-red-700 border-red-200';
+      case 'HIGH': return 'bg-status-warningBg text-status-warning border-status-warning/20';
+      case 'MEDIUM': return 'bg-status-infoBg text-status-info border-status-info/20';
+      case 'LOW': return 'bg-gray-50 text-gray-600 border-cf-border';
     }
   };
 
