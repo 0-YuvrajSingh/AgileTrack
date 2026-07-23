@@ -35,6 +35,11 @@ jobs:
           
       - name: Build and Test with Maven
         working-directory: ./backend
+        env:
+          DATABASE_URL: jdbc:postgresql://localhost:5432/agiletrack_db
+          DATABASE_USERNAME: postgres
+          DATABASE_PASSWORD: postgres
+          JWT_SECRET: c2VjcmV0S2V5Rm9yQWdpbGVUcmFja0FwcGxpY2F0aW9uVGVzdGluZ1B1cnBvc2VzMzJCeXRlc01pbmltdW0=
         run: ./mvnw clean verify
 
   frontend-build:
