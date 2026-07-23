@@ -90,6 +90,10 @@ public class WorkspaceService {
     public void inviteMember(UUID workspaceId, InviteMemberRequest request) {
         Workspace workspace = getWorkspaceForAdmin(workspaceId);
 
+        if (request.role() == WorkspaceRole.OWNER) {
+            throw new IllegalArgumentException("Cannot assign OWNER role via invitation");
+        }
+
         User invitee = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
