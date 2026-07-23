@@ -91,10 +91,12 @@ erDiagram
 
 ## Getting Started
 
-### Live Deployment
-- **Frontend**: [https://your-frontend-url.vercel.app](https://your-frontend-url.vercel.app)
-- **Backend API**: [https://your-backend-url.onrender.com](https://your-backend-url.onrender.com)
-- **API Docs (Swagger)**: [https://your-backend-url.onrender.com/swagger-ui/index.html](https://your-backend-url.onrender.com/swagger-ui/index.html)
+### Live Demo
+> Deployed at your-deployment-url — register an account or use the demo credentials below.
+
+| Role | Email | Password |
+|------|-------|----------|
+| Demo User | `demo@agiletrack.com` | `Demo@12345` |
 
 ### Quick Start with Docker (Recommended)
 
@@ -178,3 +180,35 @@ If you prefer to run the services individually without Docker, configure your lo
 ## Swagger / OpenAPI Docs
 When the backend service is running, you can explore and test the API interactively at:
 [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+
+---
+
+## Deployment
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and fill in:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `JWT_SECRET` | Random 256-bit key for signing JWTs | `openssl rand -base64 32` |
+| `JWT_EXPIRATION` | Access token TTL in ms (default 24h) | `86400000` |
+| `JWT_REFRESH_EXPIRATION` | Refresh token TTL in ms (default 7d) | `604800000` |
+| `FRONTEND_ORIGIN` | Allowed CORS origin for the API | `https://your-frontend.vercel.app` |
+| `POSTGRES_*` | Database credentials | See `.env.example` |
+
+### Deploy to Vercel + Render (Recommended for Students)
+
+**Frontend (Vercel):**
+1. Push to GitHub, import in [vercel.com](https://vercel.com)
+2. Set env var `VITE_API_BASE_URL` to your backend URL (e.g. `https://your-app.onrender.com/api/v1`)
+
+**Backend (Render):**
+1. Create a free Web Service on [render.com](https://render.com)
+2. Build command: `cd backend && ./mvnw clean package -DskipTests`
+3. Start command: `java -jar backend/target/*.jar`
+4. Add env vars: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_ORIGIN`, etc.
+
+**Database (Neon or Supabase free tier):**
+1. Create a PostgreSQL database
+2. Use the connection string as `DATABASE_URL` (format: `jdbc:postgresql://host:5432/dbname?sslmode=require`)
