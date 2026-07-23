@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { Card, CardBody, CardFooter } from './Card';
 import { Button } from './Button';
 import { AlertTriangle } from 'lucide-react';
