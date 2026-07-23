@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { clearStoredAuth, readStoredAuth, updateStoredToken } from '../utils/authStorage';
 
+const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
 export const apiClient = axios.create({
-  baseURL: '/api/v1',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -61,7 +63,7 @@ apiClient.interceptors.response.use(
       }
 
       try {
-        const res = await axios.post('/api/v1/auth/refresh', { refreshToken });
+        const res = await axios.post(`${baseURL}/auth/refresh`, { refreshToken });
         const newToken = res.data.accessToken;
         const newRefreshToken = res.data.refreshToken;
         updateStoredToken(newToken, newRefreshToken);
