@@ -9,6 +9,7 @@ import com.agiletrack.backend.workspace.mapper.WorkspaceMapper;
 import com.agiletrack.backend.workspace.repository.WorkspaceMemberRepository;
 import com.agiletrack.backend.workspace.repository.WorkspaceRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -42,6 +43,11 @@ class WorkspaceServiceTest {
 
     private User testUser;
     private Workspace testWorkspace;
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
 
     @BeforeEach
     void setUp() {
@@ -101,3 +107,4 @@ class WorkspaceServiceTest {
                 .isInstanceOf(AccessDeniedException.class);
     }
 }
+
