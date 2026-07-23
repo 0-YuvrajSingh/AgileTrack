@@ -8,7 +8,6 @@ import com.agiletrack.backend.workspace.entity.WorkspaceMember;
 import com.agiletrack.backend.workspace.mapper.WorkspaceMapper;
 import com.agiletrack.backend.workspace.repository.WorkspaceMemberRepository;
 import com.agiletrack.backend.workspace.repository.WorkspaceRepository;
-import com.agiletrack.backend.workspace.service.WorkspaceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
