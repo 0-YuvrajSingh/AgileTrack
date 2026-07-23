@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiClient, getApiErrorMessage } from '../api/axios';
 import { Button } from '../components/ui/Button';
-import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { toast } from 'react-hot-toast';
 import type { AuthResponse } from '../types';
+import { BrandPanel } from '../components/layout/BrandPanel';
 
 export const Register: React.FC = () => {
   const { login } = useAuth();
@@ -46,16 +47,20 @@ export const Register: React.FC = () => {
   };
 
   return (
-    <div className="flex-grow flex items-center justify-center bg-cf-bgLight py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center bg-cf-navy text-white">
-          <h2 className="text-xl font-bold tracking-tight">Create your Account</h2>
-          <p className="mt-1 text-xs text-gray-300">Start tracking workflows in clean tables</p>
-        </CardHeader>
-        <CardBody className="p-8">
+    <div className="flex-grow grid md:grid-cols-2 min-h-[calc(100vh-56px)]">
+      <BrandPanel
+        heading="Every project, one clear board."
+        sub="Create a workspace and see your team's work line up instantly."
+      />
+
+      <div className="flex items-center justify-center bg-cf-bgLight py-12 px-6">
+        <div className="w-full max-w-sm animate-fadeUp">
+          <h2 className="text-2xl font-bold text-cf-textDark tracking-tight">Create your account</h2>
+          <p className="mt-1 text-sm text-cf-textMuted mb-8">Start tracking workflows in clean boards</p>
+
           <form onSubmit={handleSubmit}>
             <Input
-              label="Email Address"
+              label="Email address"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -71,11 +76,11 @@ export const Register: React.FC = () => {
               required
             />
             <Input
-              label="Confirm Password"
+              label="Confirm password"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm Password"
+              placeholder="Confirm password"
               required
             />
             <Button
@@ -84,18 +89,18 @@ export const Register: React.FC = () => {
               className="mt-4 font-semibold"
               disabled={loading}
             >
-              {loading ? 'Creating Account...' : 'Sign Up'}
+              {loading ? 'Creating account…' : 'Sign up'}
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-xs text-cf-textMuted">
+          <div className="mt-6 text-center text-sm text-cf-textMuted">
             Already have an account?{' '}
             <Link to="/login" className="text-cf-orange font-medium hover:underline">
-              Log In
+              Log in
             </Link>
           </div>
-        </CardBody>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };
