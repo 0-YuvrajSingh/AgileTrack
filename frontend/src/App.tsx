@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
@@ -51,11 +51,6 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={
-        <PublicRoute>
-          <Home />
-        </PublicRoute>
-      } />
       <Route
         element={
           <PublicRoute>
@@ -63,6 +58,7 @@ function AppRoutes() {
           </PublicRoute>
         }
       >
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Route>
