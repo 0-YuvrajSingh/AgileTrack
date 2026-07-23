@@ -7,8 +7,8 @@ spring:
     name: backend
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/agiletrack_db}
-    username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:postgres}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate
