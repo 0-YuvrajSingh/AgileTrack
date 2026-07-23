@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -16,11 +17,24 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
+    private static final int MIN_SECRET_BYTES = 32;
+
     @Value("${jwt.secret}")
     private String secretKey;
 
     @Value("${jwt.expiration}")
     private long expirationMs;
+
+    @PostConstruct
+    public void validateSecretKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        if (keyBytes.length < MIN_SECRET_BYTES) {
+            throw new IllegalArgumentException(
+                "JWT secret must be at least " + MIN_SECRET_BYTES + " bytes (256 bits). " +
+                "Generate one with: openssl rand -base64 32"
+            );
+        }
+    }
 
     public String generateToken(UserDetails userDetails) {
         return Jwts.builder()
