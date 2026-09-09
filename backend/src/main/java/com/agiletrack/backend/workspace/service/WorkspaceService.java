@@ -1,0 +1,198 @@
+package com.agiletrack.backend.workspace.service;
+
+import com.agiletrack.backend.common.exception.UserNotFoundException;
+import com.agiletrack.backend.common.exception.WorkspaceNotFoundException;
+import com.agiletrack.backend.security.CurrentUserService;
+import com.agiletrack.backend.user.entity.User;
+import com.agiletrack.backend.user.repository.UserRepository;
+import com.agiletrack.backend.workspace.dto.CreateWorkspaceRequest;
+import com.agiletrack.backend.workspace.dto.InviteMemberRequest;
+import com.agiletrack.backend.workspace.dto.UpdateWorkspaceRequest;
+import com.agiletrack.backend.workspace.dto.WorkspaceMemberResponse;
+import com.agiletrack.backend.workspace.dto.WorkspaceResponse;
+import com.agiletrack.backend.workspace.entity.Workspace;
+import com.agiletrack.backend.workspace.entity.WorkspaceMember;
+import com.agiletrack.backend.workspace.entity.WorkspaceRole;
+import com.agiletrack.backend.workspace.mapper.WorkspaceMapper;
+import com.agiletrack.backend.workspace.repository.WorkspaceMemberRepository;
+import com.agiletrack.backend.workspace.repository.WorkspaceRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import com.agiletrack.backend.common.exception.BusinessRuleException;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class WorkspaceService {
+
+    private final WorkspaceRepository workspaceRepository;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final UserRepository userRepository;
+    private final WorkspaceMapper workspaceMapper;
+    private final CurrentUserService currentUserService;
+
+    @Transactional
+    public WorkspaceResponse create(CreateWorkspaceRequest request) {
+        User currentUser = currentUserService.getCurrentUser();
+
+        Workspace workspace = Workspace.builder()
+                .name(request.name())
+                .description(request.description())
+                .owner(currentUser)
+                .build();
+        workspace = workspaceRepository.save(workspace);
+
+        WorkspaceMember member = WorkspaceMember.builder()
+                .workspace(workspace)
+                .user(currentUser)
+                .role(WorkspaceRole.OWNER)
+                .build();
+        workspaceMemberRepository.save(member);
+
+        return workspaceMapper.toResponse(workspace, WorkspaceRole.OWNER);
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkspaceResponse> findAll() {
+        return workspaceMemberRepository.findByUserId(currentUserService.getCurrentUser().getId())
+                .stream()
+                .map(member -> workspaceMapper.toResponse(member.getWorkspace(), member.getRole()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public WorkspaceResponse findById(UUID id) {
+        Workspace workspace = getWorkspaceIfMember(id);
+        WorkspaceRole role = getMemberRole(id, currentUserService.getCurrentUser().getId());
+        return workspaceMapper.toResponse(workspace, role);
+    }
+
+    @Transactional
+    public WorkspaceResponse update(UpdateWorkspaceRequest request, UUID id) {
+        Workspace workspace = getWorkspaceForAdmin(id);
+        workspace.setName(request.name());
+        if (request.description() != null) workspace.setDescription(request.description());
+        workspaceRepository.save(workspace);
+        WorkspaceRole role = getMemberRole(id, currentUserService.getCurrentUser().getId());
+        return workspaceMapper.toResponse(workspace, role);
+    }
+
+    @Transactional
+    public void delete(UUID id) {
+        Workspace workspace = getOwnedWorkspace(id);
+        workspaceRepository.delete(workspace);
+    }
+
+    @Transactional
+    public void inviteMember(UUID workspaceId, InviteMemberRequest request) {
+        Workspace workspace = getWorkspaceForAdmin(workspaceId);
+
+        if (request.role() == WorkspaceRole.OWNER) {
+            throw new BusinessRuleException("Cannot assign OWNER role via invitation");
+        }
+
+        User invitee = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, invitee.getId())) {
+            throw new BusinessRuleException("User is already a member of this workspace");
+        }
+
+        WorkspaceMember member = WorkspaceMember.builder()
+                .workspace(workspace)
+                .user(invitee)
+                .role(request.role())
+                .build();
+
+        workspaceMemberRepository.save(member);
+    }
+
+    public Workspace getOwnedWorkspace(UUID workspaceId) {
+        WorkspaceMember member = getWorkspaceMember(workspaceId);
+
+        if (member.getRole() != WorkspaceRole.OWNER) {
+            throw new AccessDeniedException("Requires OWNER role to perform this action");
+        }
+
+        return member.getWorkspace();
+    }
+
+    public Workspace getWorkspaceForAdmin(UUID workspaceId) {
+        WorkspaceMember member = getWorkspaceMember(workspaceId);
+
+        if (member.getRole() != WorkspaceRole.OWNER && member.getRole() != WorkspaceRole.ADMIN) {
+            throw new AccessDeniedException("Requires ADMIN or OWNER role to perform this action");
+        }
+
+        return member.getWorkspace();
+    }
+
+    public Workspace getWorkspaceForMutation(UUID workspaceId) {
+        WorkspaceMember member = getWorkspaceMember(workspaceId);
+
+        if (member.getRole() == WorkspaceRole.VIEWER) {
+            throw new AccessDeniedException("VIEWER role cannot perform this action");
+        }
+
+        return member.getWorkspace();
+    }
+
+    public Workspace getWorkspaceIfMember(UUID workspaceId) {
+        return getWorkspaceMember(workspaceId).getWorkspace();
+    }
+
+    private WorkspaceMember getWorkspaceMember(UUID workspaceId) {
+        // First ensure workspace exists to throw 404 if it doesn't
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new WorkspaceNotFoundException("Workspace not found"));
+
+        return workspaceMemberRepository
+                .findByWorkspaceIdAndUserId(workspaceId, currentUserService.getCurrentUser().getId())
+                .orElseThrow(() -> new AccessDeniedException("Access denied"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkspaceMemberResponse> getMembers(UUID workspaceId) {
+        getWorkspaceIfMember(workspaceId);
+        return workspaceMemberRepository.findByWorkspaceId(workspaceId)
+                .stream()
+                .map(member -> new WorkspaceMemberResponse(
+                        member.getId(),
+                        member.getUser().getId(),
+                        member.getUser().getEmail(),
+                        member.getRole()
+                ))
+                .toList();
+    }
+
+    public WorkspaceRole getMemberRole(UUID workspaceId, UUID userId) {
+        return workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId)
+                .map(WorkspaceMember::getRole)
+                .orElseThrow(() -> new AccessDeniedException("User is not a member of this workspace"));
+    }
+
+    public boolean isWorkspaceMember(UUID workspaceId, UUID userId) {
+        return workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, userId);
+    }
+
+    @Transactional
+    public void removeMember(UUID workspaceId, UUID memberId) {
+        getWorkspaceForAdmin(workspaceId);
+        WorkspaceMember member = workspaceMemberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessRuleException("Member not found"));
+
+        if (!member.getWorkspace().getId().equals(workspaceId)) {
+            throw new BusinessRuleException("Member does not belong to this workspace");
+        }
+
+        if (member.getRole() == WorkspaceRole.OWNER) {
+            throw new BusinessRuleException("Cannot remove the workspace owner");
+        }
+
+        workspaceMemberRepository.delete(member);
+    }
+}

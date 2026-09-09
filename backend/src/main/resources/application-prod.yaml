@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+
+  jpa:
+    database: postgresql
+    open-in-view: false
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+      
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:900000} # 15 minutes default for prod access tokens
+  refresh:
+    expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days default
+
+app:
+  cors:
+    allowed-origin: ${FRONTEND_ORIGIN}

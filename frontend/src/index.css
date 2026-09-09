@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cf-bgLight text-cf-textDark font-sans antialiased;
+  }
+
+  .dark body,
+  body.dark {
+    @apply bg-gray-950 text-gray-100;
+  }
+
+  .dark .bg-cf-bgLight {
+    @apply bg-gray-950;
+  }
+
+  .dark .bg-white {
+    @apply bg-gray-900;
+  }
+
+  .dark .border-cf-border {
+    @apply border-gray-800;
+  }
+
+  .dark .text-cf-textDark {
+    @apply text-gray-100;
+  }
+
+  .dark .text-cf-textMuted {
+    @apply text-gray-400;
+  }
+
+  .dark .shadow-cf-card {
+    @apply shadow-none;
+  }
+
+  .dark .shadow-cf-card-lg {
+    @apply shadow-none;
+  }
+
+  .dark .bg-cf-bgLight\/40,
+  .dark .bg-cf-bgLight\/50 {
+    @apply bg-gray-900/60;
+  }
+
+  .dark .hover\:bg-cf-bgLight:hover {
+    @apply hover:bg-gray-800;
+  }
+
+  .dark .hover\:bg-white:hover {
+    @apply hover:bg-gray-800;
+  }
+
+  .dark .bg-cf-navy {
+    @apply bg-gray-950;
+  }
+
+  .dark .bg-cf-navyDark {
+    @apply bg-gray-900;
+  }
+
+  .dark .border-cf-navyDark {
+    @apply border-gray-800;
+  }
+
+  .dark .hover\:bg-cf-navyDark:hover {
+    @apply hover:bg-gray-800;
+  }
+
+  .dark .bg-gray-200 {
+    @apply bg-gray-700;
+  }
+
+  .dark .bg-gray-100 {
+    @apply bg-gray-800;
+  }
+
+  .dark .text-gray-300 {
+    @apply text-gray-400;
+  }
+}
