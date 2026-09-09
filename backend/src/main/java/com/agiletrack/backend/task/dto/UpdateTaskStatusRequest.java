@@ -8,6 +8,9 @@ public record UpdateTaskStatusRequest(
         @NotNull(message = "Status is required")
         TaskStatus status,
         
-        Double position
+        Double position,
+
+        /** Optional: when supplied, a stale transition is rejected instead of applied. */
+        Long version
 ) {
 }

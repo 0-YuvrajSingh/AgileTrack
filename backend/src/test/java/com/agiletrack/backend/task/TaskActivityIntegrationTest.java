@@ -167,9 +167,10 @@ public class TaskActivityIntegrationTest extends AbstractIntegrationTest {
                     "description": "Desc",
                     "type": "FEATURE",
                     "priority": "URGENT",
+                    "version": %s,
                     "assigneeId": "%s"
                 }
-                """.formatted(ownerId);
+                """.formatted(taskRepository.findById(taskId).orElseThrow().getVersion(), ownerId);
 
         mockMvc.perform(put("/api/v1/workspaces/{w}/projects/{p}/tasks/{t}", workspaceId, projectId, taskId)
                 .contentType(MediaType.APPLICATION_JSON)

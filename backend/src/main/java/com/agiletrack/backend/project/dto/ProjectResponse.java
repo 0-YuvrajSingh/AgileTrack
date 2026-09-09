@@ -12,7 +12,8 @@ public record ProjectResponse (
         ProjectStatus status,
         UUID workspaceId,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        Long version
 ) {
 
 }

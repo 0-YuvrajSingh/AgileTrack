@@ -133,6 +133,11 @@ class WorkItemTypeIntegrationTest extends AbstractIntegrationTest {
                 """.formatted(type, memberId);
     }
 
+    /** The version currently stored, so a rejected request is rejected on authorization, not validation. */
+    private Long currentVersion() {
+        return taskRepository.findById(taskId).orElseThrow().getVersion();
+    }
+
     private String updateJson(String type) {
         return """
                 {
@@ -140,9 +145,10 @@ class WorkItemTypeIntegrationTest extends AbstractIntegrationTest {
                   "description": "Reclassified",
                   "type": "%s",
                   "priority": "MEDIUM",
+                  "version": %s,
                   "assigneeId": "%s"
                 }
-                """.formatted(type, memberId);
+                """.formatted(type, currentVersion(), memberId);
     }
 
     // -- every type round-trips ----------------------------------------------

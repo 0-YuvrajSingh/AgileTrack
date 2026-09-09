@@ -15,7 +15,8 @@ public class ProjectMapper {
                 project.getStatus(),
                 project.getWorkspace().getId(),
                 project.getCreatedAt(),
-                project.getUpdatedAt()
+                project.getUpdatedAt(),
+                project.getVersion()
         );
     }
 }

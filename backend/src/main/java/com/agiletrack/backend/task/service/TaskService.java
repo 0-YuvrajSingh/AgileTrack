@@ -1,5 +1,6 @@
 package com.agiletrack.backend.task.service;
 
+import com.agiletrack.backend.common.concurrency.OptimisticLockGuard;
 import com.agiletrack.backend.common.exception.TaskNotFoundException;
 import com.agiletrack.backend.common.exception.UserNotFoundException;
 import com.agiletrack.backend.project.entity.Project;
@@ -112,7 +113,8 @@ public class TaskService {
         workspaceService.getWorkspaceForMutation(workspaceId);
         Task task = getTask(workspaceId, projectId, taskId);
         projectService.requireMutable(task.getProject());
-        
+        OptimisticLockGuard.requireCurrentVersion(Task.class, taskId, task.getVersion(), request.version());
+
         com.agiletrack.backend.task.entity.TaskPriority oldPriority = task.getPriority();
         com.agiletrack.backend.task.entity.WorkItemType oldType = task.getType();
 
@@ -143,7 +145,8 @@ public class TaskService {
         workspaceService.getWorkspaceForMutation(workspaceId);
         Task task = getTask(workspaceId, projectId, taskId);
         projectService.requireMutable(task.getProject());
-        
+        OptimisticLockGuard.requireCurrentVersion(Task.class, taskId, task.getVersion(), request.version());
+
         if (!task.canTransitionTo(request.status())) {
             throw new BusinessRuleException("Invalid task status transition: " + task.getStatus() + " -> " + request.status());
         }

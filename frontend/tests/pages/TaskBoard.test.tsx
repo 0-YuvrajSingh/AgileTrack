@@ -40,8 +40,8 @@ describe('TaskBoard', () => {
   const projectId = 'proj-1';
   
   const defaultTasks = [
-    { id: 't1', title: 'Task 1', status: 'TODO', type: 'FEATURE', priority: 'MEDIUM', position: 100 },
-    { id: 't2', title: 'Task 2', status: 'IN_PROGRESS', type: 'BUG', priority: 'HIGH', position: 200 }
+    { id: 't1', title: 'Task 1', status: 'TODO', type: 'FEATURE', priority: 'MEDIUM', position: 100, version: 4 },
+    { id: 't2', title: 'Task 2', status: 'IN_PROGRESS', type: 'BUG', priority: 'HIGH', position: 200, version: 9 }
   ];
 
   let setTasksMock: any;
@@ -140,6 +140,31 @@ describe('TaskBoard', () => {
     // Check tasks
     expect(screen.getByText('Task 1')).toBeInTheDocument();
     expect(screen.getByText('Task 2')).toBeInTheDocument();
+  });
+
+  it('sends the version it read when moving a card, so a stale move is refused', async () => {
+    vi.mocked(taskService.updateStatus).mockResolvedValueOnce({} as any);
+
+    renderComponent();
+
+    const taskElement = screen.getByText('Task 1').closest('div[draggable="true"]');
+    const inReviewHeader = screen.getByRole('heading', { name: 'IN REVIEW' });
+    const inReviewColumn = inReviewHeader.parentElement?.parentElement;
+
+    const dataTransfer = {
+      data: {} as Record<string, string>,
+      setData(format: string, data: string) { this.data[format] = data; },
+      getData(format: string) { return this.data[format]; }
+    };
+
+    fireEvent.dragStart(taskElement!, { dataTransfer });
+    fireEvent.drop(inReviewColumn!, { dataTransfer });
+
+    await waitFor(() => {
+      expect(taskService.updateStatus).toHaveBeenCalledWith(
+        workspaceId, projectId, 't1', 'IN_REVIEW', expect.any(Number), 4
+      );
+    });
   });
 
   it('handles optimistic update and 409 concurrency rollback on drop', async () => {

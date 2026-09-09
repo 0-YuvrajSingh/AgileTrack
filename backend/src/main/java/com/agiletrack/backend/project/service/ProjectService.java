@@ -1,5 +1,6 @@
 package com.agiletrack.backend.project.service;
 
+import com.agiletrack.backend.common.concurrency.OptimisticLockGuard;
 import com.agiletrack.backend.common.exception.BusinessRuleException;
 import com.agiletrack.backend.common.exception.ProjectNotFoundException;
 import com.agiletrack.backend.project.dto.CreateProjectRequest;
@@ -68,6 +69,7 @@ public class ProjectService {
         workspaceService.getWorkspaceForMutation(workspaceId);
         Project project = getProject(workspaceId, id);
         requireMutable(project);
+        OptimisticLockGuard.requireCurrentVersion(Project.class, id, project.getVersion(), request.version());
 
         project.setName(request.name());
         project.setDescription(request.description());
@@ -80,6 +82,8 @@ public class ProjectService {
         Project project = getProject(workspaceId, id);
         
         requireMutable(project);
+        OptimisticLockGuard.requireCurrentVersion(Project.class, id, project.getVersion(), request.version());
+
         if (!project.canTransitionTo(request.status())) {
             throw new BusinessRuleException("Invalid project status transition: " + project.getStatus() + " -> " + request.status());
         }

@@ -25,14 +25,15 @@ export const taskService = {
     return response.data;
   },
 
-  update: async (workspaceId: string, projectId: string, taskId: string, payload: { title: string; description: string; type: WorkItemType; priority: TaskPriority; deadline?: string | null; assigneeId?: string | null }) => {
+  update: async (workspaceId: string, projectId: string, taskId: string, payload: { title: string; description: string; type: WorkItemType; priority: TaskPriority; deadline?: string | null; assigneeId?: string | null; version: number }) => {
     const response = await apiClient.put<Task>(`/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}`, payload);
     return response.data;
   },
 
-  updateStatus: async (workspaceId: string, projectId: string, taskId: string, status: TaskStatus, position?: number) => {
-    const payload: { status: TaskStatus; position?: number } = { status };
+  updateStatus: async (workspaceId: string, projectId: string, taskId: string, status: TaskStatus, position?: number, version?: number) => {
+    const payload: { status: TaskStatus; position?: number; version?: number } = { status };
     if (position !== undefined) payload.position = position;
+    if (version !== undefined) payload.version = version;
     
     const response = await apiClient.patch<Task>(`/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}/status`, payload);
     return response.data;

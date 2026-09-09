@@ -64,6 +64,7 @@ describe('taskService', () => {
       priority: 'LOW' as const,
       deadline: null,
       assigneeId: null,
+      version: 3,
     };
     await taskService.update(workspaceId, projectId, taskId, payload);
 
@@ -82,6 +83,28 @@ describe('taskService', () => {
     expect(apiClient.post).toHaveBeenCalledWith(
       `/workspaces/${workspaceId}/projects/${projectId}/tasks`,
       payload
+    );
+  });
+
+  it('updateStatus forwards the version when supplied', async () => {
+    vi.mocked(apiClient.patch).mockResolvedValueOnce({ data: {} });
+
+    await taskService.updateStatus(workspaceId, projectId, taskId, 'IN_PROGRESS', 500, 7);
+
+    expect(apiClient.patch).toHaveBeenCalledWith(
+      `/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}/status`,
+      { status: 'IN_PROGRESS', position: 500, version: 7 }
+    );
+  });
+
+  it('updateStatus omits the version when none was read', async () => {
+    vi.mocked(apiClient.patch).mockResolvedValueOnce({ data: {} });
+
+    await taskService.updateStatus(workspaceId, projectId, taskId, 'IN_PROGRESS');
+
+    expect(apiClient.patch).toHaveBeenCalledWith(
+      `/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}/status`,
+      { status: 'IN_PROGRESS' }
     );
   });
 

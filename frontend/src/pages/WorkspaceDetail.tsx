@@ -116,8 +116,9 @@ const WorkspaceDetail: React.FC = () => {
 
   const handleStatusChange = async (projectId: string, newStatus: ProjectStatus) => {
     if (!workspaceId) return;
+    const project = projects.find(p => p.id === projectId);
     try {
-      await projectService.updateStatus(workspaceId, projectId, newStatus);
+      await projectService.updateStatus(workspaceId, projectId, newStatus, project?.version);
       toast.success(`Project status updated to ${newStatus}`);
       fetchProjects();
     } catch (err: any) {

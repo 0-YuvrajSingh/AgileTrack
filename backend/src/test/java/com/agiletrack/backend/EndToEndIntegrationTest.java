@@ -139,7 +139,7 @@ class EndToEndIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(put("/api/v1/workspaces/" + workspaceId + "/projects/" + projectId)
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdateProjectRequest("Backend API Updated", "Sprint 2"))))
+                        .content(objectMapper.writeValueAsString(new UpdateProjectRequest("Backend API Updated", "Sprint 2", 0L))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Backend API Updated"));
 
@@ -170,7 +170,8 @@ class EndToEndIntegrationTest extends AbstractIntegrationTest {
                                 WorkItemType.BUG,
                                 TaskPriority.URGENT,
                                 LocalDateTime.now().plusDays(3),
-                                UUID.fromString(ownerId)
+                                UUID.fromString(ownerId),
+                                0L
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Setup Testing Updated"));
@@ -178,7 +179,7 @@ class EndToEndIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(patch("/api/v1/workspaces/" + workspaceId + "/projects/" + projectId + "/tasks/" + taskId + "/status")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdateTaskStatusRequest(TaskStatus.IN_PROGRESS, null))))
+                        .content(objectMapper.writeValueAsString(new UpdateTaskStatusRequest(TaskStatus.IN_PROGRESS, null, null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
 

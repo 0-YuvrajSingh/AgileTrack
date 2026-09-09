@@ -118,7 +118,9 @@ const TaskBoard: React.FC = () => {
       type,
       priority,
       deadline: deadline || null,
-      assigneeId: selectedAssigneeId || null
+      assigneeId: selectedAssigneeId || null,
+      // Only meaningful when editing; the server rejects a save based on a superseded read.
+      version: editingTask?.version ?? 0
     };
 
     setSaving(true);
@@ -201,7 +203,7 @@ const TaskBoard: React.FC = () => {
     ));
 
     try {
-      await taskService.updateStatus(workspaceId, projectId, taskId, targetStatus, nextPosition);
+      await taskService.updateStatus(workspaceId, projectId, taskId, targetStatus, nextPosition, task.version);
     } catch (err: any) {
       // Revert optimistic update
       setTasks(previousTasks);
@@ -218,7 +220,7 @@ const TaskBoard: React.FC = () => {
     setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
 
     try {
-      await taskService.updateStatus(workspaceId, projectId, taskId, newStatus);
+      await taskService.updateStatus(workspaceId, projectId, taskId, newStatus, undefined, task.version);
     } catch (err: any) {
       setTasks(previousTasks);
       handleConcurrencyError(err);

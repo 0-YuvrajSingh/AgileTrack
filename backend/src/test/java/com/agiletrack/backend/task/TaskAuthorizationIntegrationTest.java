@@ -265,17 +265,23 @@ class TaskAuthorizationIntegrationTest extends AbstractIntegrationTest {
                 """.formatted(memberId);
     }
 
+    /** The version currently stored, so a rejected request is rejected on authorization, not validation. */
+    private Long currentVersion() {
+        return taskRepository.findById(taskId).orElseThrow().getVersion();
+    }
+
     private String updateTaskJson() {
         return """
                 {
                   "title": "Updated Task Title",
                   "description": "Updated by integration test",
                   "type": "FEATURE",
+                  "version": %s,
                   "priority": "HIGH",
                   "deadline": "2099-12-31T23:59:59",
                   "assigneeId": "%s"
                 }
-                """.formatted(memberId);
+                """.formatted(currentVersion(), memberId);
     }
 }
 

@@ -47,6 +47,8 @@ export interface Project {
   workspaceId: string;
   createdAt: string;
   updatedAt: string;
+  /** Sent back on mutations so the server can reject a write based on stale data. */
+  version: number;
 }
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
@@ -67,6 +69,8 @@ export interface Task {
   position: number;
   createdAt: string;
   updatedAt: string;
+  /** Sent back on mutations so the server can reject a write based on stale data. */
+  version: number;
 }
 
 export type ActivityType =

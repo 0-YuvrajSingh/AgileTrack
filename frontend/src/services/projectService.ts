@@ -19,13 +19,16 @@ export const projectService = {
     return response.data;
   },
 
-  update: async (workspaceId: string, projectId: string, payload: { name: string; description: string }) => {
+  update: async (workspaceId: string, projectId: string, payload: { name: string; description: string; version: number }) => {
     const response = await apiClient.put<Project>(`/workspaces/${workspaceId}/projects/${projectId}`, payload);
     return response.data;
   },
 
-  updateStatus: async (workspaceId: string, projectId: string, status: ProjectStatus) => {
-    const response = await apiClient.patch<Project>(`/workspaces/${workspaceId}/projects/${projectId}/status`, { status });
+  updateStatus: async (workspaceId: string, projectId: string, status: ProjectStatus, version?: number) => {
+    const payload: { status: ProjectStatus; version?: number } = { status };
+    if (version !== undefined) payload.version = version;
+
+    const response = await apiClient.patch<Project>(`/workspaces/${workspaceId}/projects/${projectId}/status`, payload);
     return response.data;
   },
 

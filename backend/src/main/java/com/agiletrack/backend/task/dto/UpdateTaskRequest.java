@@ -26,6 +26,10 @@ public record UpdateTaskRequest(
 
         LocalDateTime deadline,
 
-        UUID assigneeId
+        UUID assigneeId,
+
+        /** The version the client read. Required: a full replace must be based on a real read. */
+        @NotNull(message = "Version is required")
+        Long version
 ) {
 }

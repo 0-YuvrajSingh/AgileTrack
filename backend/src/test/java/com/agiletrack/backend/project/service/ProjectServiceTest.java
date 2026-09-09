@@ -54,7 +54,7 @@ class ProjectServiceTest {
         when(projectRepository.save(any(Project.class))).thenReturn(testProject);
 
         ProjectResponse mockResponse = new ProjectResponse(
-                projectId, "Proj", "Desc", ProjectStatus.PLANNING, workspaceId, null, null
+                projectId, "Proj", "Desc", ProjectStatus.PLANNING, workspaceId, null, null, 0L
         );
         when(projectMapper.toResponse(any(Project.class))).thenReturn(mockResponse);
 

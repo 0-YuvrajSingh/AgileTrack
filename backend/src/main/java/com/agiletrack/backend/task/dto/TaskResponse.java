@@ -20,6 +20,7 @@ public record TaskResponse (
         String assigneeEmail,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        Double position
+        Double position,
+        Long version
 ) {
 }

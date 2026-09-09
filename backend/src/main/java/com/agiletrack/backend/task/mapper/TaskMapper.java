@@ -21,7 +21,8 @@ public class TaskMapper {
                 task.getAssignee() != null ? task.getAssignee().getEmail() : null,
                 task.getCreatedAt(),
                 task.getUpdatedAt(),
-                task.getPosition()
+                task.getPosition(),
+                task.getVersion()
         );
     }
 }
