@@ -17,6 +17,8 @@ import Dashboard from './pages/Dashboard';
 import WorkspaceList from './pages/WorkspaceList';
 import WorkspaceDetail from './pages/WorkspaceDetail';
 import TaskBoard from './pages/TaskBoard';
+import ReleaseList from './pages/ReleaseList';
+import ReleaseDetail from './pages/ReleaseDetail';
 import WorkspaceMembers from './pages/WorkspaceMembers';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
@@ -78,6 +80,8 @@ function AppRoutes() {
         <Route path="/workspaces" element={<WorkspaceList />} />
         <Route path="/workspaces/:workspaceId" element={<WorkspaceDetail />} />
         <Route path="/workspaces/:workspaceId/projects/:projectId" element={<TaskBoard />} />
+        <Route path="/workspaces/:workspaceId/projects/:projectId/releases" element={<ReleaseList />} />
+        <Route path="/workspaces/:workspaceId/projects/:projectId/releases/:releaseId" element={<ReleaseDetail />} />
         <Route path="/workspaces/:workspaceId/members" element={<WorkspaceMembers />} />
         <Route path="/profile" element={<Profile />} />
       </Route>

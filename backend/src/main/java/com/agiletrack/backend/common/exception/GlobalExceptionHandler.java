@@ -76,6 +76,13 @@ public class GlobalExceptionHandler {
                 return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
         }
 
+        @ExceptionHandler(ReleaseNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleReleaseNotFound(
+                        ReleaseNotFoundException ex,
+                        HttpServletRequest request) {
+                return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+        }
+
         @ExceptionHandler(TokenRefreshException.class)
         public ResponseEntity<ErrorResponse> handleTokenRefresh(
                         TokenRefreshException ex,

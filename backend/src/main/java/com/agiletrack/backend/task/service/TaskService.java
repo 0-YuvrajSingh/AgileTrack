@@ -44,15 +44,10 @@ public class TaskService {
     private final WorkspaceService workspaceService;
     private final CurrentUserService currentUserService;
     private final TaskActivityRepository taskActivityRepository;
+    private final TaskActivityRecorder activityRecorder;
 
     private void recordActivity(Task task, ActivityType type, String details) {
-        TaskActivity activity = TaskActivity.builder()
-                .task(task)
-                .user(currentUserService.getCurrentUser())
-                .activityType(type)
-                .details(details)
-                .build();
-        taskActivityRepository.save(activity);
+        activityRecorder.record(task, type, details);
     }
 
     @Transactional

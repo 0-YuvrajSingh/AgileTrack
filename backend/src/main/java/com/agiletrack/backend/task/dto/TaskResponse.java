@@ -16,6 +16,7 @@ public record TaskResponse (
         TaskPriority priority,
         LocalDateTime deadline,
         UUID projectId,
+        UUID releaseId,
         UUID assigneeId,
         String assigneeEmail,
         LocalDateTime createdAt,

@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { LayoutDashboard, CheckSquare, Search, Plus, Calendar, Loader2, ArrowRight, ArrowLeftRight, User } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Search, Plus, Calendar, Loader2, ArrowRight, ArrowLeftRight, User, Rocket } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import { useWorkspace } from '../hooks/useWorkspaces';
@@ -284,6 +284,14 @@ const TaskBoard: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <Link
+            to={`/workspaces/${workspaceId}/projects/${projectId}/releases`}
+            className="w-full sm:w-auto"
+          >
+            <Button variant="secondary" size="sm" className="w-full sm:w-auto whitespace-nowrap">
+              <Rocket size={16} className="mr-1" /> Releases
+            </Button>
+          </Link>
           <select
             aria-label="Filter by work item type"
             value={typeFilter}

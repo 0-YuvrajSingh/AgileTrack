@@ -51,6 +51,24 @@ export interface Project {
   version: number;
 }
 
+export type ReleaseLifecycleState = 'PLANNED' | 'IN_PROGRESS' | 'RELEASED' | 'CANCELLED';
+
+export interface Release {
+  id: string;
+  name: string;
+  releaseVersion: string | null;
+  projectId: string;
+  lifecycleState: ReleaseLifecycleState;
+  targetDate: string | null;
+  /** Derived server-side: scope changes are only allowed while PLANNED. */
+  scopeLocked: boolean;
+  /** Derived server-side: terminal releases are read-only. */
+  editable: boolean;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+}
+
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
 export type WorkItemType = 'FEATURE' | 'BUG' | 'CHANGE' | 'TECH_DEBT';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
@@ -64,6 +82,7 @@ export interface Task {
   priority: TaskPriority;
   deadline: string | null;
   projectId: string;
+  releaseId: string | null;
   assigneeId: string | null;
   assigneeEmail: string | null;
   position: number;
@@ -79,6 +98,8 @@ export type ActivityType =
   | 'STATUS_CHANGED'
   | 'PRIORITY_CHANGED'
   | 'TYPE_CHANGED'
+  | 'RELEASE_ASSIGNED'
+  | 'RELEASE_UNASSIGNED'
   | 'COMPLETED';
 
 export interface TaskActivityResponse {

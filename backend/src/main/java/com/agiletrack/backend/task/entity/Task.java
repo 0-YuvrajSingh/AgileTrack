@@ -17,7 +17,8 @@ import java.util.UUID;
                 @Index(name = "idx_tasks_assignee_id", columnList = "assignee_id"),
                 @Index(name = "idx_tasks_status", columnList = "status"),
                 @Index(name = "idx_tasks_deadline", columnList = "deadline"),
-                @Index(name = "idx_tasks_project_status_position", columnList = "project_id,status,position")
+                @Index(name = "idx_tasks_project_status_position", columnList = "project_id,status,position"),
+                @Index(name = "idx_tasks_release_id", columnList = "release_id")
         }
 )
 @Getter
@@ -58,6 +59,11 @@ public class Task extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignee_id")
     private User assignee;
+
+    /** The delivery scope this work item belongs to, if any. Set through the release scope API. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "release_id")
+    private com.agiletrack.backend.release.entity.Release release;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

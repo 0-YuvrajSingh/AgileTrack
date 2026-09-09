@@ -45,4 +45,9 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
     );
 
     List<Task> findByAssigneeId(UUID assigneeId);
+
+    @EntityGraph(attributePaths = {"assignee"})
+    List<Task> findByReleaseId(UUID releaseId);
+
+    long countByReleaseId(UUID releaseId);
 }
