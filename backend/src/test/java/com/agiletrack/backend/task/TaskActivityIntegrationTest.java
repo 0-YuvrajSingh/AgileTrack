@@ -121,6 +121,7 @@ public class TaskActivityIntegrationTest extends AbstractIntegrationTest {
                 {
                     "title": "Activity Task",
                     "description": "Desc",
+                    "type": "FEATURE",
                     "priority": "HIGH",
                     "assigneeId": "%s"
                 }
@@ -164,6 +165,7 @@ public class TaskActivityIntegrationTest extends AbstractIntegrationTest {
                 {
                     "title": "Activity Task",
                     "description": "Desc",
+                    "type": "FEATURE",
                     "priority": "URGENT",
                     "assigneeId": "%s"
                 }
@@ -222,6 +224,7 @@ public class TaskActivityIntegrationTest extends AbstractIntegrationTest {
                 {
                     "title": "Activity Task",
                     "description": "Desc",
+                    "type": "FEATURE",
                     "priority": "HIGH",
                     "assigneeId": "%s"
                 }

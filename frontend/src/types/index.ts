@@ -50,6 +50,7 @@ export interface Project {
 }
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
+export type WorkItemType = 'FEATURE' | 'BUG' | 'CHANGE' | 'TECH_DEBT';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export interface Task {
@@ -57,6 +58,7 @@ export interface Task {
   title: string;
   description: string;
   status: TaskStatus;
+  type: WorkItemType;
   priority: TaskPriority;
   deadline: string | null;
   projectId: string;
@@ -67,7 +69,13 @@ export interface Task {
   updatedAt: string;
 }
 
-export type ActivityType = 'CREATED' | 'ASSIGNED' | 'STATUS_CHANGED' | 'PRIORITY_CHANGED' | 'COMPLETED';
+export type ActivityType =
+  | 'CREATED'
+  | 'ASSIGNED'
+  | 'STATUS_CHANGED'
+  | 'PRIORITY_CHANGED'
+  | 'TYPE_CHANGED'
+  | 'COMPLETED';
 
 export interface TaskActivityResponse {
   id: string;

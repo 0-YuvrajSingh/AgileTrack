@@ -1,5 +1,7 @@
 package com.agiletrack.backend.task.service;
 
+import com.agiletrack.backend.task.entity.WorkItemType;
+
 import com.agiletrack.backend.common.exception.TaskNotFoundException;
 import com.agiletrack.backend.project.entity.Project;
 import com.agiletrack.backend.project.service.ProjectService;
@@ -81,7 +83,7 @@ class TaskServiceTest {
 
     @Test
     void deleteTask_Success() {
-        Task task = Task.builder().id(taskId).project(testProject).build();
+        Task task = Task.builder().id(taskId).project(testProject).type(WorkItemType.FEATURE).build();
         when(workspaceService.getWorkspaceForMutation(workspaceId)).thenReturn(testProject.getWorkspace());
         when(taskRepository.findByIdAndProjectId(taskId, projectId)).thenReturn(Optional.of(task));
 

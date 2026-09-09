@@ -1,11 +1,12 @@
 import { apiClient } from '../api/axios';
-import type { PageResponse, Task, TaskStatus, TaskPriority } from '../types';
+import type { PageResponse, Task, TaskStatus, TaskPriority, WorkItemType } from '../types';
 
 export const taskService = {
-  list: async (workspaceId: string, projectId: string, search?: string, sort?: string, signal?: AbortSignal) => {
+  list: async (workspaceId: string, projectId: string, search?: string, sort?: string, signal?: AbortSignal, type?: WorkItemType) => {
     const params: Record<string, string> = {};
     if (search) params.search = search;
     if (sort) params.sort = sort;
+    if (type) params.type = type;
     
     const response = await apiClient.get<PageResponse<Task>>(`/workspaces/${workspaceId}/projects/${projectId}/tasks`, {
       params,
@@ -19,12 +20,12 @@ export const taskService = {
     return response.data;
   },
 
-  create: async (workspaceId: string, projectId: string, payload: { title: string; description: string; priority: TaskPriority; deadline?: string | null; assigneeId?: string | null }) => {
+  create: async (workspaceId: string, projectId: string, payload: { title: string; description: string; type: WorkItemType; priority: TaskPriority; deadline?: string | null; assigneeId?: string | null }) => {
     const response = await apiClient.post<Task>(`/workspaces/${workspaceId}/projects/${projectId}/tasks`, payload);
     return response.data;
   },
 
-  update: async (workspaceId: string, projectId: string, taskId: string, payload: { title: string; description: string; priority: TaskPriority; deadline?: string | null; assigneeId?: string | null }) => {
+  update: async (workspaceId: string, projectId: string, taskId: string, payload: { title: string; description: string; type: WorkItemType; priority: TaskPriority; deadline?: string | null; assigneeId?: string | null }) => {
     const response = await apiClient.put<Task>(`/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}`, payload);
     return response.data;
   },

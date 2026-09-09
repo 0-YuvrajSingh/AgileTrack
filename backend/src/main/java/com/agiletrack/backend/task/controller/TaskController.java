@@ -4,6 +4,7 @@ import com.agiletrack.backend.task.dto.CreateTaskRequest;
 import com.agiletrack.backend.task.dto.TaskResponse;
 import com.agiletrack.backend.task.dto.UpdateTaskRequest;
 import com.agiletrack.backend.task.dto.UpdateTaskStatusRequest;
+import com.agiletrack.backend.task.entity.WorkItemType;
 import com.agiletrack.backend.task.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,6 +51,7 @@ public class TaskController {
             @PathVariable UUID workspaceId,
             @PathVariable UUID projectId,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) WorkItemType type,
             @PageableDefault(size = 100) Pageable pageable
     ) {
 
@@ -58,6 +60,7 @@ public class TaskController {
                         workspaceId,
                         projectId,
                         search,
+                        type,
                         pageable
                 )
         );

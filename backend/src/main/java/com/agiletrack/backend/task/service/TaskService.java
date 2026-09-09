@@ -12,6 +12,7 @@ import com.agiletrack.backend.task.dto.UpdateTaskRequest;
 import com.agiletrack.backend.task.dto.UpdateTaskStatusRequest;
 import com.agiletrack.backend.task.entity.Task;
 import com.agiletrack.backend.task.entity.TaskStatus;
+import com.agiletrack.backend.task.entity.WorkItemType;
 import com.agiletrack.backend.task.mapper.TaskMapper;
 import com.agiletrack.backend.task.repository.TaskRepository;
 import com.agiletrack.backend.user.entity.User;
@@ -66,6 +67,7 @@ public class TaskService {
                 .title(request.title())
                 .description(request.description())
                 .status(TaskStatus.TODO)
+                .type(request.type())
                 .priority(request.priority())
                 .deadline(request.deadline())
                 .project(project)
@@ -79,12 +81,20 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
-    public Page<TaskResponse> getTasksByProject(UUID workspaceId, UUID projectId, String search, Pageable pageable) {
+    public Page<TaskResponse> getTasksByProject(UUID workspaceId, UUID projectId, String search,
+                                                WorkItemType type, Pageable pageable) {
         projectService.getProject(workspaceId, projectId);
 
+        boolean hasSearch = search != null && !search.trim().isEmpty();
+        String term = hasSearch ? search.trim() : null;
+
         Page<Task> tasks;
-        if (search != null && !search.trim().isEmpty()) {
-            tasks = taskRepository.findByProjectIdAndSearch(projectId, search.trim(), pageable);
+        if (type != null && hasSearch) {
+            tasks = taskRepository.findByProjectIdAndTypeAndSearch(projectId, type, term, pageable);
+        } else if (type != null) {
+            tasks = taskRepository.findByProjectIdAndType(projectId, type, pageable);
+        } else if (hasSearch) {
+            tasks = taskRepository.findByProjectIdAndSearch(projectId, term, pageable);
         } else {
             tasks = taskRepository.findByProjectId(projectId, pageable);
         }
@@ -104,10 +114,12 @@ public class TaskService {
         projectService.requireMutable(task.getProject());
         
         com.agiletrack.backend.task.entity.TaskPriority oldPriority = task.getPriority();
-        
+        com.agiletrack.backend.task.entity.WorkItemType oldType = task.getType();
+
         task.setTitle(request.title());
         task.setDescription(request.description());
         task.setPriority(request.priority());
+        task.setType(request.type());
         task.setDeadline(request.deadline());
         task.setAssignee(request.assigneeId() != null
                 ? getValidatedAssignee(workspaceId, request.assigneeId())
@@ -116,6 +128,11 @@ public class TaskService {
         if (!Objects.equals(oldPriority, request.priority())) {
             recordActivity(task, ActivityType.PRIORITY_CHANGED, 
                     "Priority changed from " + oldPriority + " to " + request.priority());
+        }
+
+        if (!Objects.equals(oldType, request.type())) {
+            recordActivity(task, ActivityType.TYPE_CHANGED,
+                    "Type changed from " + oldType + " to " + request.type());
         }
 
         return taskMapper.toResponse(task);

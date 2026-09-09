@@ -36,7 +36,7 @@ describe('useTasks hook', () => {
 
     expect(result.current.tasks).toEqual(mockTasks);
     expect(result.current.error).toBeNull();
-    expect(taskService.list).toHaveBeenCalledWith(workspaceId, projectId, undefined, 'position,asc', expect.any(AbortSignal));
+    expect(taskService.list).toHaveBeenCalledWith(workspaceId, projectId, undefined, 'position,asc', expect.any(AbortSignal), undefined);
   });
 
   it('handles loading error', async () => {

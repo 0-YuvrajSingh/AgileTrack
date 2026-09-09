@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import type { Task, TaskPriority, TaskStatus } from '../types';
+import type { Task, TaskPriority, TaskStatus, WorkItemType } from '../types';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -19,6 +19,14 @@ import { getApiErrorMessage } from '../api/axios';
 
 const STATUSES: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
 const PRIORITIES: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
+const WORK_ITEM_TYPES: WorkItemType[] = ['FEATURE', 'BUG', 'CHANGE', 'TECH_DEBT'];
+
+const WORK_ITEM_TYPE_LABELS: Record<WorkItemType, string> = {
+  FEATURE: 'Feature',
+  BUG: 'Bug',
+  CHANGE: 'Change',
+  TECH_DEBT: 'Tech Debt',
+};
 
 const getStatusColor = (status: TaskStatus) => {
   switch (status) {
@@ -26,6 +34,15 @@ const getStatusColor = (status: TaskStatus) => {
     case 'IN_PROGRESS': return 'bg-blue-50 text-cf-primary border-blue-200';
     case 'IN_REVIEW': return 'bg-amber-50 text-amber-600 border-amber-200';
     case 'DONE': return 'bg-emerald-50 text-emerald-600 border-emerald-200';
+  }
+};
+
+const getTypeBadge = (type: WorkItemType) => {
+  switch (type) {
+    case 'FEATURE': return 'bg-violet-50 text-violet-700 border-violet-200';
+    case 'BUG': return 'bg-rose-50 text-rose-700 border-rose-200';
+    case 'CHANGE': return 'bg-cyan-50 text-cyan-700 border-cyan-200';
+    case 'TECH_DEBT': return 'bg-stone-100 text-stone-700 border-stone-300';
   }
 };
 
@@ -50,6 +67,7 @@ const TaskBoard: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<WorkItemType | ''>('');
 
   // Modals & State
   const [showModal, setShowModal] = useState(false);
@@ -58,6 +76,7 @@ const TaskBoard: React.FC = () => {
   // Form fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [type, setType] = useState<WorkItemType>('FEATURE');
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
   const [deadline, setDeadline] = useState('');
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>('');
@@ -74,8 +93,8 @@ const TaskBoard: React.FC = () => {
   }, [searchQuery]);
 
   useEffect(() => {
-    refetchTasks(debouncedSearch);
-  }, [debouncedSearch, refetchTasks]);
+    refetchTasks(debouncedSearch, undefined, typeFilter || undefined);
+  }, [debouncedSearch, typeFilter, refetchTasks]);
 
   const isLoading = wsLoading || projLoading || tasksLoading || memLoading;
   const initError = wsError || projError || tasksError;
@@ -83,7 +102,7 @@ const TaskBoard: React.FC = () => {
   const handleConcurrencyError = (err: any) => {
     if (err?.response?.status === 409) {
       toast.error('Task was modified by another user. Refreshing...', { duration: 4000 });
-      refetchTasks(debouncedSearch);
+      refetchTasks(debouncedSearch, undefined, typeFilter || undefined);
     } else {
       toast.error(getApiErrorMessage(err, 'An error occurred'));
     }
@@ -96,6 +115,7 @@ const TaskBoard: React.FC = () => {
     const payload = {
       title,
       description,
+      type,
       priority,
       deadline: deadline || null,
       assigneeId: selectedAssigneeId || null
@@ -112,7 +132,7 @@ const TaskBoard: React.FC = () => {
       }
       setShowModal(false);
       setEditingTask(null);
-      refetchTasks(debouncedSearch);
+      refetchTasks(debouncedSearch, undefined, typeFilter || undefined);
     } catch (err: any) {
       handleConcurrencyError(err);
     } finally {
@@ -125,7 +145,7 @@ const TaskBoard: React.FC = () => {
     try {
       await taskService.remove(workspaceId, projectId, deleteDialog.id);
       toast.success('Task deleted successfully');
-      refetchTasks(debouncedSearch);
+      refetchTasks(debouncedSearch, undefined, typeFilter || undefined);
     } catch (err: any) {
       handleConcurrencyError(err);
     } finally {
@@ -136,6 +156,7 @@ const TaskBoard: React.FC = () => {
   const openCreateModal = () => {
     setTitle('');
     setDescription('');
+    setType('FEATURE');
     setPriority('MEDIUM');
     setDeadline('');
     setSelectedAssigneeId(user?.id || '');
@@ -146,6 +167,7 @@ const TaskBoard: React.FC = () => {
   const openEditModal = (task: Task) => {
     setTitle(task.title);
     setDescription(task.description || '');
+    setType(task.type);
     setPriority(task.priority);
     setDeadline(task.deadline ? task.deadline.slice(0, 16) : '');
     setSelectedAssigneeId(task.assigneeId || '');
@@ -260,6 +282,17 @@ const TaskBoard: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <select
+            aria-label="Filter by work item type"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as WorkItemType | '')}
+            className="w-full sm:w-auto px-3 py-1.5 text-sm bg-white border border-cf-border rounded-full focus:outline-none focus:border-cf-primary focus:ring-1 focus:ring-cf-primary transition-all"
+          >
+            <option value="">All types</option>
+            {WORK_ITEM_TYPES.map(t => (
+              <option key={t} value={t}>{WORK_ITEM_TYPE_LABELS[t]}</option>
+            ))}
+          </select>
           {workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED' && (
             <Button onClick={openCreateModal} size="sm" className="w-full sm:w-auto whitespace-nowrap shadow-sm">
               <Plus size={16} className="mr-1" /> New Task
@@ -332,9 +365,14 @@ const TaskBoard: React.FC = () => {
 
                       <div className="mt-4 pt-3 border-t border-cf-border flex flex-col gap-2">
                         <div className="flex items-center justify-between">
-                          <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded border font-mono ${getPriorityBadge(task.priority)}`}>
-                            {task.priority}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded border font-mono ${getTypeBadge(task.type)}`}>
+                              {WORK_ITEM_TYPE_LABELS[task.type]}
+                            </span>
+                            <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded border font-mono ${getPriorityBadge(task.priority)}`}>
+                              {task.priority}
+                            </span>
+                          </div>
                           
                           <div className="flex items-center space-x-1 text-[10px] text-cf-textMuted">
                             <User size={12} className="text-cf-primary" />
@@ -417,6 +455,22 @@ const TaskBoard: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="work-item-type" className="block text-xs font-semibold uppercase tracking-wider text-cf-textMuted mb-1.5">
+                      Type
+                    </label>
+                    <select
+                      id="work-item-type"
+                      value={type}
+                      onChange={(e) => setType(e.target.value as WorkItemType)}
+                      className="w-full px-3 py-2 text-sm text-cf-textDark bg-white border border-cf-border rounded focus:outline-none focus:border-cf-primary focus:ring-1 focus:ring-cf-primary transition duration-150"
+                    >
+                      {WORK_ITEM_TYPES.map(t => (
+                        <option key={t} value={t}>{WORK_ITEM_TYPE_LABELS[t]}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-cf-textMuted mb-1.5">
                       Priority

@@ -9,6 +9,7 @@ import com.agiletrack.backend.security.CustomUserDetails;
 import com.agiletrack.backend.security.JwtService;
 import com.agiletrack.backend.task.entity.Task;
 import com.agiletrack.backend.task.entity.TaskPriority;
+import com.agiletrack.backend.task.entity.WorkItemType;
 import com.agiletrack.backend.task.entity.TaskStatus;
 import com.agiletrack.backend.task.repository.TaskRepository;
 import com.agiletrack.backend.user.entity.Role;
@@ -120,6 +121,7 @@ class TaskAuthorizationIntegrationTest extends AbstractIntegrationTest {
                 .title("Existing Task")
                 .description("A task to mutate in tests")
                 .status(TaskStatus.TODO)
+                .type(WorkItemType.FEATURE)
                 .priority(TaskPriority.MEDIUM)
                 .position(1.0)
                 .project(project)
@@ -255,6 +257,7 @@ class TaskAuthorizationIntegrationTest extends AbstractIntegrationTest {
                 {
                   "title": "New Task from Test",
                   "description": "Created by integration test",
+                  "type": "FEATURE",
                   "priority": "MEDIUM",
                   "deadline": "2099-12-31T23:59:59",
                   "assigneeId": "%s"
@@ -267,6 +270,7 @@ class TaskAuthorizationIntegrationTest extends AbstractIntegrationTest {
                 {
                   "title": "Updated Task Title",
                   "description": "Updated by integration test",
+                  "type": "FEATURE",
                   "priority": "HIGH",
                   "deadline": "2099-12-31T23:59:59",
                   "assigneeId": "%s"

@@ -3,7 +3,9 @@ package com.agiletrack.backend.common.exception;
 import com.agiletrack.backend.common.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -121,6 +123,32 @@ public class GlobalExceptionHandler {
                         IllegalStateException ex,
                         HttpServletRequest request) {
                 return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+        }
+
+        /**
+         * A JPA {@code @Version} mismatch: someone else committed a newer version of the row
+         * between this client's read and its write. The write is rejected rather than
+         * overwriting the newer state, so the client can refetch and retry.
+         */
+        @ExceptionHandler(OptimisticLockingFailureException.class)
+        public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(
+                        OptimisticLockingFailureException ex,
+                        HttpServletRequest request) {
+                return buildErrorResponse(
+                                HttpStatus.CONFLICT,
+                                "This record was modified by someone else. Reload and try again.",
+                                request);
+        }
+
+        /**
+         * Malformed request body: unparseable JSON, or a value that does not fit the target type
+         * (an unknown enum constant, for example). That is a client error, not a server fault.
+         */
+        @ExceptionHandler(HttpMessageNotReadableException.class)
+        public ResponseEntity<ErrorResponse> handleUnreadableBody(
+                        HttpMessageNotReadableException ex,
+                        HttpServletRequest request) {
+                return buildErrorResponse(HttpStatus.BAD_REQUEST, "Malformed or invalid request body", request);
         }
 
         @ExceptionHandler(MethodArgumentNotValidException.class)

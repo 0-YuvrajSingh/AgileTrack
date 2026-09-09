@@ -6,6 +6,7 @@ import com.agiletrack.backend.project.repository.ProjectRepository;
 import com.agiletrack.backend.task.entity.Task;
 import com.agiletrack.backend.task.entity.TaskPriority;
 import com.agiletrack.backend.task.entity.TaskStatus;
+import com.agiletrack.backend.task.entity.WorkItemType;
 import com.agiletrack.backend.task.repository.TaskRepository;
 import com.agiletrack.backend.user.entity.Role;
 import com.agiletrack.backend.user.entity.User;
@@ -88,26 +89,28 @@ public class DataSeeder implements CommandLineRunner {
                 .status(ProjectStatus.PLANNING)
                 .build());
 
-        createTask(frontendProject, "Set up Vite and Tailwind config", "Initialize the new build pipeline", TaskStatus.DONE, TaskPriority.HIGH, 1.0, demoUser);
-        createTask(frontendProject, "Build reusable component library", "Buttons, inputs, cards, modals", TaskStatus.IN_PROGRESS, TaskPriority.HIGH, 2.0, demoUser);
-        createTask(frontendProject, "Implement authentication pages", "Login, register, forgot password", TaskStatus.IN_PROGRESS, TaskPriority.MEDIUM, 3.0, teammate);
-        createTask(frontendProject, "Drag-and-drop task board", "Kanban-style task management view", TaskStatus.TODO, TaskPriority.HIGH, 4.0, demoUser);
-        createTask(frontendProject, "Responsive mobile layout", "Ensure all pages work on mobile", TaskStatus.TODO, TaskPriority.LOW, 5.0, teammate);
+        createTask(frontendProject, "Set up Vite and Tailwind config", "Initialize the new build pipeline", WorkItemType.TECH_DEBT, TaskStatus.DONE, TaskPriority.HIGH, 1.0, demoUser);
+        createTask(frontendProject, "Build reusable component library", "Buttons, inputs, cards, modals", WorkItemType.FEATURE, TaskStatus.IN_PROGRESS, TaskPriority.HIGH, 2.0, demoUser);
+        createTask(frontendProject, "Implement authentication pages", "Login, register, forgot password", WorkItemType.FEATURE, TaskStatus.IN_PROGRESS, TaskPriority.MEDIUM, 3.0, teammate);
+        createTask(frontendProject, "Drag-and-drop task board", "Kanban-style task management view", WorkItemType.FEATURE, TaskStatus.TODO, TaskPriority.HIGH, 4.0, demoUser);
+        createTask(frontendProject, "Responsive mobile layout", "Ensure all pages work on mobile", WorkItemType.BUG, TaskStatus.TODO, TaskPriority.LOW, 5.0, teammate);
 
-        createTask(backendProject, "Design database schema v2", "New tables for notifications and audit log", TaskStatus.IN_PROGRESS, TaskPriority.URGENT, 1.0, demoUser);
-        createTask(backendProject, "Add rate limiting middleware", "Prevent abuse on public endpoints", TaskStatus.TODO, TaskPriority.MEDIUM, 2.0, demoUser);
-        createTask(backendProject, "Write integration tests", "Cover auth and workspace flows", TaskStatus.TODO, TaskPriority.HIGH, 3.0, teammate);
+        createTask(backendProject, "Design database schema v2", "New tables for notifications and audit log", WorkItemType.CHANGE, TaskStatus.IN_PROGRESS, TaskPriority.URGENT, 1.0, demoUser);
+        createTask(backendProject, "Add rate limiting middleware", "Prevent abuse on public endpoints", WorkItemType.CHANGE, TaskStatus.TODO, TaskPriority.MEDIUM, 2.0, demoUser);
+        createTask(backendProject, "Write integration tests", "Cover auth and workspace flows", WorkItemType.TECH_DEBT, TaskStatus.TODO, TaskPriority.HIGH, 3.0, teammate);
 
         log.info("Demo data seeded: 2 users, 1 workspace, 2 projects, 8 tasks");
     }
 
     private void createTask(Project project, String title, String description,
-                            TaskStatus status, TaskPriority priority, double position, User assignee) {
+                            WorkItemType type, TaskStatus status, TaskPriority priority,
+                            double position, User assignee) {
         taskRepository.save(Task.builder()
                 .project(project)
                 .title(title)
                 .description(description)
                 .status(status)
+                .type(type)
                 .priority(priority)
                 .position(position)
                 .assignee(assignee)

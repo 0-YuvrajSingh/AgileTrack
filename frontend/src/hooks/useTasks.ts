@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { taskService } from '../services/taskService';
 import { getApiErrorMessage } from '../api/axios';
-import type { Task } from '../types';
+import type { Task, WorkItemType } from '../types';
 
 
 export function useTasks(workspaceId: string | undefined, projectId: string | undefined) {
@@ -9,12 +9,12 @@ export function useTasks(workspaceId: string | undefined, projectId: string | un
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async (search?: string, signal?: AbortSignal) => {
+  const refetch = useCallback(async (search?: string, signal?: AbortSignal, type?: WorkItemType) => {
     if (!workspaceId || !projectId) return;
     try {
       setLoading(true);
       setError(null);
-      const data = await taskService.list(workspaceId, projectId, search, 'position,asc', signal);
+      const data = await taskService.list(workspaceId, projectId, search, 'position,asc', signal, type);
       setTasks(data.content);
     } catch (e: any) {
       if (e?.name !== 'CanceledError') {

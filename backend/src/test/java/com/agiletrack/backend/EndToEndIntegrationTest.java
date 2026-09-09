@@ -9,6 +9,7 @@ import com.agiletrack.backend.task.dto.CreateTaskRequest;
 import com.agiletrack.backend.task.dto.UpdateTaskRequest;
 import com.agiletrack.backend.task.dto.UpdateTaskStatusRequest;
 import com.agiletrack.backend.task.entity.TaskPriority;
+import com.agiletrack.backend.task.entity.WorkItemType;
 import com.agiletrack.backend.task.entity.TaskStatus;
 import com.agiletrack.backend.workspace.dto.CreateWorkspaceRequest;
 import com.agiletrack.backend.workspace.dto.UpdateWorkspaceRequest;
@@ -166,6 +167,7 @@ class EndToEndIntegrationTest extends AbstractIntegrationTest {
                         .content(objectMapper.writeValueAsString(new UpdateTaskRequest(
                                 "Setup Testing Updated",
                                 "Expanded test coverage",
+                                WorkItemType.BUG,
                                 TaskPriority.URGENT,
                                 LocalDateTime.now().plusDays(3),
                                 UUID.fromString(ownerId)
@@ -231,6 +233,7 @@ class EndToEndIntegrationTest extends AbstractIntegrationTest {
         CreateTaskRequest taskReq = new CreateTaskRequest(
                 "Setup Testing",
                 "Implement full integration suite",
+                WorkItemType.FEATURE,
                 TaskPriority.HIGH,
                 LocalDateTime.now().plusDays(2),
                 UUID.fromString(ownerId)
@@ -303,6 +306,7 @@ class EndToEndIntegrationTest extends AbstractIntegrationTest {
                                                 .content(objectMapper.writeValueAsString(new CreateTaskRequest(
                                                                 title,
                                                                 "Implement end-to-end suite",
+                                                                WorkItemType.FEATURE,
                                                                 TaskPriority.HIGH,
                                                                 LocalDateTime.now().plusDays(2),
                                                                 UUID.fromString(ownerId)

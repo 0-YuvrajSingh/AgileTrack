@@ -13,6 +13,7 @@ public class TaskMapper {
                 task.getTitle(),
                 task.getDescription(),
                 task.getStatus(),
+                task.getType(),
                 task.getPriority(),
                 task.getDeadline(),
                 task.getProject().getId(),

@@ -9,6 +9,7 @@ import com.agiletrack.backend.security.CustomUserDetails;
 import com.agiletrack.backend.security.JwtService;
 import com.agiletrack.backend.task.entity.Task;
 import com.agiletrack.backend.task.entity.TaskPriority;
+import com.agiletrack.backend.task.entity.WorkItemType;
 import com.agiletrack.backend.task.entity.TaskStatus;
 import com.agiletrack.backend.task.repository.TaskRepository;
 import com.agiletrack.backend.user.entity.Role;
@@ -104,6 +105,7 @@ public class TenantIsolationIntegrationTest extends AbstractIntegrationTest {
         Task taskA = taskRepository.save(Task.builder()
                 .title("Task A")
                 .status(TaskStatus.TODO)
+                .type(WorkItemType.FEATURE)
                 .priority(TaskPriority.MEDIUM)
                 .project(projectA)
                 .build());
@@ -143,6 +145,7 @@ public class TenantIsolationIntegrationTest extends AbstractIntegrationTest {
         Task taskB = taskRepository.save(Task.builder()
                 .title("Task B")
                 .status(TaskStatus.TODO)
+                .type(WorkItemType.FEATURE)
                 .priority(TaskPriority.MEDIUM)
                 .project(projectB)
                 .build());

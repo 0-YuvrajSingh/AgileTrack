@@ -2,6 +2,7 @@ package com.agiletrack.backend.task.dto;
 
 import com.agiletrack.backend.task.entity.TaskPriority;
 import com.agiletrack.backend.task.entity.TaskStatus;
+import com.agiletrack.backend.task.entity.WorkItemType;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -11,6 +12,7 @@ public record TaskResponse (
         String title,
         String description,
         TaskStatus status,
+        WorkItemType type,
         TaskPriority priority,
         LocalDateTime deadline,
         UUID projectId,

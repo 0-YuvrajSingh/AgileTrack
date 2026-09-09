@@ -9,6 +9,7 @@ import com.agiletrack.backend.security.CustomUserDetails;
 import com.agiletrack.backend.security.JwtService;
 import com.agiletrack.backend.task.entity.Task;
 import com.agiletrack.backend.task.entity.TaskPriority;
+import com.agiletrack.backend.task.entity.WorkItemType;
 import com.agiletrack.backend.task.entity.TaskStatus;
 import com.agiletrack.backend.task.repository.TaskRepository;
 import com.agiletrack.backend.user.entity.Role;
@@ -95,6 +96,7 @@ public class BusinessRuleIntegrationTest extends AbstractIntegrationTest {
         Task archivedTask = taskRepository.save(Task.builder()
                 .title("Archived Task")
                 .status(TaskStatus.DONE)
+                .type(WorkItemType.FEATURE)
                 .priority(TaskPriority.LOW)
                 .project(archivedProject)
                 .build());
@@ -110,6 +112,7 @@ public class BusinessRuleIntegrationTest extends AbstractIntegrationTest {
         Task task = taskRepository.save(Task.builder()
                 .title("Active Task")
                 .status(TaskStatus.TODO)
+                .type(WorkItemType.FEATURE)
                 .priority(TaskPriority.LOW)
                 .project(activeProject)
                 .build());
@@ -118,6 +121,7 @@ public class BusinessRuleIntegrationTest extends AbstractIntegrationTest {
         Task inProgressTask = taskRepository.save(Task.builder()
                 .title("In Progress Task")
                 .status(TaskStatus.IN_PROGRESS)
+                .type(WorkItemType.FEATURE)
                 .priority(TaskPriority.LOW)
                 .project(activeProject)
                 .build());
@@ -126,6 +130,7 @@ public class BusinessRuleIntegrationTest extends AbstractIntegrationTest {
         Task inReviewTask = taskRepository.save(Task.builder()
                 .title("In Review Task")
                 .status(TaskStatus.IN_REVIEW)
+                .type(WorkItemType.FEATURE)
                 .priority(TaskPriority.LOW)
                 .project(activeProject)
                 .build());
@@ -140,6 +145,7 @@ public class BusinessRuleIntegrationTest extends AbstractIntegrationTest {
         String payload = """
                 {
                     "title": "New Task",
+                    "type": "FEATURE",
                     "priority": "LOW"
                 }
                 """;
@@ -189,6 +195,7 @@ public class BusinessRuleIntegrationTest extends AbstractIntegrationTest {
         String payload = """
                 {
                     "title": "Updated",
+                    "type": "FEATURE",
                     "priority": "HIGH"
                 }
                 """;

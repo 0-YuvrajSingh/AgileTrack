@@ -1,6 +1,7 @@
 package com.agiletrack.backend.task.dto;
 
 import com.agiletrack.backend.task.entity.TaskPriority;
+import com.agiletrack.backend.task.entity.WorkItemType;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,6 +18,9 @@ public record CreateTaskRequest(
 
         @Size(max = 1000, message = "Description must not exceed 1000 characters")
         String description,
+
+        @NotNull(message = "Type is required")
+        WorkItemType type,
 
         @NotNull(message = "Priority is required")
         TaskPriority priority,

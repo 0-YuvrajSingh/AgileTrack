@@ -32,10 +32,51 @@ describe('taskService', () => {
     );
   });
 
+  it('list forwards the work item type filter', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { content: [] } });
+
+    await taskService.list(workspaceId, projectId, undefined, 'position,asc', undefined, 'CHANGE');
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      `/workspaces/${workspaceId}/projects/${projectId}/tasks`,
+      { params: { sort: 'position,asc', type: 'CHANGE' }, signal: undefined }
+    );
+  });
+
+  it('list omits the type param when no filter is active', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { content: [] } });
+
+    await taskService.list(workspaceId, projectId, undefined, 'position,asc');
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      `/workspaces/${workspaceId}/projects/${projectId}/tasks`,
+      { params: { sort: 'position,asc' }, signal: undefined }
+    );
+  });
+
+  it('update sends the work item type', async () => {
+    vi.mocked(apiClient.put).mockResolvedValueOnce({ data: { id: taskId } });
+
+    const payload = {
+      title: 'Renamed',
+      description: 'Desc',
+      type: 'TECH_DEBT' as const,
+      priority: 'LOW' as const,
+      deadline: null,
+      assigneeId: null,
+    };
+    await taskService.update(workspaceId, projectId, taskId, payload);
+
+    expect(apiClient.put).toHaveBeenCalledWith(
+      `/workspaces/${workspaceId}/projects/${projectId}/tasks/${taskId}`,
+      payload
+    );
+  });
+
   it('create sends correct payload', async () => {
     vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { id: 'new-task' } });
     
-    const payload = { title: 'New Task', description: 'Desc', priority: 'HIGH' as const, deadline: null, assigneeId: null };
+    const payload = { title: 'New Task', description: 'Desc', type: 'FEATURE' as const, priority: 'HIGH' as const, deadline: null, assigneeId: null };
     await taskService.create(workspaceId, projectId, payload);
     
     expect(apiClient.post).toHaveBeenCalledWith(

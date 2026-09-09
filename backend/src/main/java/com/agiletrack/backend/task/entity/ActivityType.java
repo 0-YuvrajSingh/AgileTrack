@@ -5,5 +5,6 @@ public enum ActivityType {
     ASSIGNED,
     STATUS_CHANGED,
     PRIORITY_CHANGED,
+    TYPE_CHANGED,
     COMPLETED
 }

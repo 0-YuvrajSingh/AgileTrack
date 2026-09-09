@@ -40,8 +40,8 @@ describe('TaskBoard', () => {
   const projectId = 'proj-1';
   
   const defaultTasks = [
-    { id: 't1', title: 'Task 1', status: 'TODO', priority: 'MEDIUM', position: 100 },
-    { id: 't2', title: 'Task 2', status: 'IN_PROGRESS', priority: 'HIGH', position: 200 }
+    { id: 't1', title: 'Task 1', status: 'TODO', type: 'FEATURE', priority: 'MEDIUM', position: 100 },
+    { id: 't2', title: 'Task 2', status: 'IN_PROGRESS', type: 'BUG', priority: 'HIGH', position: 200 }
   ];
 
   let setTasksMock: any;
@@ -95,6 +95,38 @@ describe('TaskBoard', () => {
       </MemoryRouter>
     );
   };
+
+  it('renders the work item type badge on each card', () => {
+    renderComponent();
+
+    // The type dropdowns also render these labels, so look at the card badges only.
+    const badges = (label: string) =>
+      screen.getAllByText(label).filter(el => el.tagName !== 'OPTION');
+
+    expect(badges('Feature')).toHaveLength(1);
+    expect(badges('Bug')).toHaveLength(1);
+  });
+
+  it('refetches with the selected type filter', async () => {
+    renderComponent();
+
+    const filter = screen.getByLabelText('Filter by work item type');
+    fireEvent.change(filter, { target: { value: 'CHANGE' } });
+
+    await waitFor(() => {
+      expect(refetchTasksMock).toHaveBeenCalledWith('', undefined, 'CHANGE');
+    });
+  });
+
+  it('offers every work item type in the create form', () => {
+    renderComponent();
+
+    fireEvent.click(screen.getByRole('button', { name: /New Task/i }));
+
+    const typeSelect = screen.getByLabelText('Type') as HTMLSelectElement;
+    expect(Array.from(typeSelect.options).map(o => o.value))
+      .toEqual(['FEATURE', 'BUG', 'CHANGE', 'TECH_DEBT']);
+  });
 
   it('renders the four columns and tasks', async () => {
     renderComponent();
