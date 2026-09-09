@@ -83,6 +83,13 @@ public class GlobalExceptionHandler {
                 return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
         }
 
+        @ExceptionHandler(DependencyNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleDependencyNotFound(
+                        DependencyNotFoundException ex,
+                        HttpServletRequest request) {
+                return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+        }
+
         @ExceptionHandler(TokenRefreshException.class)
         public ResponseEntity<ErrorResponse> handleTokenRefresh(
                         TokenRefreshException ex,

@@ -7,13 +7,15 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { LayoutDashboard, CheckSquare, Search, Plus, Calendar, Loader2, ArrowRight, ArrowLeftRight, User, Rocket } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Search, Plus, Calendar, Loader2, ArrowRight, ArrowLeftRight, User, Rocket, Link2, Ban } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import { useWorkspace } from '../hooks/useWorkspaces';
 import { useProject } from '../hooks/useProjects';
 import { useWorkspaceMembers } from '../hooks/useWorkspaceMembers';
 import { useTasks } from '../hooks/useTasks';
+import { useBlockedWorkItems } from '../hooks/useDependencies';
+import DependencyPanel from '../components/dependencies/DependencyPanel';
 import { taskService } from '../services/taskService';
 import { getApiErrorMessage } from '../api/axios';
 
@@ -64,6 +66,13 @@ const TaskBoard: React.FC = () => {
   const { project, loading: projLoading, error: projError } = useProject(workspaceId, projectId);
   const { members, loading: memLoading } = useWorkspaceMembers(workspaceId);
   const { tasks, setTasks, loading: tasksLoading, error: tasksError, refetch: refetchTasks } = useTasks(workspaceId, projectId);
+  const { blocked: blockedWorkItems, refetch: refetchBlocked } = useBlockedWorkItems(workspaceId, projectId);
+
+  // Derived once per render rather than per card, from a single project-wide query.
+  const blockedIds = React.useMemo(
+    () => new Set(blockedWorkItems.map(b => b.workItemId)),
+    [blockedWorkItems]
+  );
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -83,6 +92,7 @@ const TaskBoard: React.FC = () => {
   
   const [saving, setSaving] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
+  const [dependencyTask, setDependencyTask] = useState<Task | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -103,6 +113,7 @@ const TaskBoard: React.FC = () => {
     if (err?.response?.status === 409) {
       toast.error('Task was modified by another user. Refreshing...', { duration: 4000 });
       refetchTasks(debouncedSearch, undefined, typeFilter || undefined);
+      refetchBlocked();
     } else {
       toast.error(getApiErrorMessage(err, 'An error occurred'));
     }
@@ -135,6 +146,7 @@ const TaskBoard: React.FC = () => {
       setShowModal(false);
       setEditingTask(null);
       refetchTasks(debouncedSearch, undefined, typeFilter || undefined);
+      refetchBlocked();
     } catch (err: any) {
       handleConcurrencyError(err);
     } finally {
@@ -148,6 +160,7 @@ const TaskBoard: React.FC = () => {
       await taskService.remove(workspaceId, projectId, deleteDialog.id);
       toast.success('Task deleted successfully');
       refetchTasks(debouncedSearch, undefined, typeFilter || undefined);
+      refetchBlocked();
     } catch (err: any) {
       handleConcurrencyError(err);
     } finally {
@@ -351,6 +364,16 @@ const TaskBoard: React.FC = () => {
                           {task.title}
                         </h4>
                         
+                        <div className="flex items-center">
+                          <button
+                            type="button"
+                            aria-label={`Dependencies for ${task.title}`}
+                            title="Dependencies"
+                            onClick={() => setDependencyTask(task)}
+                            className="p-1 text-cf-textMuted hover:text-cf-primary hover:bg-blue-50 rounded"
+                          >
+                            <Link2 size={12} />
+                          </button>
                         {workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED' && (
                           <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
@@ -367,7 +390,14 @@ const TaskBoard: React.FC = () => {
                             </button>
                           </div>
                         )}
+                        </div>
                       </div>
+
+                      {blockedIds.has(task.id) && (
+                        <div className="mb-2 inline-flex items-center gap-1 text-[9px] uppercase font-mono px-1.5 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">
+                          <Ban size={10} /> Blocked
+                        </div>
+                      )}
 
                       <p className="text-xs text-cf-textMuted line-clamp-2 mb-3 leading-relaxed">
                         {task.description || <span className="italic opacity-60">No description</span>}
@@ -545,6 +575,21 @@ const TaskBoard: React.FC = () => {
             </form>
           </Card>
         </div>
+      )}
+
+      {dependencyTask && workspaceId && projectId && (
+        <DependencyPanel
+          workspaceId={workspaceId}
+          projectId={projectId}
+          task={dependencyTask}
+          candidates={tasks}
+          canMutate={workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED'}
+          onClose={() => setDependencyTask(null)}
+          onChanged={() => {
+            refetchBlocked();
+            refetchTasks(debouncedSearch, undefined, typeFilter || undefined);
+          }}
+        />
       )}
 
       <ConfirmDialog

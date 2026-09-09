@@ -51,6 +51,34 @@ export interface Project {
   version: number;
 }
 
+export type DependencyType = 'BLOCKS';
+
+export interface Dependency {
+  id: string;
+  type: DependencyType;
+  blockerWorkItemId: string;
+  blockerTitle: string;
+  blockerStatus: TaskStatus;
+  blockedWorkItemId: string;
+  blockedTitle: string;
+  blockedStatus: TaskStatus;
+  /** Derived server-side: a blocker stops mattering once it is DONE. */
+  resolved: boolean;
+}
+
+export interface WorkItemDependencies {
+  blockedBy: Dependency[];
+  blocking: Dependency[];
+  /** Derived from blockedBy; never stored, so resolving a blocker clears it with no extra write. */
+  blocked: boolean;
+}
+
+export interface BlockedWorkItem {
+  workItemId: string;
+  title: string;
+  blockers: Dependency[];
+}
+
 export type ReleaseLifecycleState = 'PLANNED' | 'IN_PROGRESS' | 'RELEASED' | 'CANCELLED';
 
 export interface Release {
@@ -100,6 +128,8 @@ export type ActivityType =
   | 'TYPE_CHANGED'
   | 'RELEASE_ASSIGNED'
   | 'RELEASE_UNASSIGNED'
+  | 'DEPENDENCY_ADDED'
+  | 'DEPENDENCY_REMOVED'
   | 'COMPLETED';
 
 export interface TaskActivityResponse {

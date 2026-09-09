@@ -1,6 +1,7 @@
 package com.agiletrack.backend.task.service;
 
 import com.agiletrack.backend.common.concurrency.OptimisticLockGuard;
+import com.agiletrack.backend.dependency.service.BlockedCompletionGuard;
 import com.agiletrack.backend.common.exception.TaskNotFoundException;
 import com.agiletrack.backend.common.exception.UserNotFoundException;
 import com.agiletrack.backend.project.entity.Project;
@@ -45,6 +46,7 @@ public class TaskService {
     private final CurrentUserService currentUserService;
     private final TaskActivityRepository taskActivityRepository;
     private final TaskActivityRecorder activityRecorder;
+    private final BlockedCompletionGuard blockedCompletionGuard;
 
     private void recordActivity(Task task, ActivityType type, String details) {
         activityRecorder.record(task, type, details);
@@ -144,6 +146,11 @@ public class TaskService {
 
         if (!task.canTransitionTo(request.status())) {
             throw new BusinessRuleException("Invalid task status transition: " + task.getStatus() + " -> " + request.status());
+        }
+
+        // Frozen rule #3: unresolved blockers prevent completion, whatever the UI allowed.
+        if (request.status() == TaskStatus.DONE && task.getStatus() != TaskStatus.DONE) {
+            blockedCompletionGuard.requireCompletable(task);
         }
 
         TaskStatus oldStatus = task.getStatus();

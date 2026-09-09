@@ -8,6 +8,7 @@ import { useWorkspace } from '../../src/hooks/useWorkspaces';
 import { useProject } from '../../src/hooks/useProjects';
 import { useWorkspaceMembers } from '../../src/hooks/useWorkspaceMembers';
 import { useTasks } from '../../src/hooks/useTasks';
+import { useBlockedWorkItems } from '../../src/hooks/useDependencies';
 import { useAuth } from '../../src/context/AuthContext';
 import { toast } from 'react-hot-toast';
 
@@ -22,6 +23,10 @@ vi.mock('../../src/hooks/useWorkspaces', () => ({ useWorkspace: vi.fn() }));
 vi.mock('../../src/hooks/useProjects', () => ({ useProject: vi.fn() }));
 vi.mock('../../src/hooks/useWorkspaceMembers', () => ({ useWorkspaceMembers: vi.fn() }));
 vi.mock('../../src/hooks/useTasks', () => ({ useTasks: vi.fn() }));
+vi.mock('../../src/hooks/useDependencies', () => ({
+  useBlockedWorkItems: vi.fn(),
+  useDependencies: vi.fn(),
+}));
 
 vi.mock('react-hot-toast', () => ({
   toast: {
@@ -54,6 +59,12 @@ describe('TaskBoard', () => {
     refetchTasksMock = vi.fn();
 
     vi.mocked(useAuth).mockReturnValue({ user: mockUser } as any);
+
+    vi.mocked(useBlockedWorkItems).mockReturnValue({
+      blocked: [{ workItemId: 't2', title: 'Task 2', blockers: [] }],
+      loading: false,
+      refetch: vi.fn(),
+    } as any);
 
     vi.mocked(useWorkspace).mockReturnValue({ 
       workspace: { id: workspaceId, name: 'Test WS', myRole: 'ADMIN' },
@@ -95,6 +106,14 @@ describe('TaskBoard', () => {
       </MemoryRouter>
     );
   };
+
+  it('marks a blocked card, using one project-wide query rather than one per card', () => {
+    renderComponent();
+
+    // Only Task 2 is blocked in the fixture.
+    expect(screen.getAllByText('Blocked')).toHaveLength(1);
+    expect(useBlockedWorkItems).toHaveBeenCalledWith(workspaceId, projectId);
+  });
 
   it('renders the work item type badge on each card', () => {
     renderComponent();
