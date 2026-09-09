@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { releaseService } from '../services/releaseService';
 import { getApiErrorMessage } from '../api/axios';
-import type { Release, Task } from '../types';
+import type { Release, ReleaseReadiness, Task } from '../types';
 
 export function useReleases(workspaceId: string | undefined, projectId: string | undefined) {
   const [releases, setReleases] = useState<Release[]>([]);
@@ -40,6 +40,7 @@ export function useRelease(
 ) {
   const [release, setRelease] = useState<Release | null>(null);
   const [workItems, setWorkItems] = useState<Task[]>([]);
+  const [readiness, setReadiness] = useState<ReleaseReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,12 +51,16 @@ export function useRelease(
       setError(null);
       // The scope list is only meaningful alongside the release it belongs to, so both
       // are loaded together and the view never renders a half-updated pair.
-      const [releaseData, items] = await Promise.all([
+      // Readiness is derived from the same committed state as the scope, so all three are
+      // fetched together and the panel never shows a verdict from a different moment.
+      const [releaseData, items, readinessData] = await Promise.all([
         releaseService.get(workspaceId, projectId, releaseId, signal),
-        releaseService.workItems(workspaceId, projectId, releaseId, signal)
+        releaseService.workItems(workspaceId, projectId, releaseId, signal),
+        releaseService.readiness(workspaceId, projectId, releaseId, signal)
       ]);
       setRelease(releaseData);
       setWorkItems(items);
+      setReadiness(readinessData);
     } catch (e: any) {
       if (e?.name !== 'CanceledError') {
         setError(getApiErrorMessage(e, 'Failed to load release'));
@@ -71,5 +76,5 @@ export function useRelease(
     return () => controller.abort();
   }, [refetch]);
 
-  return { release, workItems, loading, error, refetch };
+  return { release, workItems, readiness, loading, error, refetch };
 }

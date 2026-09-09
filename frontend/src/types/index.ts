@@ -51,6 +51,33 @@ export interface Project {
   version: number;
 }
 
+export type ReadinessStatus = 'READY' | 'NOT_READY';
+
+export type ReadinessReasonCode =
+  | 'RELEASE_CANCELLED'
+  | 'EMPTY_RELEASE'
+  | 'INCOMPLETE_WORK'
+  | 'BLOCKED_WORK'
+  | 'APPROVAL_REQUIRED';
+
+export interface ReadinessReason {
+  code: ReadinessReasonCode;
+  workItemId: string | null;
+  workItemTitle: string | null;
+  detail: string;
+}
+
+export interface ReleaseReadiness {
+  releaseId: string;
+  releaseName: string;
+  lifecycleState: ReleaseLifecycleState;
+  status: ReadinessStatus;
+  /** Always non-empty when status is NOT_READY. */
+  reasons: ReadinessReason[];
+  totalWorkItems: number;
+  completedWorkItems: number;
+}
+
 export type DependencyType = 'BLOCKS';
 
 export interface Dependency {

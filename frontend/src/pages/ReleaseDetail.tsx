@@ -14,6 +14,7 @@ import { useTasks } from '../hooks/useTasks';
 import { releaseService } from '../services/releaseService';
 import { getApiErrorMessage } from '../api/axios';
 import { LIFECYCLE_BADGE, LIFECYCLE_LABEL } from './ReleaseList';
+import ReadinessPanel from '../components/readiness/ReadinessPanel';
 
 const WORK_ITEM_TYPE_LABELS: Record<WorkItemType, string> = {
   FEATURE: 'Feature',
@@ -39,7 +40,7 @@ const ReleaseDetail: React.FC = () => {
 
   const { workspace } = useWorkspace(workspaceId);
   const { project } = useProject(workspaceId, projectId);
-  const { release, workItems, loading, error, refetch } = useRelease(workspaceId, projectId, releaseId);
+  const { release, workItems, readiness, loading, error, refetch } = useRelease(workspaceId, projectId, releaseId);
   const { tasks } = useTasks(workspaceId, projectId);
 
   const [showAdd, setShowAdd] = useState(false);
@@ -183,6 +184,8 @@ const ReleaseDetail: React.FC = () => {
           </div>
         )}
       </div>
+
+      <ReadinessPanel readiness={readiness} />
 
       <Card>
         <CardBody className="space-y-2">

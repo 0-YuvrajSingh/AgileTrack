@@ -56,6 +56,20 @@ describe('ReleaseDetail', () => {
     vi.mocked(useRelease).mockReturnValue({
       release: { ...plannedRelease, ...overrides },
       workItems: items,
+      readiness: {
+        releaseId,
+        releaseName: 'v2.4.0',
+        lifecycleState: 'PLANNED',
+        status: 'NOT_READY',
+        reasons: [{
+          code: 'INCOMPLETE_WORK',
+          workItemId: 't2',
+          workItemTitle: 'Fix rounding',
+          detail: '"Fix rounding" is TODO, not DONE',
+        }],
+        totalWorkItems: 2,
+        completedWorkItems: 1,
+      },
       loading: false,
       error: null,
       refetch: refetchMock,
@@ -99,6 +113,13 @@ describe('ReleaseDetail', () => {
     expect(screen.getByText('Planned')).toBeInTheDocument();
     expect(screen.getByText('1 of 2 done')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+  });
+
+  it('shows the server readiness verdict and its reasons', () => {
+    renderComponent();
+
+    expect(screen.getByTestId('readiness-status')).toHaveTextContent('NOT READY');
+    expect(screen.getByText('"Fix rounding" is TODO, not DONE')).toBeInTheDocument();
   });
 
   it('offers only the transitions the server would accept', () => {

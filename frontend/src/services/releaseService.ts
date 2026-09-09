@@ -1,5 +1,5 @@
 import { apiClient } from '../api/axios';
-import type { PageResponse, Release, ReleaseLifecycleState, Task } from '../types';
+import type { PageResponse, Release, ReleaseLifecycleState, ReleaseReadiness, Task } from '../types';
 
 const baseUrl = (workspaceId: string, projectId: string) =>
   `/workspaces/${workspaceId}/projects/${projectId}/releases`;
@@ -58,6 +58,14 @@ export const releaseService = {
 
   remove: async (workspaceId: string, projectId: string, releaseId: string) => {
     await apiClient.delete(`${baseUrl(workspaceId, projectId)}/${releaseId}`);
+  },
+
+  /** Derived server-side on every call; there is no corresponding write. */
+  readiness: async (workspaceId: string, projectId: string, releaseId: string, signal?: AbortSignal) => {
+    const response = await apiClient.get<ReleaseReadiness>(
+      `${baseUrl(workspaceId, projectId)}/${releaseId}/readiness`, { signal }
+    );
+    return response.data;
   },
 
   workItems: async (workspaceId: string, projectId: string, releaseId: string, signal?: AbortSignal) => {
