@@ -19,12 +19,11 @@ export const approvalService = {
     workspaceId: string,
     projectId: string,
     taskId: string,
-    decision: ApprovalDecision,
-    comments?: string
+    decision: ApprovalDecision
   ) => {
     const response = await apiClient.post<ApprovalResponse>(
       `${projectUrl(workspaceId, projectId)}/tasks/${taskId}/approval`,
-      { decision, comments }
+      { decision }
     );
     return response.data;
   }

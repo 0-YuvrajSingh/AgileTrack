@@ -71,15 +71,24 @@ The seed data is shaped so every readiness verdict is already visible:
 | Frontend Redesign | **Q3 UI Refresh** (`PLANNED`) | `NOT_READY` — 3 × `INCOMPLETE_WORK`, 1 × `BLOCKED_WORK` |
 | Frontend Redesign | **Native Mobile Shell** (`CANCELLED`) | `NOT_READY` — `RELEASE_CANCELLED` + `INCOMPLETE_WORK` |
 | API v2 | **API v2.0 Cutover** (`PLANNED`) | `NOT_READY` — a four-item dependency chain |
+| API v2 | **API v2.0 Cutover** (`PLANNED`) | `NOT_READY` — 4 × `APPROVAL_REQUIRED`, 4-item dependency chain |
 | API v2 | **API v2.1 Planning** (`PLANNED`) | `NOT_READY` — `EMPTY_RELEASE` |
 
 Five things worth clicking, in order:
+Seven things worth clicking, in order:
 
 1. **Open Q3 UI Refresh.** Read the reasons. Then open *Design System Baseline* and watch the same panel say `READY`.
 2. **Try to finish blocked work.** *Drag-and-drop task board* sits in In Review. Drag it to Done. Rejected — `"Drag-and-drop task board" cannot be completed while blocked by "Build reusable component library"`. Nothing in the UI stopped you; the service did.
 3. **Resolve the blocker.** Move *Build reusable component library* to Done, then reload the release. `BLOCKED_WORK` is gone and the count moved — nothing was recomputed by hand, because nothing was stored.
 4. **Try to create a cycle.** In API v2, open *Design database schema v2* and add *Deprecate v1 task endpoints* as a blocker. Rejected, with the path that would have closed the loop: the chain already runs schema → auth migration → deprecate v1.
 5. **Force a conflict.** Open one work item in two tabs, change it in both. The second save returns `409` and the UI rolls back rather than overwriting.
+1. **Land on the Engineering Release Dashboard (`/dashboard`).** Switch between releases via the active release dropdown or the portfolio table. Notice how *Design System Baseline* immediately shows `READY TO SHIP` with 100% completion, while *Q3 UI Refresh* and *API v2.0 Cutover* show `NOT READY` with exact blocker counts, pending approvals, work item breakdown, and machine-readable reasons.
+2. **Open Q3 UI Refresh in the Release Cockpit.** Read the explicit gate reasons. Notice scope lock controls and progress tracking.
+3. **Try to finish blocked work.** *Drag-and-drop task board* sits in In Review. Drag it to Done. Rejected — `"Drag-and-drop task board" cannot be completed while blocked by "Build reusable component library"`. Nothing in the UI stopped you; the service did.
+4. **Resolve the blocker.** Move *Build reusable component library* to Done, then reload the release. `BLOCKED_WORK` is gone and the count moved — nothing was recomputed by hand, because nothing was stored.
+5. **Govern high-risk changes.** In API v2, open the Change Governance modal (shield icon) on *Design database schema v2* (`HIGH` risk). Review the policy requirement, approve the change with comments, and see the activity history record `APPROVAL_GRANTED`.
+6. **Try to create a cycle.** In API v2, open *Design database schema v2* and add *Deprecate v1 task endpoints* as a blocker. Rejected, with the path that would have closed the loop: the chain already runs schema → auth migration → deprecate v1.
+7. **Force a conflict.** Open one work item in two tabs, change it in both. The second save returns `409` and the UI rolls back rather than overwriting.
 
 Seeded rows are written as fixtures rather than through the service layer, so they carry no activity history. History fills in as you act — every change you make above is recorded.
 
@@ -291,7 +300,7 @@ POST   /api/v1/auth/register | login | refresh | logout
 
 ## Testing
 
-**274 tests: 208 backend, 66 frontend.** Backend integration tests run against real PostgreSQL via Testcontainers — H2 would not exercise the Flyway migrations, the check constraints or the dialect behaviour that production actually runs.
+**284 tests: 208 backend, 76 frontend.** Backend integration tests run against real PostgreSQL via Testcontainers — H2 would not exercise the Flyway migrations, the check constraints or the dialect behaviour that production actually runs.
 
 Coverage is organised around the rules rather than the classes:
 
@@ -300,11 +309,11 @@ Coverage is organised around the rules rather than the classes:
 - **Change governance** — risk level rules, approval RBAC, approver context derivation, concurrency protection on approvals, activity audit, and nested `APPROVAL_REQUIRED` readiness gating.
 - **Readiness** — each gate in isolation, gates in combination, and reason ordering asserted so the output is reproducible.
 - **Concurrency** — genuine stale writes against tasks, projects and releases, asserted as `409` end to end rather than mocked.
-- **Frontend** — services, hooks, modals, and the panels that render server verdicts, including that the readiness panel preserves server ordering instead of re-sorting.
+- **Frontend** — services, hooks, modals, the Engineering Release Dashboard, and panels that render server verdicts, including that the readiness panel preserves server ordering instead of re-sorting.
 
 ```bash
 cd backend  && ./mvnw test          # 208
-cd frontend && npm test             # 66
+cd frontend && npm test             # 76
 ```
 
 A `PerformanceBenchmarkTest` exists but is tagged `benchmark` and excluded from the default run: it inserts about 1.1 million rows, asserts nothing and is a measurement harness rather than a test. Run it deliberately with `./mvnw test -Dgroups=benchmark`.
@@ -315,7 +324,7 @@ A `PerformanceBenchmarkTest` exists but is tagged `benchmark` and excluded from 
 
 - **Passwords** — BCrypt: salted and deliberately slow, because human-chosen passwords are low-entropy.
 - **Refresh tokens** — stored as SHA-256 hashes and rotated on use. SHA-256 rather than BCrypt because the tokens are high-entropy random values and the server needs an indexed lookup; BCrypt's per-call salt makes `WHERE hash = ?` impossible.
-- **Access tokens** — validated statelessly on every request. The `prod` profile defaults to a 15-minute lifetime; the default profile defaults to 24 hours. Note that `docker-compose.yml` passes `JWT_EXPIRATION=86400000` (24 hours) even when the prod profile is active, so **set `JWT_EXPIRATION` explicitly for any real deployment** rather than relying on the profile default.
+- **Access tokens** — validated statelessly on every request. The `prod` profile defaults to a 15-minute lifetime; the default profile defaults to 24 hours. `docker-compose.yml` uses the 15-minute default; **set `JWT_EXPIRATION` explicitly for any real deployment** rather than relying on defaults.
 - **Authorization** — enforced in the service layer against the parent chain, never by the presence of a UUID and never by the UI.
 - **SQL injection** — parameterized throughout via Spring Data JPA.
 - **CORS** — production reads a single permitted origin from `FRONTEND_ORIGIN`; no hardcoded localhost fallbacks in the prod profile.
@@ -334,7 +343,7 @@ Stated explicitly so nothing above is read as more than it is.
 - **Dependency types beyond `BLOCKS`.** `RELATES_TO` and friends would be edges that do not gate anything, and nothing currently needs them.
 - **Real-time updates, background jobs, caching, search infrastructure.** No WebSockets, no Redis, no message broker, no Elasticsearch. Each would be added against a measurement, not in advance of one.
 - **External notifications.** No email, Slack, or webhook dispatching on approval events.
-- **Seed data guarding.** `DataSeeder` runs on any profile and is guarded only by a "no users yet" check. That is fine for a demo deployment and would need a profile guard before real production use.
+- **Seed data guarding.** `DataSeeder` runs when `agiletrack.seed-demo-data` is `true` (the default, so the Docker demo works out of the box) and skips when the database already has users. Set `AGILETRACK_SEED_DEMO_DATA=false` for any real production deployment.
 
 ---
 

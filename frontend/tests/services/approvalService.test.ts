@@ -50,7 +50,7 @@ describe('approvalService', () => {
     expect(result).toBeNull();
   });
 
-  it('submits an approval decision with comments', async () => {
+  it('submits an approval decision', async () => {
     const mockCreated = {
       id: 'appr-2',
       workItemId: taskId,
@@ -67,13 +67,11 @@ describe('approvalService', () => {
       workspaceId,
       projectId,
       taskId,
-      'REJECTED',
-      'Needs roll-back testing'
+      'REJECTED'
     );
 
     expect(apiClient.post).toHaveBeenCalledWith(base, {
       decision: 'REJECTED',
-      comments: 'Needs roll-back testing',
     });
     expect(result).toEqual(mockCreated);
   });

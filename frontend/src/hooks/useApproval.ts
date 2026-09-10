@@ -36,9 +36,9 @@ export function useApproval(
     return () => controller.abort();
   }, [refetch]);
 
-  const submitDecision = async (decision: ApprovalDecision, comments?: string) => {
+  const submitDecision = async (decision: ApprovalDecision) => {
     if (!workspaceId || !projectId || !taskId) return;
-    const updated = await approvalService.submitDecision(workspaceId, projectId, taskId, decision, comments);
+    const updated = await approvalService.submitDecision(workspaceId, projectId, taskId, decision);
     setApproval(updated);
     return updated;
   };

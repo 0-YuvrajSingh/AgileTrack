@@ -97,7 +97,13 @@ function redirectToLogin() {
 
 export function getApiErrorMessage(error: unknown, fallback: string) {
   if (axios.isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message || fallback;
+    if (error.response?.data?.message) {
+      return error.response.data.message;
+    }
+    if (error.response?.status === 403) {
+      return 'You do not have permission to perform this action.';
+    }
+    return fallback;
   }
 
   return fallback;

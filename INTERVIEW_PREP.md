@@ -2,7 +2,7 @@
 
 This guide describes **only what is actually implemented**. Do not claim features that do not exist: there is no Redis, Kafka, WebSocket layer, GraphQL, event sourcing, Elasticsearch, HttpOnly-cookie auth, or arbitrary workflow engine. Where something is deliberately not built, this guide says so — being able to explain what you *didn't* build, and why, is worth more than an inflated feature list.
 
-**Current state:** Phases 0–5 complete. 274 tests (208 backend, 66 frontend). Flyway V1–V15. Change governance (approvals) and deterministic release readiness gating are fully implemented.
+**Current state:** Phases 0–6 complete. 284 tests (208 backend, 76 frontend). Flyway V1–V15. Change governance (approvals), deterministic release readiness gating, and the Engineering Release Dashboard are fully implemented.
 
 ---
 
@@ -12,7 +12,7 @@ This guide describes **only what is actually implemented**. Do not claim feature
 
 **30 seconds:** It started as a Kanban board and I specialised it into a delivery platform. Teams create work items, group them into releases, record dependencies between them, and govern changes based on risk. The system then derives a release readiness verdict: `READY`, or `NOT_READY` with a machine-readable reason for every gate that failed. Readiness is computed on every read from committed database state — there is no readiness column and no endpoint that writes one, so the verdict can never disagree with the data it summarises.
 
-**60 seconds:** AgileTrack is a multi-tenant engineering delivery platform in React, TypeScript and Spring Boot. The domain is work items → releases → dependencies → change approvals → readiness. The interesting engineering is in four places. First, dependency correctness: `BLOCKS` edges form a graph I keep acyclic with a bounded breadth-first search that runs inside the write transaction, and an item with an unresolved blocker cannot be moved to `DONE` regardless of what the UI offers. Second, change governance: `CHANGE` work items have strict risk levels (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), where `HIGH` and `CRITICAL` require formal approval evaluated server-side. Third, derived state: release readiness is recomputed on every request rather than stored, evaluating 5 deterministic gates (`RELEASE_CANCELLED`, `EMPTY_RELEASE`, `INCOMPLETE_WORK`, `BLOCKED_WORK`, `APPROVAL_REQUIRED`), making a whole class of stale-flag bugs unrepresentable. Fourth, correctness under concurrency and multi-tenancy: every mutation validates the full workspace → project → resource chain server-side, and optimistic locking is a real API contract. It is backed by 274 tests, with the backend running against real PostgreSQL via Testcontainers.
+**60 seconds:** AgileTrack is a multi-tenant engineering delivery platform in React, TypeScript and Spring Boot. The domain is work items → releases → dependencies → change approvals → readiness. The interesting engineering is in four places. First, dependency correctness: `BLOCKS` edges form a graph I keep acyclic with a bounded breadth-first search that runs inside the write transaction, and an item with an unresolved blocker cannot be moved to `DONE` regardless of what the UI offers. Second, change governance: `CHANGE` work items have strict risk levels (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), where `HIGH` and `CRITICAL` require formal approval evaluated server-side. Third, derived state: release readiness is recomputed on every request rather than stored, evaluating 5 deterministic gates (`RELEASE_CANCELLED`, `EMPTY_RELEASE`, `INCOMPLETE_WORK`, `BLOCKED_WORK`, `APPROVAL_REQUIRED`), making a whole class of stale-flag bugs unrepresentable. Fourth, correctness under concurrency and multi-tenancy: every mutation validates the full workspace → project → resource chain server-side, and optimistic locking is a real API contract. **60 seconds:** AgileTrack is a multi-tenant engineering delivery platform in React, TypeScript and Spring Boot. The domain is work items → releases → dependencies → change approvals → readiness. The interesting engineering is in four places. First, dependency correctness: `BLOCKS` edges form a graph I keep acyclic with a bounded breadth-first search that runs inside the write transaction, and an item with an unresolved blocker cannot be moved to `DONE` regardless of what the UI offers. Second, change governance: `CHANGE` work items have strict risk levels (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), where `HIGH` and `CRITICAL` require formal approval evaluated server-side. Third, derived state: release readiness is recomputed on every request rather than stored, evaluating 5 deterministic gates (`RELEASE_CANCELLED`, `EMPTY_RELEASE`, `INCOMPLETE_WORK`, `BLOCKED_WORK`, `APPROVAL_REQUIRED`), making a whole class of stale-flag bugs unrepresentable. Fourth, correctness under concurrency and multi-tenancy: every mutation validates the full workspace → project → resource chain server-side, and optimistic locking is a real API contract. It is backed by 284 tests, with the backend running against real PostgreSQL via Testcontainers.
 
 **What problem it solves:** A task board tells you what people are doing. It does not tell you whether you can ship. Release decisions in most teams are made from a spreadsheet and a meeting — someone eyeballs a list of tickets and declares it fine. AgileTrack makes that decision derived and explainable: the same data always produces the same verdict, with the same reasons in the same order.
 
@@ -315,7 +315,7 @@ Append-only. Types: `CREATED`, `ASSIGNED`, `STATUS_CHANGED`, `PRIORITY_CHANGED`,
 **The model:**
 - `RiskLevel` enum: `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`.
 - Pushed to the database: `tasks.risk_level` with `ck_tasks_risk_level` and `ck_tasks_change_risk` check constraints (ensuring only `type = 'CHANGE'` carries a risk level, and defaulting to `LOW`).
-- Dedicated `change_approvals` table: `id`, `task_id`, `decision` (`APPROVED` or `REJECTED`), `approver_id`, optional `comments`, and `created_at`.
+- Dedicated `change_approvals` table: `id`, `work_item_id`, `decision` (`APPROVED` or `REJECTED`), `approver_id`, and `created_at`.
 - Transactional audit log: `APPROVAL_GRANTED`, `APPROVAL_REJECTED`, `RISK_CHANGED` written in the same transaction.
 
 **The policy (Fixed, deterministic):**
@@ -331,13 +331,28 @@ Append-only. Types: `CREATED`, `ASSIGNED`, `STATUS_CHANGED`, `PRIORITY_CHANGED`,
 
 ---
 
-# PART 16 — KANBAN POSITIONING
+# PART 16 — ENGINEERING RELEASE DASHBOARD
+
+**Why a release dashboard rather than generic analytics charts?**
+Most task trackers offer burndown charts, velocity graphs, and cumulative flow diagrams. Those measure *team activity*, but they fail to answer whether software can actually ship. A team can burn down 50 story points while leaving 2 critical schema migrations unreviewed and a dependency cycle in place.
+
+The **Engineering Release Dashboard** replaces generic workspace counters with a focused release cockpit that answers the core product question across all projects:
+1. **Derived Readiness Verdict:** Prominent `READY TO SHIP` or `NOT READY` verdict badge driven by server evaluation.
+2. **Work Completion Progress:** `X / Y complete` with visual percentage bar.
+3. **Unresolved Blockers Count:** Immediate visibility into `BLOCKED_WORK` dependencies holding up the release.
+4. **Pending Change Approvals:** Count of `HIGH` or `CRITICAL` changes awaiting review or rejected.
+5. **Scope Breakdown:** Work item distribution across `Features`, `Bugs`, `Changes`, and `Tech Debt`.
+6. **Actionable Readiness Blockers List:** Displays machine-readable reason codes (`INCOMPLETE_WORK`, `BLOCKED_WORK`, `APPROVAL_REQUIRED`, `RELEASE_CANCELLED`, `EMPTY_RELEASE`) and plain English explanations with one-click navigation directly to the Release Cockpit.
+
+---
+
+# PART 17 — KANBAN POSITIONING
 
 Positions are doubles with gaps. Dropping between 1000 and 2000 yields 1500 — one row update instead of renumbering the column. If gaps halve toward zero, a rebalance recalculates the column.
 
 ---
 
-# PART 17 — PERFORMANCE
+# PART 18 — PERFORMANCE
 
 **The measurement:** `EXPLAIN (ANALYZE, BUFFERS)` over one million generated tasks, searching with `ILIKE '%term%'`.
 
@@ -349,9 +364,9 @@ Positions are doubles with gaps. Dropping between 1000 and 2000 yields 1500 — 
 
 ---
 
-# PART 18 — TESTING
+# PART 19 — TESTING
 
-**274 tests: 208 backend, 66 frontend.** Backend integration tests run against real PostgreSQL through Testcontainers, so Flyway migrations, `CHECK` constraints and Postgres dialect behaviour are all exercised. H2 would test none of them.
+**284 tests: 208 backend, 76 frontend.** Backend integration tests run against real PostgreSQL through Testcontainers, so Flyway migrations, `CHECK` constraints and Postgres dialect behaviour are all exercised. H2 would test none of them.
 
 Tests are organised around rules rather than classes:
 
@@ -362,6 +377,7 @@ Tests are organised around rules rather than classes:
 - **Readiness** — each gate alone (including `APPROVAL_REQUIRED`), gates in combination, reason ordering asserted explicitly, and a test that there is no route to *set* readiness.
 - **Concurrency** — real stale writes through the API asserting `409`, not mocked exceptions.
 - **Frontend** — services, hooks, modals, and the panels that render server verdicts, including that the readiness panel preserves server ordering rather than re-sorting.
+- **Frontend** — services, hooks, modals, the Engineering Release Dashboard, and panels that render server verdicts, including that the readiness panel preserves server ordering rather than re-sorting.
 
 `AbstractIntegrationTest` starts one PostgreSQL container as a static singleton shared across all integration classes, wired in through `@DynamicPropertySource`. It is never explicitly stopped — Testcontainers' Ryuk reaper removes it at JVM exit, and reusing one container keeps the suite fast.
 
@@ -369,7 +385,7 @@ Tests are organised around rules rather than classes:
 
 ---
 
-# PART 19 — REAL DEBUGGING STORIES
+# PART 20 — REAL DEBUGGING STORIES
 
 **1. Optimistic locking that could not actually be triggered.**
 *Symptom:* I set out to write an end-to-end test for the `409` path and could not make one fail. Two sequential API calls with stale data both succeeded.
@@ -404,13 +420,13 @@ Tests are organised around rules rather than classes:
 
 ---
 
-# PART 20 — DEPLOYMENT
+# PART 21 — DEPLOYMENT
 
 `application-prod.yaml` removes every insecure default: no fallback JWT secret, no hardcoded CORS origin. Secrets come from `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `JWT_SECRET`, `FRONTEND_ORIGIN`. The frontend is a static Vite build with `VITE_API_URL` baked in. `docker-compose up --build` brings up Postgres, backend and frontend with health-check gating.
 
 ---
 
-# PART 21 — SECURITY REVIEW
+# PART 22 — SECURITY REVIEW
 
 | Threat | Control |
 |---|---|
@@ -427,7 +443,7 @@ Tests are organised around rules rather than classes:
 
 ---
 
-# PART 22 — WHAT IS DELIBERATELY NOT BUILT
+# PART 23 — WHAT IS DELIBERATELY NOT BUILT
 
 - **Arbitrary workflow engines & approval matrices.** Approvals use a clear, deterministic fixed policy (LOW/MEDIUM bypass; HIGH/CRITICAL require approval). Configurable dynamic workflow rules and multi-stage sign-off matrices are intentionally not built.
 - **Incident semantics.** No incident type, severity or MTTR.
@@ -438,7 +454,7 @@ Tests are organised around rules rather than classes:
 
 ---
 
-# PART 23 — DESIGN TRADE-OFFS, IN ONE LINE EACH
+# PART 24 — DESIGN TRADE-OFFS, IN ONE LINE EACH
 
 - **Monolith over microservices** — traded independent scaling for transactional integrity and zero network boundaries.
 - **Fixed policy over a configurable workflow engine** — traded infinite customizability for a simple, deterministic rule with zero configuration overhead.
@@ -452,7 +468,7 @@ Tests are organised around rules rather than classes:
 
 ---
 
-# PART 24 — RAPID FIRE
+# PART 25 — RAPID FIRE
 
 - **Why Postgres?** ACID and real constraints across a tenant hierarchy.
 - **Why Flyway?** Versioned, reviewable schema; Hibernate validates and never mutates.
@@ -470,12 +486,13 @@ Tests are organised around rules rather than classes:
 - **Why one `tasks` table for four work item types?** Same fields, same lifecycle; only the `type` differs.
 - **Why derive approver identity server-side?** Never trust client-supplied credentials or claims for governance sign-offs.
 - **Why latest decision wins?** Allows correcting decisions when risks or requirements evolve without mutating immutable audit history.
+- **Why an Engineering Release Dashboard instead of charts?** Velocity measures activity; readiness determines if software can ship.
 - **Why Testcontainers?** H2 does not run the migrations or the constraints that production runs.
 - **Why is the benchmark excluded?** It asserts nothing and inserts 1.1 million rows.
 
 ---
 
-# PART 25 — FOUR ANSWERS WORTH REHEARSING
+# PART 26 — FIVE ANSWERS WORTH REHEARSING
 
 **1. "Walk me through the most interesting thing you built."**
 
@@ -492,3 +509,7 @@ Tests are organised around rules rather than classes:
 **4. "Tell me about a bug you found in your own work."**
 
 "I set out to write an end-to-end test for the `409` conflict path and couldn't make it fail. Two sequential API calls with stale data both succeeded. The cause was that `@Version` was on the entity and worked correctly — but the version never left the server. The response DTO didn't expose it and no request DTO accepted it, so a client couldn't send a stale version even in principle. Which meant the frontend's `409` rollback handler, which I'd written and which looked fine, was unreachable code. The feature looked implemented and was effectively absent. I fixed it by making the version part of the API contract — returned in responses, required on `PUT`, honoured on status `PATCH` — and centralising the comparison in one guard rather than repeating it in five services. The lesson I took is that an annotation isn't a feature: concurrency control that never crosses the wire only protects against a race the client can't cause."
+
+**5. "How does the Engineering Release Dashboard tie the whole product together?"**
+
+"Task management dashboards typically throw up velocity charts, burndown curves, and pie charts of ticket statuses. That answers what engineers were busy with last sprint, but it fails to answer whether the release can safely ship to production today. In AgileTrack, the Engineering Release Dashboard aggregates the four critical delivery signals for any release across projects: work completion percentage, unresolved blocker count, pending high-risk change approvals, and the exact deterministic readiness verdict. If a release is NOT READY, it does not just show a red icon — it lists the machine-readable reason codes and human-readable blockers, linking directly to the Release Cockpit where leads can unblock dependencies or grant change approvals."
