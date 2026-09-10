@@ -1,18 +1,23 @@
 package com.agiletrack.backend.readiness;
 
 import com.agiletrack.backend.AbstractIntegrationTest;
+import com.agiletrack.backend.approval.entity.ApprovalDecision;
+import com.agiletrack.backend.approval.entity.ChangeApproval;
+import com.agiletrack.backend.approval.repository.ChangeApprovalRepository;
 import com.agiletrack.backend.dependency.entity.DependencyType;
 import com.agiletrack.backend.dependency.entity.WorkItemDependency;
 import com.agiletrack.backend.dependency.repository.WorkItemDependencyRepository;
 import com.agiletrack.backend.project.entity.Project;
 import com.agiletrack.backend.project.entity.ProjectStatus;
 import com.agiletrack.backend.project.repository.ProjectRepository;
+import com.agiletrack.backend.readiness.dto.ReadinessReasonCode;
 import com.agiletrack.backend.readiness.dto.ReadinessStatus;
 import com.agiletrack.backend.release.entity.Release;
 import com.agiletrack.backend.release.entity.ReleaseLifecycleState;
 import com.agiletrack.backend.release.repository.ReleaseRepository;
 import com.agiletrack.backend.security.CustomUserDetails;
 import com.agiletrack.backend.security.JwtService;
+import com.agiletrack.backend.task.entity.RiskLevel;
 import com.agiletrack.backend.task.entity.Task;
 import com.agiletrack.backend.task.entity.TaskPriority;
 import com.agiletrack.backend.task.entity.TaskStatus;
@@ -69,6 +74,7 @@ class ReadinessIntegrationTest extends AbstractIntegrationTest {
     @Autowired ReleaseRepository releaseRepository;
     @Autowired TaskRepository taskRepository;
     @Autowired WorkItemDependencyRepository dependencyRepository;
+    @Autowired ChangeApprovalRepository changeApprovalRepository;
 
     private String token;
     private String outsiderToken;
@@ -80,6 +86,7 @@ class ReadinessIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        changeApprovalRepository.deleteAll();
         dependencyRepository.deleteAll();
         taskRepository.deleteAll();
         releaseRepository.deleteAll();
@@ -121,6 +128,34 @@ class ReadinessIntegrationTest extends AbstractIntegrationTest {
                 .priority(TaskPriority.MEDIUM).position(1.0)
                 .project(project)
                 .release(inRelease ? release : null)
+                .build());
+    }
+
+    private Task addChangeItem(String title, RiskLevel riskLevel, TaskStatus status, boolean inRelease) {
+        return taskRepository.save(Task.builder()
+                .title(title).status(status).type(WorkItemType.CHANGE)
+                .riskLevel(riskLevel)
+                .priority(TaskPriority.HIGH).position(1.0)
+                .project(project)
+                .release(inRelease ? release : null)
+                .build());
+    }
+
+    private void approve(Task task) {
+        User owner = userRepository.findByEmail("readiness-owner@test.com").orElseThrow();
+        changeApprovalRepository.save(ChangeApproval.builder()
+                .workItem(task)
+                .approver(owner)
+                .decision(ApprovalDecision.APPROVED)
+                .build());
+    }
+
+    private void reject(Task task) {
+        User owner = userRepository.findByEmail("readiness-owner@test.com").orElseThrow();
+        changeApprovalRepository.save(ChangeApproval.builder()
+                .workItem(task)
+                .approver(owner)
+                .decision(ApprovalDecision.REJECTED)
                 .build());
     }
 
@@ -462,6 +497,85 @@ class ReadinessIntegrationTest extends AbstractIntegrationTest {
                     .isEqualTo(releaseVersionBefore);
             assertThat(taskRepository.findById(work.getId()).orElseThrow().getVersion())
                     .isEqualTo(taskVersionBefore);
+        }
+    }
+
+    // ==========================================================================
+    @Nested
+    @DisplayName("Change governance gate")
+    class ChangeGovernanceGate {
+
+        @Test
+        @DisplayName("A release with an unapproved HIGH risk CHANGE is NOT_READY with APPROVAL_REQUIRED")
+        void unapprovedHighRiskChange_makesReleaseNotReady() throws Exception {
+            Task change = addChangeItem("Database cutover", RiskLevel.HIGH, TaskStatus.DONE, true);
+
+            mockMvc.perform(get(readinessUrl()).header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(ReadinessStatus.NOT_READY.name()))
+                    .andExpect(jsonPath("$.reasons[0].code").value(ReadinessReasonCode.APPROVAL_REQUIRED.name()))
+                    .andExpect(jsonPath("$.reasons[0].workItemId").value(change.getId().toString()))
+                    .andExpect(jsonPath("$.reasons[0].detail").value(containsString("has no approved decision")));
+        }
+
+        @Test
+        @DisplayName("LOW and MEDIUM risk changes do not require approval and allow release to be READY")
+        void lowAndMediumRiskChanges_doNotRequireApproval() throws Exception {
+            addChangeItem("Minor copy update", RiskLevel.LOW, TaskStatus.DONE, true);
+            addChangeItem("Internal tweak", RiskLevel.MEDIUM, TaskStatus.DONE, true);
+
+            mockMvc.perform(get(readinessUrl()).header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(ReadinessStatus.READY.name()))
+                    .andExpect(jsonPath("$.reasons").isEmpty());
+        }
+
+        @Test
+        @DisplayName("Approving a HIGH risk change satisfies the approval gate")
+        void approvedHighRiskChange_satisfiesGate() throws Exception {
+            Task change = addChangeItem("API Gateway Migration", RiskLevel.HIGH, TaskStatus.DONE, true);
+            approve(change);
+
+            mockMvc.perform(get(readinessUrl()).header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(ReadinessStatus.READY.name()))
+                    .andExpect(jsonPath("$.reasons").isEmpty());
+        }
+
+        @Test
+        @DisplayName("A REJECTED decision keeps the release NOT_READY")
+        void rejectedHighRiskChange_keepsReleaseNotReady() throws Exception {
+            Task change = addChangeItem("Security Config Change", RiskLevel.CRITICAL, TaskStatus.DONE, true);
+            reject(change);
+
+            mockMvc.perform(get(readinessUrl()).header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(ReadinessStatus.NOT_READY.name()))
+                    .andExpect(jsonPath("$.reasons[0].code").value(ReadinessReasonCode.APPROVAL_REQUIRED.name()))
+                    .andExpect(jsonPath("$.reasons[0].detail").value(containsString("approval was rejected")));
+        }
+
+        @Test
+        @DisplayName("Reasons follow deterministic order across incomplete work, blockers, and governance")
+        void deterministicOrder_withGovernance() throws Exception {
+            // INCOMPLETE_WORK (ordinal 2)
+            addWorkItem("B - Incomplete feature", TaskStatus.IN_PROGRESS, true);
+
+            // BLOCKED_WORK (ordinal 3)
+            Task blocker = addWorkItem("Blocker task", TaskStatus.TODO, false);
+            Task blocked = addWorkItem("A - Blocked feature", TaskStatus.DONE, true);
+            blocks(blocker, blocked);
+
+            // APPROVAL_REQUIRED (ordinal 4)
+            addChangeItem("C - Critical Cutover", RiskLevel.CRITICAL, TaskStatus.DONE, true);
+
+            mockMvc.perform(get(readinessUrl()).header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(ReadinessStatus.NOT_READY.name()))
+                    .andExpect(jsonPath("$.reasons", hasSize(3)))
+                    .andExpect(jsonPath("$.reasons[0].code").value(ReadinessReasonCode.INCOMPLETE_WORK.name()))
+                    .andExpect(jsonPath("$.reasons[1].code").value(ReadinessReasonCode.BLOCKED_WORK.name()))
+                    .andExpect(jsonPath("$.reasons[2].code").value(ReadinessReasonCode.APPROVAL_REQUIRED.name()));
         }
     }
 

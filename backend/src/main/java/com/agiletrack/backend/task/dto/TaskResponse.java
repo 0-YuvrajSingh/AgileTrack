@@ -1,5 +1,6 @@
 package com.agiletrack.backend.task.dto;
 
+import com.agiletrack.backend.task.entity.RiskLevel;
 import com.agiletrack.backend.task.entity.TaskPriority;
 import com.agiletrack.backend.task.entity.TaskStatus;
 import com.agiletrack.backend.task.entity.WorkItemType;
@@ -13,6 +14,7 @@ public record TaskResponse (
         String description,
         TaskStatus status,
         WorkItemType type,
+        RiskLevel riskLevel,
         TaskPriority priority,
         LocalDateTime deadline,
         UUID projectId,

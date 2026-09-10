@@ -1,5 +1,6 @@
 package com.agiletrack.backend.task.dto;
 
+import com.agiletrack.backend.task.entity.RiskLevel;
 import com.agiletrack.backend.task.entity.TaskPriority;
 import com.agiletrack.backend.task.entity.WorkItemType;
 import jakarta.validation.constraints.NotBlank;
@@ -23,6 +24,8 @@ public record UpdateTaskRequest(
 
         @NotNull(message = "Priority is required")
         TaskPriority priority,
+
+        RiskLevel riskLevel,
 
         LocalDateTime deadline,
 

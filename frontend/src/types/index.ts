@@ -127,6 +127,19 @@ export interface Release {
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
 export type WorkItemType = 'FEATURE' | 'BUG' | 'CHANGE' | 'TECH_DEBT';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type ApprovalDecision = 'APPROVED' | 'REJECTED';
+
+export interface ApprovalResponse {
+  id: string | null;
+  workItemId: string;
+  riskLevel: RiskLevel;
+  approvalRequired: boolean;
+  decision: ApprovalDecision | null;
+  approverId: string | null;
+  approverEmail: string | null;
+  createdAt: string | null;
+}
 
 export interface Task {
   id: string;
@@ -134,6 +147,7 @@ export interface Task {
   description: string;
   status: TaskStatus;
   type: WorkItemType;
+  riskLevel?: RiskLevel | null;
   priority: TaskPriority;
   deadline: string | null;
   projectId: string;
@@ -157,7 +171,10 @@ export type ActivityType =
   | 'RELEASE_UNASSIGNED'
   | 'DEPENDENCY_ADDED'
   | 'DEPENDENCY_REMOVED'
-  | 'COMPLETED';
+  | 'COMPLETED'
+  | 'APPROVAL_GRANTED'
+  | 'APPROVAL_REJECTED'
+  | 'RISK_CHANGED';
 
 export interface TaskActivityResponse {
   id: string;

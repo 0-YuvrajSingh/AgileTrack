@@ -1,5 +1,9 @@
 package com.agiletrack.backend.readiness.service;
 
+import com.agiletrack.backend.approval.entity.ApprovalDecision;
+import com.agiletrack.backend.approval.entity.ChangeApproval;
+import com.agiletrack.backend.approval.policy.ChangeRiskPolicy;
+import com.agiletrack.backend.approval.repository.ChangeApprovalRepository;
 import com.agiletrack.backend.dependency.entity.WorkItemDependency;
 import com.agiletrack.backend.dependency.repository.WorkItemDependencyRepository;
 import com.agiletrack.backend.readiness.dto.ReadinessReason;
@@ -11,6 +15,7 @@ import com.agiletrack.backend.release.entity.ReleaseLifecycleState;
 import com.agiletrack.backend.release.service.ReleaseService;
 import com.agiletrack.backend.task.entity.Task;
 import com.agiletrack.backend.task.entity.TaskStatus;
+import com.agiletrack.backend.task.entity.WorkItemType;
 import com.agiletrack.backend.task.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -47,6 +54,7 @@ public class ReadinessService {
     private final ReleaseService releaseService;
     private final TaskRepository taskRepository;
     private final WorkItemDependencyRepository dependencyRepository;
+    private final ChangeApprovalRepository changeApprovalRepository;
 
     /**
      * Reasons are ordered by code first, then by the work item's title, then by id. Title before id
@@ -69,6 +77,7 @@ public class ReadinessService {
         reasons.addAll(releaseLevelGates(release, workItems));
         reasons.addAll(incompleteWorkGate(workItems));
         reasons.addAll(blockedWorkGate(workItems));
+        reasons.addAll(approvalGate(workItems));
 
         reasons.sort(DETERMINISTIC_ORDER);
 
@@ -152,5 +161,60 @@ public class ReadinessService {
                                     + "\" (" + blocker.getStatus() + ")");
                 })
                 .toList();
+    }
+
+    /**
+     * Every CHANGE work item in the release requiring approval (HIGH or CRITICAL risk)
+     * must have a valid APPROVED decision.
+     *
+     * <p>LOW and MEDIUM risk changes do not require approval and pass automatically.
+     * If a high/critical change has no decision or its latest decision is REJECTED,
+     * an APPROVAL_REQUIRED reason is emitted.
+     *
+     * <p>One batched query across all work items in scope avoids N+1 queries.
+     */
+    private List<ReadinessReason> approvalGate(List<Task> workItems) {
+        List<Task> candidateChanges = workItems.stream()
+                .filter(t -> t.getType() == WorkItemType.CHANGE)
+                .filter(t -> ChangeRiskPolicy.requiresApproval(t.getRiskLevel()))
+                .toList();
+
+        if (candidateChanges.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> changeIds = candidateChanges.stream().map(Task::getId).toList();
+        List<ChangeApproval> approvals = changeApprovalRepository
+                .findByWorkItemIdInOrderByCreatedAtDescIdDesc(changeIds);
+
+        // Map each work item to its latest approval decision
+        Map<UUID, ApprovalDecision> latestDecisions = new LinkedHashMap<>();
+        for (ChangeApproval approval : approvals) {
+            latestDecisions.putIfAbsent(approval.getWorkItem().getId(), approval.getDecision());
+        }
+
+        List<ReadinessReason> reasons = new ArrayList<>();
+        for (Task task : candidateChanges) {
+            ApprovalDecision decision = latestDecisions.get(task.getId());
+            if (decision == null) {
+                reasons.add(new ReadinessReason(
+                        ReadinessReasonCode.APPROVAL_REQUIRED,
+                        task.getId(),
+                        task.getTitle(),
+                        "\"" + task.getTitle() + "\" is " + task.getRiskLevel()
+                                + " risk and has no approved decision"
+                ));
+            } else if (decision == ApprovalDecision.REJECTED) {
+                reasons.add(new ReadinessReason(
+                        ReadinessReasonCode.APPROVAL_REQUIRED,
+                        task.getId(),
+                        task.getTitle(),
+                        "\"" + task.getTitle() + "\" is " + task.getRiskLevel()
+                                + " risk and approval was rejected"
+                ));
+            }
+        }
+
+        return reasons;
     }
 }

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { Loader2, LayoutDashboard, Lock, Plus, X, Calendar } from 'lucide-react';
+import { Loader2, LayoutDashboard, Lock, Plus, X, Calendar, Shield } from 'lucide-react';
 
 import type { ReleaseLifecycleState, Task, WorkItemType } from '../types';
 import { Card, CardBody, CardHeader } from '../components/ui/Card';
@@ -15,6 +15,7 @@ import { releaseService } from '../services/releaseService';
 import { getApiErrorMessage } from '../api/axios';
 import { LIFECYCLE_BADGE, LIFECYCLE_LABEL } from './ReleaseList';
 import ReadinessPanel from '../components/readiness/ReadinessPanel';
+import ApprovalModal from '../components/approval/ApprovalModal';
 
 const WORK_ITEM_TYPE_LABELS: Record<WorkItemType, string> = {
   FEATURE: 'Feature',
@@ -45,6 +46,7 @@ const ReleaseDetail: React.FC = () => {
 
   const [showAdd, setShowAdd] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [approvalTask, setApprovalTask] = useState<Task | null>(null);
 
   const canMutate = workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED';
   const scopeEditable = canMutate && release != null && !release.scopeLocked;
@@ -243,22 +245,45 @@ const ReleaseDetail: React.FC = () => {
                       <span className="text-[9px] uppercase font-mono text-cf-textMuted">
                         {WORK_ITEM_TYPE_LABELS[task.type]}
                       </span>
+                      {task.type === 'CHANGE' && task.riskLevel && (
+                        <span className={`text-[9px] uppercase font-mono px-1.5 py-0.2 rounded border ${
+                          task.riskLevel === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-200' :
+                          task.riskLevel === 'HIGH' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                          task.riskLevel === 'MEDIUM' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        }`}>
+                          {task.riskLevel}
+                        </span>
+                      )}
                       <span className="text-[9px] uppercase font-mono text-cf-textMuted">
                         {task.status}
                       </span>
                     </div>
                   </div>
-                  {scopeEditable && (
-                    <button
-                      type="button"
-                      aria-label={`Remove ${task.title} from release`}
-                      className="text-cf-textMuted hover:text-red-600 p-1"
-                      disabled={busy}
-                      onClick={() => removeWorkItem(task.id)}
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {task.type === 'CHANGE' && (
+                      <button
+                        type="button"
+                        aria-label={`Governance for ${task.title}`}
+                        title="Change Governance"
+                        className="text-cf-textMuted hover:text-cf-primary p-1"
+                        onClick={() => setApprovalTask(task)}
+                      >
+                        <Shield size={14} />
+                      </button>
+                    )}
+                    {scopeEditable && (
+                      <button
+                        type="button"
+                        aria-label={`Remove ${task.title} from release`}
+                        className="text-cf-textMuted hover:text-red-600 p-1"
+                        disabled={busy}
+                        onClick={() => removeWorkItem(task.id)}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -297,6 +322,17 @@ const ReleaseDetail: React.FC = () => {
             </CardBody>
           </Card>
         </div>
+      )}
+
+      {approvalTask && workspaceId && projectId && (
+        <ApprovalModal
+          workspaceId={workspaceId}
+          projectId={projectId}
+          task={approvalTask}
+          canMutate={canMutate}
+          onClose={() => setApprovalTask(null)}
+          onChanged={() => refetch()}
+        />
       )}
     </div>
   );

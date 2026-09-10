@@ -14,6 +14,7 @@ public class TaskMapper {
                 task.getDescription(),
                 task.getStatus(),
                 task.getType(),
+                task.getRiskLevel(),
                 task.getPriority(),
                 task.getDeadline(),
                 task.getProject().getId(),

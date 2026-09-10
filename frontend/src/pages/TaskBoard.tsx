@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import type { Task, TaskPriority, TaskStatus, WorkItemType } from '../types';
+import type { RiskLevel, Task, TaskPriority, TaskStatus, WorkItemType } from '../types';
 import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { LayoutDashboard, CheckSquare, Search, Plus, Calendar, Loader2, ArrowRight, ArrowLeftRight, User, Rocket, Link2, Ban } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Search, Plus, Calendar, Loader2, ArrowRight, ArrowLeftRight, User, Rocket, Link2, Ban, Shield } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import { useWorkspace } from '../hooks/useWorkspaces';
@@ -16,12 +16,14 @@ import { useWorkspaceMembers } from '../hooks/useWorkspaceMembers';
 import { useTasks } from '../hooks/useTasks';
 import { useBlockedWorkItems } from '../hooks/useDependencies';
 import DependencyPanel from '../components/dependencies/DependencyPanel';
+import ApprovalModal from '../components/approval/ApprovalModal';
 import { taskService } from '../services/taskService';
 import { getApiErrorMessage } from '../api/axios';
 
 const STATUSES: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
 const PRIORITIES: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
 const WORK_ITEM_TYPES: WorkItemType[] = ['FEATURE', 'BUG', 'CHANGE', 'TECH_DEBT'];
+const RISK_LEVELS: RiskLevel[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 const WORK_ITEM_TYPE_LABELS: Record<WorkItemType, string> = {
   FEATURE: 'Feature',
@@ -57,6 +59,15 @@ const getPriorityBadge = (priority: TaskPriority) => {
   }
 };
 
+const getRiskBadge = (risk: RiskLevel) => {
+  switch (risk) {
+    case 'LOW': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'MEDIUM': return 'bg-blue-50 text-blue-700 border-blue-200';
+    case 'HIGH': return 'bg-orange-50 text-orange-700 border-orange-200';
+    case 'CRITICAL': return 'bg-red-50 text-red-700 border-red-200';
+  }
+};
+
 const TaskBoard: React.FC = () => {
   const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>();
   const { user } = useAuth();
@@ -86,6 +97,7 @@ const TaskBoard: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<WorkItemType>('FEATURE');
+  const [riskLevel, setRiskLevel] = useState<RiskLevel>('LOW');
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
   const [deadline, setDeadline] = useState('');
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>('');
@@ -93,6 +105,7 @@ const TaskBoard: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
   const [dependencyTask, setDependencyTask] = useState<Task | null>(null);
+  const [approvalTask, setApprovalTask] = useState<Task | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -128,6 +141,7 @@ const TaskBoard: React.FC = () => {
       description,
       type,
       priority,
+      riskLevel: type === 'CHANGE' ? riskLevel : null,
       deadline: deadline || null,
       assigneeId: selectedAssigneeId || null,
       // Only meaningful when editing; the server rejects a save based on a superseded read.
@@ -172,6 +186,7 @@ const TaskBoard: React.FC = () => {
     setTitle('');
     setDescription('');
     setType('FEATURE');
+    setRiskLevel('LOW');
     setPriority('MEDIUM');
     setDeadline('');
     setSelectedAssigneeId(user?.id || '');
@@ -183,6 +198,7 @@ const TaskBoard: React.FC = () => {
     setTitle(task.title);
     setDescription(task.description || '');
     setType(task.type);
+    setRiskLevel(task.riskLevel ?? 'LOW');
     setPriority(task.priority);
     setDeadline(task.deadline ? task.deadline.slice(0, 16) : '');
     setSelectedAssigneeId(task.assigneeId || '');
@@ -374,6 +390,17 @@ const TaskBoard: React.FC = () => {
                           >
                             <Link2 size={12} />
                           </button>
+                          {task.type === 'CHANGE' && (
+                            <button
+                              type="button"
+                              aria-label={`Governance for ${task.title}`}
+                              title="Change Governance"
+                              onClick={() => setApprovalTask(task)}
+                              className="p-1 text-cf-textMuted hover:text-cf-primary hover:bg-blue-50 rounded"
+                            >
+                              <Shield size={12} />
+                            </button>
+                          )}
                         {workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED' && (
                           <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
@@ -409,6 +436,11 @@ const TaskBoard: React.FC = () => {
                             <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded border font-mono ${getTypeBadge(task.type)}`}>
                               {WORK_ITEM_TYPE_LABELS[task.type]}
                             </span>
+                            {task.type === 'CHANGE' && task.riskLevel && (
+                              <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded border font-mono ${getRiskBadge(task.riskLevel)}`}>
+                                {task.riskLevel}
+                              </span>
+                            )}
                             <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded border font-mono ${getPriorityBadge(task.priority)}`}>
                               {task.priority}
                             </span>
@@ -511,6 +543,24 @@ const TaskBoard: React.FC = () => {
                     </select>
                   </div>
 
+                  {type === 'CHANGE' && (
+                    <div>
+                      <label htmlFor="work-item-risk-level" className="block text-xs font-semibold uppercase tracking-wider text-cf-textMuted mb-1.5">
+                        Risk Level
+                      </label>
+                      <select
+                        id="work-item-risk-level"
+                        value={riskLevel}
+                        onChange={(e) => setRiskLevel(e.target.value as RiskLevel)}
+                        className="w-full px-3 py-2 text-sm text-cf-textDark bg-white border border-cf-border rounded focus:outline-none focus:border-cf-primary focus:ring-1 focus:ring-cf-primary transition duration-150"
+                      >
+                        {RISK_LEVELS.map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-cf-textMuted mb-1.5">
                       Priority
@@ -587,6 +637,19 @@ const TaskBoard: React.FC = () => {
           onClose={() => setDependencyTask(null)}
           onChanged={() => {
             refetchBlocked();
+            refetchTasks(debouncedSearch, undefined, typeFilter || undefined);
+          }}
+        />
+      )}
+
+      {approvalTask && workspaceId && projectId && (
+        <ApprovalModal
+          workspaceId={workspaceId}
+          projectId={projectId}
+          task={approvalTask}
+          canMutate={workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED'}
+          onClose={() => setApprovalTask(null)}
+          onChanged={() => {
             refetchTasks(debouncedSearch, undefined, typeFilter || undefined);
           }}
         />
