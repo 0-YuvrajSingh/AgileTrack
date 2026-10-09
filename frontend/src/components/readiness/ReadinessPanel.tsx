@@ -9,7 +9,6 @@ const REASON_LABEL: Record<ReadinessReasonCode, string> = {
   EMPTY_RELEASE: 'No work in scope',
   INCOMPLETE_WORK: 'Incomplete work',
   BLOCKED_WORK: 'Blocked work',
-  APPROVAL_REQUIRED: 'Approval required',
 };
 
 interface ReadinessPanelProps {

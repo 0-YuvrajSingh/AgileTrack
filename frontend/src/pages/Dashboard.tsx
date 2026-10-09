@@ -12,7 +12,6 @@ import {
   AlertOctagon,
   CheckCircle2,
   Ban,
-  FileCheck2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -158,16 +157,13 @@ export const Dashboard: React.FC = () => {
     const done = activeWorkItems.filter(t => t.status === 'DONE').length;
     const percent = total > 0 ? Math.round((done / total) * 100) : 0;
 
-    const changes = activeWorkItems.filter(t => t.type === 'CHANGE').length;
     const bugs = activeWorkItems.filter(t => t.type === 'BUG').length;
     const features = activeWorkItems.filter(t => t.type === 'FEATURE').length;
     const techDebt = activeWorkItems.filter(t => t.type === 'TECH_DEBT').length;
 
     const blockers = activeReadiness?.reasons?.filter(r => r.code === 'BLOCKED_WORK').length || 0;
-    const pendingApprovals =
-      activeReadiness?.reasons?.filter(r => r.code === 'APPROVAL_REQUIRED').length || 0;
 
-    return { total, done, percent, changes, bugs, features, techDebt, blockers, pendingApprovals };
+    return { total, done, percent, bugs, features, techDebt, blockers };
   }, [activeWorkItems, activeReadiness]);
 
   if (workspacesLoading || loading) {
@@ -228,7 +224,7 @@ export const Dashboard: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight">Engineering Release Dashboard</h1>
           </div>
           <p className="text-sm text-gray-300 mt-1.5">
-            Real-time derived readiness verdicts, dependency constraints, and change governance.
+            Real-time derived readiness verdicts and dependency constraints across projects.
           </p>
         </div>
 
@@ -315,7 +311,7 @@ export const Dashboard: React.FC = () => {
 
           <CardBody className="p-6 space-y-6">
             {/* Quick Metrics Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {/* Metric 1: Work Completion */}
               <div
                 data-testid="metric-work-items"
@@ -355,23 +351,6 @@ export const Dashboard: React.FC = () => {
                 </p>
               </div>
 
-              {/* Metric 3: Change Approvals */}
-              <div
-                data-testid="metric-approvals"
-                className="p-4 rounded-lg bg-cf-bgLight/70 border border-cf-border space-y-1"
-              >
-                <div className="text-xs font-semibold text-cf-textMuted uppercase tracking-wider flex items-center justify-between">
-                  <span>Approvals</span>
-                  <FileCheck2 size={14} className={metrics.pendingApprovals > 0 ? 'text-amber-500' : 'text-emerald-500'} />
-                </div>
-                <div className="text-2xl font-bold text-cf-textDark">
-                  {metrics.pendingApprovals}
-                </div>
-                <p className="text-[11px] text-cf-textMuted">
-                  {metrics.pendingApprovals === 0 ? 'All changes approved' : 'Pending HIGH/CRITICAL sign-offs'}
-                </p>
-              </div>
-
               {/* Metric 4: Work Item Breakdown */}
               <div
                 data-testid="metric-breakdown"
@@ -386,9 +365,6 @@ export const Dashboard: React.FC = () => {
                   </span>
                   <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-700 border border-red-200 font-medium">
                     {metrics.bugs} Bug{metrics.bugs === 1 ? '' : 's'}
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-medium">
-                    {metrics.changes} Change{metrics.changes === 1 ? '' : 's'}
                   </span>
                   <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 font-medium">
                     {metrics.techDebt} Debt
@@ -413,7 +389,7 @@ export const Dashboard: React.FC = () => {
                   <div>
                     <h4 className="text-sm font-bold text-emerald-800">All Delivery Gates Passed</h4>
                     <p className="text-xs text-emerald-700 mt-0.5">
-                      Every work item in scope is completed, no dependency cycles or unresolved blockers exist, and all change governance approvals are recorded.
+                      Every work item in scope is completed, and no dependency cycles or unresolved blockers exist.
                     </p>
                   </div>
                 </div>

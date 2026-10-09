@@ -57,8 +57,7 @@ export type ReadinessReasonCode =
   | 'RELEASE_CANCELLED'
   | 'EMPTY_RELEASE'
   | 'INCOMPLETE_WORK'
-  | 'BLOCKED_WORK'
-  | 'APPROVAL_REQUIRED';
+  | 'BLOCKED_WORK';
 
 export interface ReadinessReason {
   code: ReadinessReasonCode;
@@ -125,21 +124,8 @@ export interface Release {
 }
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
-export type WorkItemType = 'FEATURE' | 'BUG' | 'CHANGE' | 'TECH_DEBT';
+export type WorkItemType = 'FEATURE' | 'BUG' | 'TECH_DEBT';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type ApprovalDecision = 'APPROVED' | 'REJECTED';
-
-export interface ApprovalResponse {
-  id: string | null;
-  workItemId: string;
-  riskLevel: RiskLevel;
-  approvalRequired: boolean;
-  decision: ApprovalDecision | null;
-  approverId: string | null;
-  approverEmail: string | null;
-  createdAt: string | null;
-}
 
 export interface Task {
   id: string;
@@ -147,7 +133,6 @@ export interface Task {
   description: string;
   status: TaskStatus;
   type: WorkItemType;
-  riskLevel?: RiskLevel | null;
   priority: TaskPriority;
   deadline: string | null;
   projectId: string;

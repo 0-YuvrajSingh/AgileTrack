@@ -35,11 +35,11 @@ describe('taskService', () => {
   it('list forwards the work item type filter', async () => {
     vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { content: [] } });
 
-    await taskService.list(workspaceId, projectId, undefined, 'position,asc', undefined, 'CHANGE');
+    await taskService.list(workspaceId, projectId, undefined, 'position,asc', undefined, 'BUG');
 
     expect(apiClient.get).toHaveBeenCalledWith(
       `/workspaces/${workspaceId}/projects/${projectId}/tasks`,
-      { params: { sort: 'position,asc', type: 'CHANGE' }, signal: undefined }
+      { params: { sort: 'position,asc', type: 'BUG' }, signal: undefined }
     );
   });
 

@@ -98,12 +98,6 @@ describe('Dashboard (Engineering Release Dashboard)', () => {
         workItemTitle: 'Drag-and-drop task board',
         detail: '"Drag-and-drop task board" is blocked by "Build reusable component library"',
       },
-      {
-        code: 'APPROVAL_REQUIRED',
-        workItemId: 't-3',
-        workItemTitle: 'Database Schema Migration',
-        detail: '"Database Schema Migration" is HIGH risk and requires approval before release',
-      },
     ],
   };
 
@@ -125,7 +119,6 @@ describe('Dashboard (Engineering Release Dashboard)', () => {
       status: 'IN_PROGRESS',
       type: 'FEATURE',
       priority: 'HIGH',
-      riskLevel: null,
       deadline: null,
       projectId: 'proj-1',
       releaseId: 'rel-1',
@@ -143,7 +136,6 @@ describe('Dashboard (Engineering Release Dashboard)', () => {
       status: 'IN_REVIEW',
       type: 'FEATURE',
       priority: 'HIGH',
-      riskLevel: null,
       deadline: null,
       projectId: 'proj-1',
       releaseId: 'rel-1',
@@ -159,9 +151,8 @@ describe('Dashboard (Engineering Release Dashboard)', () => {
       title: 'Database Schema Migration',
       description: 'Schema change',
       status: 'DONE',
-      type: 'CHANGE',
+      type: 'FEATURE',
       priority: 'HIGH',
-      riskLevel: 'HIGH',
       deadline: null,
       projectId: 'proj-1',
       releaseId: 'rel-1',
@@ -179,7 +170,6 @@ describe('Dashboard (Engineering Release Dashboard)', () => {
       status: 'DONE',
       type: 'BUG',
       priority: 'MEDIUM',
-      riskLevel: null,
       deadline: null,
       projectId: 'proj-1',
       releaseId: 'rel-1',
@@ -289,26 +279,20 @@ describe('Dashboard (Engineering Release Dashboard)', () => {
     expect(workItemsMetric).toHaveTextContent('2');
     expect(workItemsMetric).toHaveTextContent('50%');
 
-    // Verify Blockers and Approvals count
+    // Verify Blockers count
     const blockersMetric = screen.getByTestId('metric-blockers');
     expect(blockersMetric).toHaveTextContent('1');
     expect(blockersMetric).toHaveTextContent('Unresolved dependency edges');
 
-    const approvalsMetric = screen.getByTestId('metric-approvals');
-    expect(approvalsMetric).toHaveTextContent('1');
-    expect(approvalsMetric).toHaveTextContent('Pending HIGH/CRITICAL sign-offs');
-
     // Verify scope breakdown
     const breakdownMetric = screen.getByTestId('metric-breakdown');
-    expect(breakdownMetric).toHaveTextContent('2 Features');
+    expect(breakdownMetric).toHaveTextContent('3 Features');
     expect(breakdownMetric).toHaveTextContent('1 Bug');
-    expect(breakdownMetric).toHaveTextContent('1 Change');
 
     // Verify readiness reasons
     expect(screen.getByText('INCOMPLETE_WORK')).toBeInTheDocument();
     expect(screen.getByText('BLOCKED_WORK')).toBeInTheDocument();
-    expect(screen.getByText('APPROVAL_REQUIRED')).toBeInTheDocument();
-    expect(screen.getByText(/3 Readiness Blockers Preventing Release/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 Readiness Blockers Preventing Release/i)).toBeInTheDocument();
   });
 
   it('switches the active release when dropdown selection changes', async () => {

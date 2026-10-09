@@ -130,10 +130,10 @@ describe('TaskBoard', () => {
     renderComponent();
 
     const filter = screen.getByLabelText('Filter by work item type');
-    fireEvent.change(filter, { target: { value: 'CHANGE' } });
+    fireEvent.change(filter, { target: { value: 'BUG' } });
 
     await waitFor(() => {
-      expect(refetchTasksMock).toHaveBeenCalledWith('', undefined, 'CHANGE');
+      expect(refetchTasksMock).toHaveBeenCalledWith('', undefined, 'BUG');
     });
   });
 
@@ -144,7 +144,7 @@ describe('TaskBoard', () => {
 
     const typeSelect = screen.getByLabelText('Type') as HTMLSelectElement;
     expect(Array.from(typeSelect.options).map(o => o.value))
-      .toEqual(['FEATURE', 'BUG', 'CHANGE', 'TECH_DEBT']);
+      .toEqual(['FEATURE', 'BUG', 'TECH_DEBT']);
   });
 
   it('renders the four columns and tasks', async () => {
