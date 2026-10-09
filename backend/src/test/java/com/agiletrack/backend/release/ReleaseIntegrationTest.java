@@ -367,8 +367,8 @@ class ReleaseIntegrationTest extends AbstractIntegrationTest {
     class Scope {
 
         @Test
-        @DisplayName("A work item can join and leave a PLANNED release, and both are audited")
-        void addAndRemove_areAudited() throws Exception {
+        @DisplayName("A work item can join and leave a PLANNED release")
+        void addAndRemove_updatesScope() throws Exception {
             mockMvc.perform(put(releaseUrl() + "/work-items/" + taskId)
                             .header("Authorization", "Bearer " + memberToken))
                     .andExpect(status().isOk())
@@ -384,14 +384,7 @@ class ReleaseIntegrationTest extends AbstractIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.releaseId").doesNotExist());
 
-            String activitiesUrl = "/api/v1/workspaces/" + workspaceId + "/projects/" + projectId
-                    + "/tasks/" + taskId + "/activities";
-            mockMvc.perform(get(activitiesUrl).header("Authorization", "Bearer " + memberToken))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[?(@.type == 'RELEASE_ASSIGNED')]")
-                            .value(org.hamcrest.Matchers.hasSize(1)))
-                    .andExpect(jsonPath("$[?(@.type == 'RELEASE_UNASSIGNED')]")
-                            .value(org.hamcrest.Matchers.hasSize(1)));
+            assertThat(taskRepository.findById(taskId).orElseThrow().getRelease()).isNull();
         }
 
         @Test

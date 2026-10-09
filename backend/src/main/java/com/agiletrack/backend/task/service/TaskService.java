@@ -19,9 +19,6 @@ import com.agiletrack.backend.task.mapper.TaskMapper;
 import com.agiletrack.backend.task.repository.TaskRepository;
 import com.agiletrack.backend.user.entity.User;
 import com.agiletrack.backend.user.repository.UserRepository;
-import com.agiletrack.backend.task.entity.ActivityType;
-import com.agiletrack.backend.task.entity.TaskActivity;
-import com.agiletrack.backend.task.repository.TaskActivityRepository;
 import com.agiletrack.backend.workspace.service.WorkspaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.agiletrack.backend.common.exception.BusinessRuleException;
 
 import java.util.UUID;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -44,13 +40,7 @@ public class TaskService {
     private final UserRepository userRepository;
     private final WorkspaceService workspaceService;
     private final CurrentUserService currentUserService;
-    private final TaskActivityRepository taskActivityRepository;
-    private final TaskActivityRecorder activityRecorder;
     private final BlockedCompletionGuard blockedCompletionGuard;
-
-    private void recordActivity(Task task, ActivityType type, String details) {
-        activityRecorder.record(task, type, details);
-    }
 
     @Transactional
     public TaskResponse createTask(UUID workspaceId, UUID projectId, CreateTaskRequest request) {
@@ -74,8 +64,7 @@ public class TaskService {
                 .build();
 
         task = taskRepository.save(task);
-        recordActivity(task, ActivityType.CREATED, "Task created");
-        
+
         return taskMapper.toResponse(task);
     }
 
@@ -113,9 +102,6 @@ public class TaskService {
         projectService.requireMutable(task.getProject());
         OptimisticLockGuard.requireCurrentVersion(Task.class, taskId, task.getVersion(), request.version());
 
-        com.agiletrack.backend.task.entity.TaskPriority oldPriority = task.getPriority();
-        com.agiletrack.backend.task.entity.WorkItemType oldType = task.getType();
-
         task.setTitle(request.title());
         task.setDescription(request.description());
         task.setPriority(request.priority());
@@ -124,16 +110,6 @@ public class TaskService {
         task.setAssignee(request.assigneeId() != null
                 ? getValidatedAssignee(workspaceId, request.assigneeId())
                 : null);
-
-        if (!Objects.equals(oldPriority, request.priority())) {
-            recordActivity(task, ActivityType.PRIORITY_CHANGED, 
-                    "Priority changed from " + oldPriority + " to " + request.priority());
-        }
-
-        if (!Objects.equals(oldType, request.type())) {
-            recordActivity(task, ActivityType.TYPE_CHANGED,
-                    "Type changed from " + oldType + " to " + request.type());
-        }
 
         return taskMapper.toResponse(task);
     }
@@ -154,14 +130,6 @@ public class TaskService {
             blockedCompletionGuard.requireCompletable(task);
         }
 
-        TaskStatus oldStatus = task.getStatus();
-        if (oldStatus != request.status()) {
-            ActivityType type = request.status() == TaskStatus.DONE 
-                    ? ActivityType.COMPLETED 
-                    : ActivityType.STATUS_CHANGED;
-            recordActivity(task, type, "Status changed from " + oldStatus + " to " + request.status());
-        }
-
         task.setStatus(request.status());
         if (request.position() != null) {
             task.setPosition(request.position());
@@ -177,11 +145,6 @@ public class TaskService {
         
         User assignee = getValidatedAssignee(workspaceId, request.assigneeId());
 
-        User oldAssignee = task.getAssignee();
-        if (oldAssignee == null || !oldAssignee.getId().equals(assignee.getId())) {
-            recordActivity(task, ActivityType.ASSIGNED, "Assigned to " + assignee.getEmail());
-        }
-
         task.setAssignee(assignee);
         return taskMapper.toResponse(task);
     }
@@ -194,24 +157,6 @@ public class TaskService {
         
         task.setPosition(position);
         return taskMapper.toResponse(task);
-    }
-
-    @Transactional(readOnly = true)
-    public java.util.List<com.agiletrack.backend.task.dto.TaskActivityResponse> getTaskActivities(UUID workspaceId, UUID projectId, UUID taskId) {
-        // This validates workspace read access and parent-resource hierarchy
-        Task task = getTask(workspaceId, projectId, taskId);
-        
-        return taskActivityRepository.findByTaskIdOrderByCreatedAtDesc(task.getId())
-                .stream()
-                .map(activity -> new com.agiletrack.backend.task.dto.TaskActivityResponse(
-                        activity.getId(),
-                        activity.getUser().getId(),
-                        activity.getUser().getEmail(),
-                        activity.getActivityType(),
-                        activity.getDetails(),
-                        activity.getCreatedAt()
-                ))
-                .toList();
     }
 
     @Transactional

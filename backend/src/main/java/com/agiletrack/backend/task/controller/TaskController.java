@@ -163,20 +163,4 @@ public class TaskController {
                 taskService.assignTask(workspaceId, projectId, taskId, request)
         );
     }
-
-    @GetMapping("/{taskId}/activities")
-    @Operation(summary = "Get task activities", description = "Retrieves the history of activities/events for a specific task.")
-    public ResponseEntity<java.util.List<com.agiletrack.backend.task.dto.TaskActivityResponse>> getTaskActivities(
-            @PathVariable UUID workspaceId,
-            @PathVariable UUID projectId,
-            @PathVariable UUID taskId
-    ) {
-        return ResponseEntity.ok(
-                taskService.getTaskActivities(
-                        workspaceId,
-                        projectId,
-                        taskId
-                )
-        );
-    }
 }

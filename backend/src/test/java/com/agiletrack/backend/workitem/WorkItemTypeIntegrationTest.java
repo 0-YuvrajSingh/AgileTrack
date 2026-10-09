@@ -19,7 +19,6 @@ import com.agiletrack.backend.workspace.entity.WorkspaceMember;
 import com.agiletrack.backend.workspace.entity.WorkspaceRole;
 import com.agiletrack.backend.workspace.repository.WorkspaceMemberRepository;
 import com.agiletrack.backend.workspace.repository.WorkspaceRepository;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -227,8 +226,8 @@ class WorkItemTypeIntegrationTest extends AbstractIntegrationTest {
     // -- activity history ------------------------------------------------------
 
     @Test
-    @DisplayName("Changing type writes a TYPE_CHANGED activity; an unchanged type writes none")
-    void updateTask_recordsTypeChangeActivity() throws Exception {
+    @DisplayName("Changing type persists the new type; re-sending it is a no-op")
+    void updateTask_changesType() throws Exception {
         mockMvc.perform(put(tasksUrl() + "/" + taskId)
                         .header("Authorization", "Bearer " + memberToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -236,22 +235,18 @@ class WorkItemTypeIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.type").value("TECH_DEBT"));
 
-        mockMvc.perform(get(tasksUrl() + "/" + taskId + "/activities")
-                        .header("Authorization", "Bearer " + memberToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.type == 'TYPE_CHANGED')].details")
-                        .value(Matchers.hasItem(Matchers.containsString("FEATURE to TECH_DEBT"))));
+        assertThat(taskRepository.findById(taskId)).get()
+                .extracting(Task::getType).isEqualTo(WorkItemType.TECH_DEBT);
 
-        // Re-sending the same type must not append a second TYPE_CHANGED entry.
+        // Re-sending the same type is accepted and leaves the stored type alone.
         mockMvc.perform(put(tasksUrl() + "/" + taskId)
                         .header("Authorization", "Bearer " + memberToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updateJson("TECH_DEBT")))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get(tasksUrl() + "/" + taskId + "/activities")
-                        .header("Authorization", "Bearer " + memberToken))
-                .andExpect(jsonPath("$[?(@.type == 'TYPE_CHANGED')]").value(Matchers.hasSize(1)));
+        assertThat(taskRepository.findById(taskId)).get()
+                .extracting(Task::getType).isEqualTo(WorkItemType.TECH_DEBT);
     }
 
     // -- authorization on the new field ----------------------------------------

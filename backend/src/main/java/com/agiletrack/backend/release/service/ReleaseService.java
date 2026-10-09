@@ -15,11 +15,9 @@ import com.agiletrack.backend.release.entity.ReleaseLifecycleState;
 import com.agiletrack.backend.release.mapper.ReleaseMapper;
 import com.agiletrack.backend.release.repository.ReleaseRepository;
 import com.agiletrack.backend.task.dto.TaskResponse;
-import com.agiletrack.backend.task.entity.ActivityType;
 import com.agiletrack.backend.task.entity.Task;
 import com.agiletrack.backend.task.mapper.TaskMapper;
 import com.agiletrack.backend.task.repository.TaskRepository;
-import com.agiletrack.backend.task.service.TaskActivityRecorder;
 import com.agiletrack.backend.workspace.service.WorkspaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -47,7 +45,6 @@ public class ReleaseService {
     private final WorkspaceService workspaceService;
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
-    private final TaskActivityRecorder activityRecorder;
 
     // -- commands --------------------------------------------------------------
 
@@ -124,11 +121,9 @@ public class ReleaseService {
                     "Only a PLANNED release can be deleted.");
         }
 
-        // Detach scope explicitly so the history reflects it, rather than relying on ON DELETE SET NULL.
+        // Detach scope explicitly rather than relying on ON DELETE SET NULL.
         for (Task task : taskRepository.findByReleaseId(releaseId)) {
             task.setRelease(null);
-            activityRecorder.record(task, ActivityType.RELEASE_UNASSIGNED,
-                    "Removed from release " + release.getName() + " (release deleted)");
         }
 
         releaseRepository.delete(release);
@@ -154,8 +149,6 @@ public class ReleaseService {
         }
 
         task.setRelease(release);
-        activityRecorder.record(task, ActivityType.RELEASE_ASSIGNED,
-                "Added to release " + release.getName());
 
         return taskMapper.toResponse(task);
     }
@@ -174,8 +167,6 @@ public class ReleaseService {
         }
 
         task.setRelease(null);
-        activityRecorder.record(task, ActivityType.RELEASE_UNASSIGNED,
-                "Removed from release " + release.getName());
 
         return taskMapper.toResponse(task);
     }

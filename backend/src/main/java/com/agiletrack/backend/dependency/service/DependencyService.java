@@ -13,11 +13,9 @@ import com.agiletrack.backend.dependency.mapper.DependencyMapper;
 import com.agiletrack.backend.dependency.repository.WorkItemDependencyRepository;
 import com.agiletrack.backend.project.entity.Project;
 import com.agiletrack.backend.project.service.ProjectService;
-import com.agiletrack.backend.task.entity.ActivityType;
 import com.agiletrack.backend.task.entity.Task;
 import com.agiletrack.backend.task.entity.TaskStatus;
 import com.agiletrack.backend.task.repository.TaskRepository;
-import com.agiletrack.backend.task.service.TaskActivityRecorder;
 import com.agiletrack.backend.workspace.service.WorkspaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -45,7 +43,6 @@ public class DependencyService {
     private final TaskRepository taskRepository;
     private final ProjectService projectService;
     private final WorkspaceService workspaceService;
-    private final TaskActivityRecorder activityRecorder;
 
     // -- commands --------------------------------------------------------------
 
@@ -86,13 +83,6 @@ public class DependencyService {
                 .dependencyType(DependencyType.BLOCKS)
                 .build());
 
-        // Audited from both ends: each work item's own history should explain why it is waiting,
-        // or what is waiting on it.
-        activityRecorder.record(blocked, ActivityType.DEPENDENCY_ADDED,
-                "Blocked by \"" + blocker.getTitle() + "\"");
-        activityRecorder.record(blocker, ActivityType.DEPENDENCY_ADDED,
-                "Now blocks \"" + blocked.getTitle() + "\"");
-
         return dependencyMapper.toResponse(dependency);
     }
 
@@ -103,19 +93,13 @@ public class DependencyService {
         projectService.requireMutable(project);
 
         // Scoped by the work item in the path, so an edge belonging to a different item -- or a
-        // different project -- cannot be deleted by id alone.
+        // different project -- cannot be deleted by id alone. Resolving the task also proves it
+        // exists in this project.
         WorkItemDependency dependency = dependencyRepository.findByIdAndTargetId(dependencyId, taskId)
                 .orElseThrow(() -> new DependencyNotFoundException("Dependency not found"));
-
-        Task blocked = getTaskInProject(projectId, taskId);
-        Task blocker = dependency.getSource();
+        getTaskInProject(projectId, taskId);
 
         dependencyRepository.delete(dependency);
-
-        activityRecorder.record(blocked, ActivityType.DEPENDENCY_REMOVED,
-                "No longer blocked by \"" + blocker.getTitle() + "\"");
-        activityRecorder.record(blocker, ActivityType.DEPENDENCY_REMOVED,
-                "No longer blocks \"" + blocked.getTitle() + "\"");
     }
 
     // -- queries ---------------------------------------------------------------

@@ -1,0 +1,16 @@
+-- Phase 4 (D7): Cut task activity and audit trail.
+--
+-- Verified pre-migration inventory on a freshly seeded database:
+-- 0 rows in task_activities (0 distinct tasks, 0 distinct actors) and an
+-- empty per-type breakdown. The demo seeder writes rows straight through
+-- the repositories and never records activity history, so a fresh database
+-- holds no audit trail to preserve.
+-- Dropping the table permanently and irreversibly deletes all historical
+-- task change logs recorded on databases that do hold activity rows.
+-- Verified safe without CASCADE: the only foreign keys involving
+-- task_activities point outward (task_id -> tasks ON DELETE CASCADE,
+-- user_id -> users); no other table references task_activities.
+-- NOTE: row counts quantify a freshly seeded environment only. Any database
+-- holding real AgileTrack data must be inventoried before this migration
+-- runs against it.
+DROP TABLE IF EXISTS task_activities;

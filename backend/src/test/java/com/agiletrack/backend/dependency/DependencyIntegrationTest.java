@@ -236,24 +236,8 @@ class DependencyIntegrationTest extends AbstractIntegrationTest {
         }
 
         @Test
-        @DisplayName("Adding a blocker writes history on both work items")
-        void createEdge_isAudited() throws Exception {
-            link(a, b);
-
-            mockMvc.perform(get(projectUrl() + "/tasks/" + b + "/activities")
-                            .header("Authorization", "Bearer " + memberToken))
-                    .andExpect(jsonPath("$[?(@.type == 'DEPENDENCY_ADDED')]")
-                            .value(org.hamcrest.Matchers.hasSize(1)));
-
-            mockMvc.perform(get(projectUrl() + "/tasks/" + a + "/activities")
-                            .header("Authorization", "Bearer " + memberToken))
-                    .andExpect(jsonPath("$[?(@.type == 'DEPENDENCY_ADDED')]")
-                            .value(org.hamcrest.Matchers.hasSize(1)));
-        }
-
-        @Test
-        @DisplayName("Removing a blocker deletes the edge and is audited")
-        void removeEdge_isAudited() throws Exception {
+        @DisplayName("Removing a blocker deletes the edge")
+        void removeEdge_deletesEdge() throws Exception {
             UUID dependencyId = link(a, b);
 
             mockMvc.perform(delete(depsUrl(b) + "/" + dependencyId)
@@ -261,11 +245,6 @@ class DependencyIntegrationTest extends AbstractIntegrationTest {
                     .andExpect(status().isNoContent());
 
             assertThat(dependencyRepository.count()).isZero();
-
-            mockMvc.perform(get(projectUrl() + "/tasks/" + b + "/activities")
-                            .header("Authorization", "Bearer " + memberToken))
-                    .andExpect(jsonPath("$[?(@.type == 'DEPENDENCY_REMOVED')]")
-                            .value(org.hamcrest.Matchers.hasSize(1)));
         }
 
         @Test
