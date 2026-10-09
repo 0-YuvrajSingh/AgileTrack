@@ -3,14 +3,34 @@
 This execution plan adapts the project brief to the findings of `docs/AUDIT.md` and approved decisions (`D1` through `D4`).
 Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
 
+---
+
+## Global Phase Gate & Review Protocol
+
+Every phase in this plan must strictly adhere to this protocol before any subsequent phase begins:
+
+1. **Explicit Goal & Scope**: Restate the phase goal and enumerate the exact files to be added, modified, or deleted before making changes.
+2. **Atomic Commits on `scope-v1`**: Changes committed with descriptive, factual messages on branch `scope-v1`. No history rewriting.
+3. **Green Test Suite & Build Verification**: Full test suite executed with zero regressions. All non-cut tests continue to pass.
+4. **Migration Safety & Approval**: Never execute a destructive migration without prior explicit user approval. Always convert data before dropping schema elements. Present data inventory and proposed SQL beforehand.
+5. **Documentation Synchronization**: Update `docs/PLAN.md`, `DECISIONS.md`, `docs/AUDIT.md`, and add the relevant section to `docs/WALKTHROUGH.md`.
+6. **Phase Review Report**: Report:
+   - What changed (files touched, commits).
+   - Test and build results.
+   - Database migration status and data impact.
+   - Unverified items and remaining risks.
+   - 3 interview questions you should be able to answer defending the phase.
+7. **STOP and Wait**: **Cease execution immediately and await explicit user approval before proceeding to the next phase**.
+
 > [!CRITICAL]
 > **Hard Rules on Database Migrations**:
-> 1. **Never edit existing Flyway migrations (`V1`..`V15`)**. All schema modifications are added as new, sequential Flyway migrations (`V16`, `V17`, etc.).
+> 1. **Never edit existing Flyway migrations (`V1`..`V15`)**. All schema modifications are added as new sequential Flyway migrations (`V16`, `V17`, etc.).
 > 2. **Never execute a destructive migration without explicit user approval**.
-> 3. **Always convert existing data before dropping constraints, columns, or tables**.
-> 4. **Specify exact constraint and table names verified against `V1`..`V15`**.
+> 3. **Always inventory and convert existing data before dropping constraints, columns, or tables**.
+> 4. **Verified schema constraints**:
+>    - `releases.lifecycle_state`: Verified that across `V1`..`V15`, **no check constraint exists** on `lifecycle_state`. Only `VARCHAR(50) NOT NULL DEFAULT 'PLANNED'` was created in `V13`. Adding `ck_releases_lifecycle_state` in Phase 3 is a brand-new constraint.
+>    - `workspace_members.role`: Verified that across `V1`..`V15`, **no check constraint exists** on `role`. Only `VARCHAR(50) NOT NULL` was created in `V2`. Adding `ck_workspace_members_role` in Phase 6 is a brand-new constraint.
 > 5. **Avoid `CASCADE` drops** unless the full dependency graph is verified, documented, and approved.
-> 6. Present each proposed migration SQL and its exact data impact for review before execution.
 
 ---
 
@@ -48,7 +68,8 @@ Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
   - Deleted: `INTERVIEW_PREP.md`, `CONTRIBUTING.md`, `backend/src/test/java/com/agiletrack/backend/benchmark/PerformanceBenchmarkTest.java`.
 - **Tests Added/Removed**:
   - Removed: `PerformanceBenchmarkTest.java` (measurement harness, had no assertions).
-- **Risks**: None. Zero application logic touched.
+- **Historical Deviation Note**:
+  - Phase 1 was executed earlier due to an automatic review policy stop hook before interactive approval was given. The phase was subsequently audited and confirmed harmless (deleting 2 extraneous doc files and 1 excluded benchmark test with zero regressions across 284 passing tests). The protocol now strictly enforces awaiting explicit user text approval before starting Phase 2.
 - **Status**: **COMPLETE**.
 
 ---
@@ -61,33 +82,51 @@ Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
   - `V15`: Added check constraint `ck_tasks_risk_level CHECK (risk_level IS NULL OR risk_level IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL'))` on `tasks`.
   - `V15`: Added check constraint `ck_tasks_change_risk CHECK (type = 'CHANGE' OR risk_level IS NULL)` on `tasks`.
   - `V15`: Added index `idx_tasks_risk_level ON tasks(risk_level)`.
-  - `V15`: Created table `change_approvals` with:
-    - Foreign key `fk_change_approval_task FOREIGN KEY (work_item_id) REFERENCES tasks(id) ON DELETE CASCADE`.
-    - Foreign key `fk_change_approval_user FOREIGN KEY (approver_id) REFERENCES users(id) ON DELETE CASCADE`.
-    - Check constraint `ck_change_approval_decision CHECK (decision IN ('APPROVED', 'REJECTED'))`.
-    - Index `idx_change_approvals_work_item_id ON change_approvals(work_item_id, created_at DESC)`.
+  - `V15`: Created table `change_approvals` with foreign keys to `tasks` and `users` (ON DELETE CASCADE), and constraint `ck_change_approval_decision CHECK (decision IN ('APPROVED', 'REJECTED'))`.
+- **Pre-Migration Data Inventory Step**:
+  1. Inventory tasks with `type = 'CHANGE'`:
+     ```sql
+     SELECT id, project_id, title, status, risk_level FROM tasks WHERE type = 'CHANGE';
+     ```
+  2. Inventory any unexpected task types that violate in-scope types:
+     ```sql
+     SELECT DISTINCT type FROM tasks WHERE type NOT IN ('FEATURE', 'BUG', 'TECH_DEBT');
+     ```
+  3. Report inventory counts to user before proceeding.
 - **Database & Flyway Migration Plan (`V16__remove_change_governance.sql`)**:
-  1. **Data Inventory & Conversion First**:
-     - Inventory tasks with `type = 'CHANGE'`:
-       `SELECT id, project_id, title FROM tasks WHERE type = 'CHANGE';`
-     - Convert existing `CHANGE` tasks to `FEATURE` before restricting allowed types:
-       `UPDATE tasks SET type = 'FEATURE' WHERE type = 'CHANGE';`
-  2. **Schema & Constraint Drops (Ordered by Dependency)**:
-     - Drop dependent table `change_approvals` (no other table depends on it; avoided CASCADE):
-       `DROP TABLE IF EXISTS change_approvals;`
+  1. **Combined Data Conversion & Cleanup First**:
+     - Convert all existing `CHANGE` tasks to `FEATURE` and reset `risk_level` to `NULL` in the **same atomic update**:
+       ```sql
+       UPDATE tasks SET type = 'FEATURE', risk_level = NULL WHERE type = 'CHANGE';
+       ```
+  2. **Schema & Constraint Drops (Ordered by Dependency, No CASCADE on `tasks`)**:
+     - Drop dependent table `change_approvals` (no other tables reference it):
+       ```sql
+       DROP TABLE IF EXISTS change_approvals;
+       ```
      - Drop index `idx_tasks_risk_level` on `tasks`:
-       `DROP INDEX IF EXISTS idx_tasks_risk_level;`
+       ```sql
+       DROP INDEX IF EXISTS idx_tasks_risk_level;
+       ```
      - Drop check constraint `ck_tasks_change_risk` from `tasks`:
-       `ALTER TABLE tasks DROP CONSTRAINT IF EXISTS ck_tasks_change_risk;`
+       ```sql
+       ALTER TABLE tasks DROP CONSTRAINT IF EXISTS ck_tasks_change_risk;
+       ```
      - Drop check constraint `ck_tasks_risk_level` from `tasks`:
-       `ALTER TABLE tasks DROP CONSTRAINT IF EXISTS ck_tasks_risk_level;`
+       ```sql
+       ALTER TABLE tasks DROP CONSTRAINT IF EXISTS ck_tasks_risk_level;
+       ```
      - Drop column `risk_level` from `tasks`:
-       `ALTER TABLE tasks DROP COLUMN IF EXISTS risk_level;`
+       ```sql
+       ALTER TABLE tasks DROP COLUMN IF EXISTS risk_level;
+       ```
   3. **Add Enforcing Check Constraint for In-Scope Types**:
      - Enforce only valid types (`FEATURE`, `BUG`, `TECH_DEBT`) on `tasks`:
-       `ALTER TABLE tasks ADD CONSTRAINT ck_tasks_type CHECK (type IN ('FEATURE', 'BUG', 'TECH_DEBT'));`
+       ```sql
+       ALTER TABLE tasks ADD CONSTRAINT ck_tasks_type CHECK (type IN ('FEATURE', 'BUG', 'TECH_DEBT'));
+       ```
   - > [!CAUTION]
-    > **User Gate**: Present migration `V16__remove_change_governance.sql` and data inventory. Await explicit user approval before execution.
+    > **User Gate**: Present migration `V16__remove_change_governance.sql` and the pre-migration inventory results. Await explicit user approval before execution.
 - **Seed Data Changes**:
   - In `DataSeeder.java`: Remove seeding of work items with `type = WorkItemType.CHANGE`, remove `riskLevel` configurations, and remove `change_approvals` seeding.
 - **Application Code Changes**:
@@ -112,25 +151,35 @@ Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
 ## Phase 3: Cut Cancelled Release State & RELEASE_CANCELLED Gate
 - **Goal**: Align release lifecycle strictly with v1 scope (`PLANNED -> IN_PROGRESS -> RELEASED`). Remove `CANCELLED` state and `RELEASE_CANCELLED` gate.
 - **Verified Schema Context (from `V13`)**:
-  - `V13`: Table `releases` created with column `lifecycle_state VARCHAR(50) NOT NULL DEFAULT 'PLANNED'`.
-  - `V13`: Index `idx_releases_lifecycle_state ON releases(lifecycle_state)`.
+  - `V13`: Table `releases` created with columns:
+    - `id UUID PRIMARY KEY`, `project_id UUID NOT NULL`, `name VARCHAR(150) NOT NULL`, `release_version VARCHAR(50)`, `lifecycle_state VARCHAR(50) NOT NULL DEFAULT 'PLANNED'`, `target_date DATE`, `created_at TIMESTAMP`, `updated_at TIMESTAMP`, `version BIGINT NOT NULL DEFAULT 0`.
+    - Constraint `fk_release_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE`.
+    - Constraint `uq_release_name_per_project UNIQUE (project_id, name)`.
+    - Index `idx_releases_lifecycle_state ON releases(lifecycle_state)`.
   - `V13`: Table `tasks` has foreign key `fk_task_release FOREIGN KEY (release_id) REFERENCES releases(id) ON DELETE SET NULL`.
-  - Note: `V13` did not include a check constraint on `lifecycle_state`.
-- **Mandatory Data Inventory & Decision Gate**:
+  - **Verification Finding**: Verified that across `V1`..`V15`, **no check constraint exists** on `releases.lifecycle_state`.
+- **Mandatory Pre-Migration Data Inventory & Decision Gate**:
   - **Step 1: Inventory Existing Cancelled Releases**:
-    Query and report all existing rows in `CANCELLED` state:
-    `SELECT id, name, release_version, project_id, created_at FROM releases WHERE lifecycle_state = 'CANCELLED';`
+    Execute verified query matching the exact `V13` schema:
+    ```sql
+    SELECT id, project_id, name, release_version, lifecycle_state, target_date, created_at, version FROM releases WHERE lifecycle_state = 'CANCELLED';
+    ```
   - **Step 2: Explicit User Decision Required**:
-    Present the count and details of cancelled releases to the user. Do **not** default to automatic deletion. Wait for user's explicit decision:
-    - *Decision Option A (Delete)*: `DELETE FROM releases WHERE lifecycle_state = 'CANCELLED';` (foreign key `fk_task_release` sets `tasks.release_id = NULL` safely).
-    - *Decision Option B (Transition)*: Update cancelled releases to `PLANNED` or `RELEASED` if historical preservation is desired.
-    - *Decision Option C (Abort)*: Halt migration if unanticipated production data is present.
+    Present the exact count and details of cancelled releases to the user. **Do not make deletion the automatic default**. Wait for user's explicit decision:
+    - *Decision Option A (Delete)*:
+      `DELETE FROM releases WHERE lifecycle_state = 'CANCELLED';`
+      (Foreign key `fk_task_release` sets `tasks.release_id = NULL` safely via `ON DELETE SET NULL`).
+    - *Decision Option B (Transition to PLANNED)*:
+      `UPDATE releases SET lifecycle_state = 'PLANNED' WHERE lifecycle_state = 'CANCELLED';`
+    - *Decision Option C (Abort / Manual Handling)*: Halt migration until user performs custom data migration.
 - **Database & Flyway Migration Plan (`V17__remove_cancelled_release_state.sql`)**:
-  1. Execute approved data handling SQL based on user decision.
-  2. Add check constraint to enforce strictly the 3 in-scope states:
-     `ALTER TABLE releases ADD CONSTRAINT ck_releases_lifecycle_state CHECK (lifecycle_state IN ('PLANNED', 'IN_PROGRESS', 'RELEASED'));`
+  1. Execute approved data handling SQL based on explicit user decision.
+  2. Add new check constraint to enforce strictly the 3 in-scope states:
+     ```sql
+     ALTER TABLE releases ADD CONSTRAINT ck_releases_lifecycle_state CHECK (lifecycle_state IN ('PLANNED', 'IN_PROGRESS', 'RELEASED'));
+     ```
   - > [!CAUTION]
-    > **User Gate**: Present migration `V17__remove_cancelled_release_state.sql` and inventory results. Await explicit approval before execution.
+    > **User Gate**: Present migration `V17__remove_cancelled_release_state.sql` and inventory results. Await explicit user approval before execution.
 - **Seed Data Changes**:
   - In `DataSeeder.java`: Remove seeding of any release in `CANCELLED` state (seed only `PLANNED`, `IN_PROGRESS`, and `RELEASED`).
 - **Application Code Changes**:
@@ -155,12 +204,14 @@ Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
     - Foreign key `task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE`.
     - Foreign key `user_id UUID NOT NULL REFERENCES users(id)`.
     - Index `idx_task_activities_task_id ON task_activities(task_id)`.
-  - Note: No other tables reference `task_activities`.
+  - **Verification Finding**: No other tables in `V1`..`V15` reference `task_activities`.
 - **Database & Flyway Migration Plan (`V18__remove_task_activities.sql`)**:
   1. Drop table `task_activities` without CASCADE:
-     `DROP TABLE IF EXISTS task_activities;`
+     ```sql
+     DROP TABLE IF EXISTS task_activities;
+     ```
   - > [!CAUTION]
-    > **User Gate**: Present migration `V18__remove_task_activities.sql`. Await explicit approval before execution.
+    > **User Gate**: Present migration `V18__remove_task_activities.sql`. Await explicit user approval before execution.
 - **Seed Data Changes**:
   - In `DataSeeder.java`: Remove seeding of task activity records.
 - **Application Code Changes**:
@@ -181,17 +232,16 @@ Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
 ## Phase 5: Cut Refresh Token Rotation
 - **Goal**: Keep authentication strictly minimal (stateless access tokens + BCrypt passwords), eliminating refresh tokens and rotation endpoints.
 - **Verified Schema Context (from `V7` and `V9`)**:
-  - `V7`: Table `refresh_tokens` created with:
-    - Foreign key `user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE`.
-    - Unique constraint on `token VARCHAR(255)`.
-    - Indexes `idx_refresh_tokens_token`, `idx_refresh_tokens_user_id`.
+  - `V7`: Table `refresh_tokens` created with foreign key `user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE`.
   - `V9`: Cleared existing refresh tokens.
-  - Note: No other tables reference `refresh_tokens`.
+  - **Verification Finding**: No other tables in `V1`..`V15` reference `refresh_tokens`.
 - **Database & Flyway Migration Plan (`V19__remove_refresh_tokens.sql`)**:
   1. Drop table `refresh_tokens` without CASCADE:
-     `DROP TABLE IF EXISTS refresh_tokens;`
+     ```sql
+     DROP TABLE IF EXISTS refresh_tokens;
+     ```
   - > [!CAUTION]
-    > **User Gate**: Present migration `V19__remove_refresh_tokens.sql`. Await explicit approval before execution.
+    > **User Gate**: Present migration `V19__remove_refresh_tokens.sql`. Await explicit user approval before execution.
 - **Seed Data Changes**: None (refresh tokens are runtime session entities).
 - **Application Code Changes**:
   - Backend:
@@ -212,6 +262,7 @@ Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
 - **Verified Schema & Business Logic Invariants (from `V2` and `WorkspaceService`)**:
   - `V2`: Table `workspaces` has `owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE`.
   - `V2`: Table `workspace_members` has `role VARCHAR(50) NOT NULL` and `uk_workspace_user UNIQUE (workspace_id, user_id)`.
+  - **Verification Finding**: Verified that across `V1`..`V15`, **no check constraint exists** on `workspace_members.role`.
   - **Single Owner Invariant Verified**: In `WorkspaceService.java`:
     - `workspaces.owner_id` uniquely identifies the workspace owner.
     - `inviteMember()` explicitly throws `BusinessRuleException("Cannot assign OWNER role via invitation")`.
@@ -222,30 +273,29 @@ Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
      - *If `ADMIN -> OWNER`*: **Rejected**. Violates the single-owner invariant and causes multiple owner rows per workspace.
      - *If `ADMIN -> MEMBER` (Recommended)*: **Adheres to least privilege**. `ADMIN` users lose the ability to manage workspace members and settings, but retain full permissions to create and edit work items, releases, and dependencies as `MEMBER`.
   2. **Mapping `VIEWER`**:
-     - *If `VIEWER -> MEMBER`*: **Expands privileges**. Previously read-only users would gain write permissions to create, update, and delete work items, releases, and dependencies.
-     - *Alternative*: Revoke/remove `VIEWER` memberships so read-only accounts do not gain unintended write access, requiring explicit re-invitation by the workspace owner as `MEMBER`.
-  - > [!IMPORTANT]
-    > **Mandatory Inventory & Approval Step**:
-    > Before applying migration `V20`:
-    > 1. Run inventory query:
-    >    `SELECT wm.id, wm.workspace_id, u.email, wm.role FROM workspace_members wm JOIN users u ON wm.user_id = u.id WHERE wm.role IN ('ADMIN', 'VIEWER');`
-    > 2. Present inventory results to the user.
-    > 3. Require explicit user approval for:
-    >    - Mapping `ADMIN -> MEMBER` (least privilege).
-    >    - Handling `VIEWER` (mapping to `MEMBER` vs. removing membership).
-- **Database & Flyway Migration Plan (`V20__simplify_workspace_roles.sql`)**:
-  1. Execute data conversion based on user decision:
+     - *If `VIEWER -> MEMBER`*: **Privilege Expansion Warning**. Promotes previously read-only users to full write access (can create, modify, and delete work items, releases, and dependencies).
+     - *Alternative*: Revoke/delete `VIEWER` memberships to preserve read-only restrictions, requiring workspace owners to deliberately grant `MEMBER` access if desired.
+- **Mandatory Pre-Migration Data Inventory & Approval Step**:
+  1. Run inventory query:
      ```sql
-     -- Apply least privilege mapping for ADMIN
-     UPDATE workspace_members SET role = 'MEMBER' WHERE role = 'ADMIN';
-
-     -- Apply approved VIEWER handling (e.g. UPDATE to 'MEMBER' or DELETE based on user instruction)
-     UPDATE workspace_members SET role = 'MEMBER' WHERE role = 'VIEWER';
+     SELECT wm.id, wm.workspace_id, u.email, wm.role FROM workspace_members wm JOIN users u ON wm.user_id = u.id WHERE wm.role IN ('ADMIN', 'VIEWER');
      ```
-  2. Add check constraint enforcing only `OWNER` and `MEMBER`:
-     `ALTER TABLE workspace_members ADD CONSTRAINT ck_workspace_members_role CHECK (role IN ('OWNER', 'MEMBER'));`
+  2. Present inventory results to the user.
+  3. **Keep migration non-executable (DRAFT template)** until user explicitly reviews the inventory and chooses the viewer mapping. Do not include unconditional `VIEWER -> MEMBER` conversion in executable code.
+- **Database & Flyway Migration Plan (`V20__simplify_workspace_roles.sql`) (Draft Template)**:
+  ```sql
+  -- 1. Apply least-privilege mapping for ADMIN:
+  UPDATE workspace_members SET role = 'MEMBER' WHERE role = 'ADMIN';
+
+  -- 2. VIEWER mapping: APPLIED ONLY AFTER EXPLICIT USER DECISION:
+  -- Option A (Approved Expansion): UPDATE workspace_members SET role = 'MEMBER' WHERE role = 'VIEWER';
+  -- Option B (Revocation): DELETE FROM workspace_members WHERE role = 'VIEWER';
+
+  -- 3. Add brand-new check constraint enforcing strictly in-scope roles:
+  ALTER TABLE workspace_members ADD CONSTRAINT ck_workspace_members_role CHECK (role IN ('OWNER', 'MEMBER'));
+  ```
   - > [!CAUTION]
-    > **User Gate**: Present migration `V20__simplify_workspace_roles.sql` and await explicit approval before execution.
+    > **User Gate**: Present migration `V20__simplify_workspace_roles.sql` and the inventory results. Migration remains non-executable until explicit user choice on viewer mapping is provided.
 - **Seed Data Changes**:
   - In `DataSeeder.java`: Seed only `OWNER` and `MEMBER` roles.
 - **Application Code Changes**:
