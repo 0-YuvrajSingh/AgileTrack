@@ -117,3 +117,16 @@ This document explains the core technical mechanisms of AgileTrack in plain, int
   - `ReadinessIntegrationTest.java:Gates.readyRelease()` (verified - READY with no governance gate)
   - `TaskBoard.test.tsx:offers every work item type in the create form` (verified - `['FEATURE', 'BUG', 'TECH_DEBT']`)
   - Deleted: `ApprovalIntegrationTest` (16), `ApprovalConcurrencyIntegrationTest` (3), `ChangeRiskPolicyTest` (5), `ReadinessIntegrationTest$ChangeGovernanceGate` (5), `ApprovalModal.test.tsx` (9), `approvalService.test.ts` (3) — each covered only removed behaviour.
+
+---
+
+## 9. Cancelled Release State Cut (Phase 3, D6)
+- **What it does**: Restricts the release lifecycle to `PLANNED -> IN_PROGRESS -> RELEASED`. The `CANCELLED` state, its transitions, its UI actions/badges, and the `RELEASE_CANCELLED` readiness gate are gone; `RELEASED` is now the only terminal state. The three remaining gates are `EMPTY_RELEASE`, `INCOMPLETE_WORK`, `BLOCKED_WORK`, enforced in that ordinal order.
+- **Why**: Scope defines the lifecycle strictly without cancellation. Deletion stays available, but only while a release is still `PLANNED`.
+- **How it works**: `ReleaseLifecycleState.canTransitionTo()` allows only the two forward moves; `deleteRelease()` still rejects anything past `PLANNED`. Migration `V17__remove_cancelled_release_state.sql` applies the approved Option B handling first (`UPDATE releases SET lifecycle_state='PLANNED' WHERE lifecycle_state='CANCELLED'`), then adds the brand-new `ck_releases_lifecycle_state` constraint — no `CASCADE`, since no object depends on the removed value. Pre-migration inventory on a seeded database showed 1 `CANCELLED` release holding 1 task and 0 unexpected states. V17 was executed against a disposable seeded scratch database (plus 1 `CANCELLED` fixture release with 1 scoped task): the fixture converted to `PLANNED` with its task still scoped, 0 `CANCELLED` rows remain, and a rolled-back `CANCELLED` insert probe confirmed the new constraint rejects the cut state. Trade-off: records and associations survive, but recorded lifecycle history changes, making converted releases editable and deletable again.
+- **Tests that prove it**:
+  - `ReleaseIntegrationTest.java:Lifecycle.plannedToCancelled_isRejected()` (verified - unknown `CANCELLED` value fails with 400)
+  - `ReleaseIntegrationTest.java:Crud.delete_afterStart_isRejected()` (verified - deletion stays PLANNED-only)
+  - `ReadinessIntegrationTest.java:Determinism.gateReasonsFollowCodeOrder()` (verified - INCOMPLETE×3 sort ahead of BLOCKED×1)
+  - `ReleaseDetail.test.tsx:offers only the transitions the server would accept` (verified - no Cancel action)
+  - Deleted: `cancelledIsTerminal`, `cancelledRelease()`, `ReadinessPanel.test.tsx:explains a cancelled release` — each covered only removed behaviour.

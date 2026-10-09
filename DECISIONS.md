@@ -57,6 +57,7 @@ Every entry contains an ID, date, status (`ACCEPTED`, `OPEN`, `REJECTED`), the d
 - **Decision**: Remove the `CANCELLED` enum value from `ReleaseLifecycleState`, remove `RELEASE_CANCELLED` from `ReadinessReasonCode`, and eliminate all related transition paths.
 - **Reason**: Scope document Section 5 defines the valid lifecycle strictly as `PLANNED -> IN_PROGRESS -> RELEASED`. Section 7 explicitly cuts `CANCELLED`.
 - **Consequences**: Release lifecycle is strictly linear. Deletion is permitted only while `PLANNED`; shipped releases remain `RELEASED`.
+- **Executed**: Phase 3, 2026-10-09. Approved handling Option B (`CANCELLED -> PLANNED`, task associations preserved; lifecycle history rewritten as the accepted trade-off). V17 applied to a disposable seeded scratch database and verified; suites green (backend 177, frontend 64).
 
 ---
 

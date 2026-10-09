@@ -219,9 +219,20 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
   - Frontend:
     - Remove `CANCELLED` state handling and badges from `ReleaseDetail.tsx`, `ReleaseList.tsx`, `types/index.ts`.
 - **Tests Added/Removed**:
-  - Removed/Updated: Remove `cancelledIsTerminal` in `ReleaseIntegrationTest.java` and `cancelledRelease()` in `ReadinessIntegrationTest.java`.
+  - Removed: `cancelledIsTerminal` in `ReleaseIntegrationTest.java`, `cancelledRelease()` in `ReadinessIntegrationTest.java`.
+  - Added: `plannedToCancelled_isRejected` in `ReleaseIntegrationTest.java` (raw `"CANCELLED"` now fails deserialization with 400).
+  - Reworked: `releaseLevelReasonsComeFirst` -> `gateReasonsFollowCodeOrder` in `ReadinessIntegrationTest.java` (explicit INCOMPLETE×3 + BLOCKED×1 code ordering; the old release-level-pairing scenario is impossible with only `EMPTY_RELEASE` left).
+  - Reworked frontend: `ReleaseDetail.test.tsx` (Cancel button gone, asserted absent), `ReadinessPanel.test.tsx` (`RELEASE_CANCELLED` case -> `EMPTY_RELEASE` case).
+  - Backend suite: **177 passed, 0 failed** (178 - 2 removed + 1 added = 177, reconciled). Frontend suite: **64 passed, 0 failed** (count unchanged).
+  - V17 additionally exercised by the backend suite: Testcontainers validated and applied all 17 migrations.
 - **Risks**: Low. State machine reduction simplifies lifecycle transitions.
-- **Status**: PENDING.
+- **Status**: **COMPLETE (executed 2026-10-09; approved handling Option B)**.
+- **Execution Record (verified, seeded scratch database)**:
+  - Pre-migration inventory (read-only): 1 `CANCELLED` release (`Native Mobile Shell`, holding 1 task), 0 unexpected lifecycle states.
+  - Approved handling Option B applied via Flyway V17 on a disposable scratch database (plus 1 `CANCELLED` fixture release + 1 scoped fixture task): fixture converted to `PLANNED` with the task association preserved; 0 `CANCELLED` rows remain; `ck_releases_lifecycle_state` present with the exact 3-state definition; a rolled-back `CANCELLED` insert probe was rejected (0 rows left behind).
+  - Trade-off (Option B): release records and task associations are preserved, but recorded lifecycle history changes (`CANCELLED -> PLANNED`), making converted releases editable and deletable again.
+  - Limitation: figures quantify a freshly seeded environment (plus disclosed fixtures). A database holding real AgileTrack data must be inventoried before V17 runs against it.
+  - Deviations: `ReadinessService.evaluate`, not `calculateReadiness`; `ReleaseController` OpenAPI description also scrubbed; `deleteRelease` PLANNED-only rule already held (only its message changed).
 
 ---
 
