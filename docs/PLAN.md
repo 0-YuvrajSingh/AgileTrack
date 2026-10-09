@@ -561,4 +561,3 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
 - **Execution Record**:
   - README rewritten wholesale: scoped delivery model, current ERD (V1–V20 schema), 3-gate readiness, OWNER/MEMBER RBAC, register/login-only auth, 219-test totals (154 + 65), verified commands, "What is not built" cut list.
   - Final green run: backend **154 passed**, frontend **65 passed**, production frontend build (`tsc -b && vite build`) clean.
-- **Status**: PENDING.
