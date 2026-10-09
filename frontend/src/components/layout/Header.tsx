@@ -17,8 +17,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
 
   const { dark, toggle: toggleTheme } = useTheme();
 
-  const handleLogout = async () => {
-    await logout();
+  const handleLogout = () => {
+    logout();
     navigate('/login');
   };
 
