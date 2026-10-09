@@ -152,11 +152,21 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
     - Remove approval buttons and badges from `TaskBoard.tsx`, `TaskCard.tsx`, `ReleaseDetail.tsx`.
     - Update TypeScript definitions in `types/index.ts` to remove `CHANGE`, `RiskLevel`, and `ChangeApproval`.
 - **Tests Added/Removed**:
-  - Removed backend: `ApprovalIntegrationTest` (6), `ApprovalConcurrencyIntegrationTest` (2), `ChangeRiskPolicyTest` (6) = 14 tests.
+  - Removed backend: `ApprovalIntegrationTest` (16), `ApprovalConcurrencyIntegrationTest` (3), `ChangeRiskPolicyTest` (5) = 24 tests (correction: `docs/PLAN.md` previously estimated 6/2/6 = 14; actual annotation counts verified from git history).
   - Removed frontend: `ApprovalModal.test.tsx` (9), `approvalService.test.ts` (3) = 12 tests.
-  - Updated: `WorkItemTypeIntegrationTest`, `ReadinessIntegrationTest`, `EndToEndIntegrationTest` to remove `CHANGE` setup.
+  - Removed from `ReadinessIntegrationTest`: entire `ChangeGovernanceGate` nested class = 5 tests.
+  - Shrunk: `WorkItemTypeIntegrationTest.createTask_supportsEveryType` `@EnumSource` 4 invocations -> 3.
+  - Updated (no count change): `WorkItemTypeIntegrationTest` (2 auth tests now attempt `TECH_DEBT`), `EndToEndIntegrationTest` (3 request constructors minus `riskLevel`), `TaskBoard.test.tsx`, `Dashboard.test.tsx`, `taskService.test.ts`.
+  - Backend suite: **178 passed, 0 failed** (baseline 208 - 30 removed = 178, reconciled exactly). Frontend suite: **64 passed, 0 failed** (baseline 76 - 12 = 64).
+  - V16 was additionally exercised by the backend suite itself: Testcontainers applied all 16 migrations and Hibernate `validate` passed with 9 repositories.
 - **Risks**: Medium. Multiple DTO signatures modified; all construction sites across integration tests must be updated cleanly.
-- **Status**: PENDING.
+- **Status**: **COMPLETE (executed 2026-10-09; commits `086f648` backend, `6c3027f` frontend)**.
+- **Execution Record (verified, seeded scratch database)**:
+  - Pre-migration inventory (read-only): 4 `CHANGE` tasks (all `HIGH` risk in the original seed; fixture re-run covered all four risk levels), 0 unexpected task types, 0 `change_approvals` rows in seed data.
+  - V16 executed via Flyway on a disposable scratch database (`postgres:15-alpine`, V1–V15 + seed, then 4 legacy `CHANGE` fixture rows + 2 approval fixture rows inserted to prove conversion and deletion paths).
+  - Post-migration verification: 4 legacy rows converted to `FEATURE` with statuses preserved; `change_approvals` table, `risk_level` column, `idx_tasks_risk_level`, `ck_tasks_change_risk`, `ck_tasks_risk_level` all gone; only `ck_tasks_type` remains; `INSERT type='CHANGE'` rejected by the new constraint (probe rolled back, 0 rows left behind); total row count unchanged apart from the 2 intentionally deleted approval fixtures.
+  - Limitation: figures quantify a freshly seeded environment (plus disclosed fixtures). A database holding real AgileTrack data must be inventoried before V16 runs against it.
+  - Deviations from the plan recorded during implementation: no `TaskCard.tsx` exists (cards are inline in `TaskBoard`/`ReleaseDetail`); the service class is `ApprovalService`, not `ChangeApprovalService`; `ReadinessService.evaluate`, not `calculateReadiness`; `Dashboard.tsx`, `useApproval.ts`, `ReadinessPanel.tsx` and three frontend test files needed edits beyond the plan for compile-safety; `ActivityType` members (`RISK_CHANGED`, `APPROVAL_*`) intentionally left for Phase 4.
 
 ---
 

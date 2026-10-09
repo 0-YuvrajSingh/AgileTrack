@@ -47,6 +47,7 @@ Every entry contains an ID, date, status (`ACCEPTED`, `OPEN`, `REJECTED`), the d
 - **Decision**: Remove the `CHANGE` work item type, risk levels (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), change approval workflows, `APPROVAL_REQUIRED` readiness gate, and associated frontend UI components.
 - **Reason**: Scope document Section 7 explicitly cuts change governance to eliminate functional overlap with MedVault (which owns access control, approvals, and audits).
 - **Consequences**: Work item types are limited strictly to `FEATURE`, `BUG`, and `TECH_DEBT`. `ApprovalModal`, `approvalService`, `ChangeApproval*` classes, and corresponding tests are scheduled for clean removal.
+- **Executed**: Phase 2, 2026-10-09 (commits `086f648`, `6c3027f`). V16 applied to a disposable seeded scratch database and verified; suites green (backend 178, frontend 64).
 
 ---
 

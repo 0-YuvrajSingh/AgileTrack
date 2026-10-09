@@ -104,3 +104,16 @@ This document explains the core technical mechanisms of AgileTrack in plain, int
   - `DependencyCycleDetectorTest.java:unboundedBreadth_isRefused()` (verified)
   - `DependencyCycleDetectorTest.java:preexistingLoop_terminates()` (verified)
   - `DependencyCycleDetectorTest.java:sharedSubgraph_isExpandedOnce()` (verified)
+
+---
+
+## 8. Change Governance Cut (Phase 2, D5)
+- **What it does**: Removes the entire change-governance concept from the system: the `CHANGE` work item type, `risk_level` classifications, the `change_approvals` table and approval endpoints, and the `APPROVAL_REQUIRED` readiness gate. Work item types are now exactly `FEATURE`, `BUG`, `TECH_DEBT`, enforced by check constraint `ck_tasks_type`.
+- **Why**: Scope cuts change governance to eliminate functional overlap with MedVault, which owns approvals and audits. A release's readiness is now purely a function of empty/incomplete/blocked work.
+- **How it works**: Migration `V16__remove_change_governance.sql` converts first and drops second, with no `CASCADE`: `UPDATE tasks SET type='FEATURE', risk_level=NULL WHERE type='CHANGE'`, then drops `change_approvals`, `idx_tasks_risk_level`, `ck_tasks_change_risk`, `ck_tasks_risk_level`, and the `risk_level` column, then adds `ck_tasks_type`. Pre-migration inventory on a seeded database showed 4 `CHANGE` rows (all `HIGH` risk), 0 unexpected types, and 0 approval rows. V16 was executed against a disposable seeded scratch database (plus 4 legacy `CHANGE` fixtures spanning all risk levels and 2 approval fixtures): the 4 rows converted to `FEATURE` with statuses preserved, governance objects disappeared, row counts were otherwise unchanged, and a rolled-back `INSERT type='CHANGE'` probe confirmed the new constraint rejects the cut type.
+- **Tests that prove it**:
+  - `WorkItemTypeIntegrationTest.java:createTask_supportsEveryType()` (verified - `@EnumSource` now covers exactly 3 types)
+  - `WorkItemTypeIntegrationTest.java:viewer_cannotChangeType()` (verified - auth on reclassification without `CHANGE`)
+  - `ReadinessIntegrationTest.java:Gates.readyRelease()` (verified - READY with no governance gate)
+  - `TaskBoard.test.tsx:offers every work item type in the create form` (verified - `['FEATURE', 'BUG', 'TECH_DEBT']`)
+  - Deleted: `ApprovalIntegrationTest` (16), `ApprovalConcurrencyIntegrationTest` (3), `ChangeRiskPolicyTest` (5), `ReadinessIntegrationTest$ChangeGovernanceGate` (5), `ApprovalModal.test.tsx` (9), `approvalService.test.ts` (3) — each covered only removed behaviour.
