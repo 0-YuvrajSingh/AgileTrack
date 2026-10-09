@@ -207,18 +207,6 @@ class ReadinessIntegrationTest extends AbstractIntegrationTest {
         }
 
         @Test
-        @DisplayName("A cancelled release is NOT_READY whatever its contents look like")
-        void cancelledRelease() throws Exception {
-            addWorkItem("All done", TaskStatus.DONE, true);
-            release.setLifecycleState(ReleaseLifecycleState.CANCELLED);
-            releaseRepository.saveAndFlush(release);
-
-            mockMvc.perform(get(readinessUrl()).header("Authorization", "Bearer " + token))
-                    .andExpect(jsonPath("$.status").value("NOT_READY"))
-                    .andExpect(jsonPath("$.reasons[0].code").value("RELEASE_CANCELLED"));
-        }
-
-        @Test
         @DisplayName("A release whose work is all complete and unblocked is READY, with no reasons")
         void readyRelease() throws Exception {
             addWorkItem("Checkout flow", TaskStatus.DONE, true);
@@ -291,15 +279,19 @@ class ReadinessIntegrationTest extends AbstractIntegrationTest {
         }
 
         @Test
-        @DisplayName("Release-level reasons sort ahead of work item reasons")
-        void releaseLevelReasonsComeFirst() throws Exception {
-            addWorkItem("Some work", TaskStatus.TODO, true);
-            release.setLifecycleState(ReleaseLifecycleState.CANCELLED);
-            releaseRepository.saveAndFlush(release);
+        @DisplayName("Reasons follow code order: incomplete work sorts ahead of blocked work")
+        void gateReasonsFollowCodeOrder() throws Exception {
+            Task blocked = addWorkItem("Zulu blocked", TaskStatus.IN_REVIEW, true);
+            Task blocker = addWorkItem("Alpha blocker", TaskStatus.TODO, true);
+            blocks(blocker, blocked);
+            addWorkItem("Mike incomplete", TaskStatus.TODO, true);
 
             mockMvc.perform(get(readinessUrl()).header("Authorization", "Bearer " + token))
-                    .andExpect(jsonPath("$.reasons[0].code").value("RELEASE_CANCELLED"))
-                    .andExpect(jsonPath("$.reasons[1].code").value("INCOMPLETE_WORK"));
+                    .andExpect(jsonPath("$.reasons", hasSize(4)))
+                    .andExpect(jsonPath("$.reasons[0].code").value("INCOMPLETE_WORK"))
+                    .andExpect(jsonPath("$.reasons[1].code").value("INCOMPLETE_WORK"))
+                    .andExpect(jsonPath("$.reasons[2].code").value("INCOMPLETE_WORK"))
+                    .andExpect(jsonPath("$.reasons[3].code").value("BLOCKED_WORK"));
         }
 
         @Test

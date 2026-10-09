@@ -73,7 +73,7 @@ public class ReleaseController {
 
     @PatchMapping("/{releaseId}/lifecycle")
     @Operation(summary = "Change release lifecycle state",
-            description = "Advances the release through PLANNED, IN_PROGRESS, RELEASED or CANCELLED.")
+            description = "Advances the release through PLANNED, IN_PROGRESS, RELEASED.")
     public ResponseEntity<ReleaseResponse> updateLifecycle(
             @PathVariable UUID workspaceId,
             @PathVariable UUID projectId,

@@ -7,7 +7,6 @@ import com.agiletrack.backend.readiness.dto.ReadinessReasonCode;
 import com.agiletrack.backend.readiness.dto.ReadinessStatus;
 import com.agiletrack.backend.readiness.dto.ReleaseReadinessResponse;
 import com.agiletrack.backend.release.entity.Release;
-import com.agiletrack.backend.release.entity.ReleaseLifecycleState;
 import com.agiletrack.backend.release.service.ReleaseService;
 import com.agiletrack.backend.task.entity.Task;
 import com.agiletrack.backend.task.entity.TaskStatus;
@@ -89,14 +88,8 @@ public class ReadinessService {
     private List<ReadinessReason> releaseLevelGates(Release release, List<Task> workItems) {
         List<ReadinessReason> reasons = new ArrayList<>();
 
-        // A cancelled release cannot ship whatever its contents look like. A RELEASED one is
-        // evaluated normally: it already shipped, and its gates should still describe why.
-        if (release.getLifecycleState() == ReleaseLifecycleState.CANCELLED) {
-            reasons.add(new ReadinessReason(
-                    ReadinessReasonCode.RELEASE_CANCELLED, null, null,
-                    "Release " + release.getName() + " has been cancelled"));
-        }
-
+        // A RELEASED release is evaluated normally: it already shipped, and its gates
+        // should still describe why.
         // An empty release is not vacuously shippable; there is simply nothing in it.
         if (workItems.isEmpty()) {
             reasons.add(new ReadinessReason(

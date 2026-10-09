@@ -36,16 +36,13 @@ import java.time.LocalDateTime;
  * Builds a demo dataset that exercises the delivery model, not just the task board.
  *
  * <p>The releases below are shaped so that a fresh database already shows every readiness verdict
- * the service can produce — READY, and NOT_READY for each of the four reason codes that are
+ * the service can produce — READY, and NOT_READY for each of the three reason codes that are
  * currently emitted. Without that, the core feature is invisible until someone clicks it into
  * existence by hand.
  *
  * <p>Rows are written straight through the repositories rather than through the services. That is
  * deliberate: seeding is a fixture, not a user action. It means seeded rows carry no activity
- * history — history records what people did, and nobody did this. It also means a seeded release
- * can hold work items in a state the API would no longer allow you to reach (the cancelled release
- * below), which is exactly how such a release looks in real life: its scope was set while it was
- * still PLANNED.
+ * history — history records what people did, and nobody did this.
  */
 @Component
 @ConditionalOnProperty(name = "agiletrack.seed-demo-data", havingValue = "true", matchIfMissing = true)
@@ -125,7 +122,7 @@ public class DataSeeder implements CommandLineRunner {
 
     /**
      * Frontend Redesign covers the two ends of the readiness spectrum: a release where every gate
-     * passes, and a cancelled one that can never pass.
+     * passes, and planned releases carrying incomplete or blocked work.
      */
     private void seedFrontendDelivery(Project project, User demoUser, User teammate) {
         // READY — in flight, everything complete, scope already locked by IN_PROGRESS.
@@ -136,9 +133,9 @@ public class DataSeeder implements CommandLineRunner {
         Release uiRefresh = release(project, "Q3 UI Refresh", "v2.1.0",
                 ReleaseLifecycleState.PLANNED, LocalDate.now().plusDays(21));
 
-        // NOT_READY — cancelled, and still holding an unfinished item.
+        // NOT_READY — planned, holding an unfinished item that keeps it from shipping.
         Release mobileShell = release(project, "Native Mobile Shell", "v3.0.0",
-                ReleaseLifecycleState.CANCELLED, null);
+                ReleaseLifecycleState.PLANNED, null);
 
         task(project, "Set up Vite and Tailwind config", "Initialize the new build pipeline",
                 WorkItemType.TECH_DEBT, TaskStatus.DONE, TaskPriority.HIGH, 1.0, demoUser, designSystem);

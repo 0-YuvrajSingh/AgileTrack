@@ -16,13 +16,10 @@ public enum ReleaseLifecycleState {
     IN_PROGRESS,
 
     /** Shipped. Terminal: nothing may change. */
-    RELEASED,
-
-    /** Abandoned. Terminal: nothing may change. This is the archive path for a release. */
-    CANCELLED;
+    RELEASED;
 
     public boolean isTerminal() {
-        return this == RELEASED || this == CANCELLED;
+        return this == RELEASED;
     }
 
     /** Scope changes are only safe before execution begins. */
@@ -40,9 +37,9 @@ public enum ReleaseLifecycleState {
             return true;
         }
         return switch (this) {
-            case PLANNED -> target == IN_PROGRESS || target == CANCELLED;
-            case IN_PROGRESS -> target == RELEASED || target == CANCELLED;
-            case RELEASED, CANCELLED -> false;
+            case PLANNED -> target == IN_PROGRESS;
+            case IN_PROGRESS -> target == RELEASED;
+            case RELEASED -> false;
         };
     }
 }

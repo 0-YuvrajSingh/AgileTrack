@@ -11,9 +11,6 @@ package com.agiletrack.backend.readiness.dto;
  */
 public enum ReadinessReasonCode {
 
-    /** The release has been abandoned, so shipping it is not meaningful. */
-    RELEASE_CANCELLED,
-
     /** The release contains no work items; there is nothing to ship. */
     EMPTY_RELEASE,
 

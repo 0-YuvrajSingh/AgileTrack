@@ -111,7 +111,7 @@ public class ReleaseService {
 
     /**
      * Hard delete, permitted only while the release is still being planned. Once execution has
-     * started the release is a record of what was attempted; CANCELLED is the way to retire it.
+     * started the release is a record of what was attempted and can no longer be removed.
      */
     @Transactional
     public void deleteRelease(UUID workspaceId, UUID projectId, UUID releaseId) {
@@ -121,7 +121,7 @@ public class ReleaseService {
 
         if (release.getLifecycleState() != ReleaseLifecycleState.PLANNED) {
             throw new BusinessRuleException(
-                    "Only a PLANNED release can be deleted. Cancel the release instead.");
+                    "Only a PLANNED release can be deleted.");
         }
 
         // Detach scope explicitly so the history reflects it, rather than relying on ON DELETE SET NULL.

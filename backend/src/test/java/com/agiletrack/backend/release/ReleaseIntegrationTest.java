@@ -301,6 +301,20 @@ class ReleaseIntegrationTest extends AbstractIntegrationTest {
         }
 
         @Test
+        @DisplayName("CANCELLED is no longer a known state and is rejected")
+        void plannedToCancelled_isRejected() throws Exception {
+            mockMvc.perform(patch(releaseUrl() + "/lifecycle")
+                            .header("Authorization", "Bearer " + memberToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    { "lifecycleState": "CANCELLED", "version": 0 }
+                                    """))
+                    .andExpect(status().isBadRequest());
+
+            assertThat(storedRelease().getLifecycleState()).isEqualTo(ReleaseLifecycleState.PLANNED);
+        }
+
+        @Test
         @DisplayName("RELEASED is terminal — it cannot be reopened")
         void releasedIsTerminal() throws Exception {
             moveTo(ReleaseLifecycleState.RELEASED);
@@ -312,18 +326,6 @@ class ReleaseIntegrationTest extends AbstractIntegrationTest {
                     .andExpect(status().isBadRequest());
 
             assertThat(storedRelease().getLifecycleState()).isEqualTo(ReleaseLifecycleState.RELEASED);
-        }
-
-        @Test
-        @DisplayName("CANCELLED is terminal — it cannot be revived")
-        void cancelledIsTerminal() throws Exception {
-            moveTo(ReleaseLifecycleState.CANCELLED);
-
-            mockMvc.perform(patch(releaseUrl() + "/lifecycle")
-                            .header("Authorization", "Bearer " + memberToken)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(lifecycleBody(ReleaseLifecycleState.PLANNED, null)))
-                    .andExpect(status().isBadRequest());
         }
 
         @Test
