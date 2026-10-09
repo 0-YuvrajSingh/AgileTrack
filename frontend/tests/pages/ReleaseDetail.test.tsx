@@ -126,8 +126,8 @@ describe('ReleaseDetail', () => {
     renderComponent();
 
     expect(screen.getByRole('button', { name: /Move to In Progress/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Cancel release/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Move to Released/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Cancel release/i })).not.toBeInTheDocument();
   });
 
   it('sends the version it read when changing lifecycle state', async () => {

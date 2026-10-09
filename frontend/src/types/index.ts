@@ -54,7 +54,6 @@ export interface Project {
 export type ReadinessStatus = 'READY' | 'NOT_READY';
 
 export type ReadinessReasonCode =
-  | 'RELEASE_CANCELLED'
   | 'EMPTY_RELEASE'
   | 'INCOMPLETE_WORK'
   | 'BLOCKED_WORK';
@@ -105,7 +104,7 @@ export interface BlockedWorkItem {
   blockers: Dependency[];
 }
 
-export type ReleaseLifecycleState = 'PLANNED' | 'IN_PROGRESS' | 'RELEASED' | 'CANCELLED';
+export type ReleaseLifecycleState = 'PLANNED' | 'IN_PROGRESS' | 'RELEASED';
 
 export interface Release {
   id: string;

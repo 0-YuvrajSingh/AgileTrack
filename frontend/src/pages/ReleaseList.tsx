@@ -18,14 +18,12 @@ export const LIFECYCLE_BADGE: Record<ReleaseLifecycleState, string> = {
   PLANNED: 'bg-gray-100 text-gray-700 border-gray-300',
   IN_PROGRESS: 'bg-blue-50 text-cf-primary border-blue-200',
   RELEASED: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  CANCELLED: 'bg-red-50 text-red-600 border-red-200',
 };
 
 export const LIFECYCLE_LABEL: Record<ReleaseLifecycleState, string> = {
   PLANNED: 'Planned',
   IN_PROGRESS: 'In Progress',
   RELEASED: 'Released',
-  CANCELLED: 'Cancelled',
 };
 
 const ReleaseList: React.FC = () => {

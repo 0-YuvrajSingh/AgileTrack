@@ -96,23 +96,24 @@ describe('ReadinessPanel', () => {
     expect(screen.getByTestId('readiness-reasons')).toBeInTheDocument();
   });
 
-  it('explains a cancelled release', () => {
+  it('explains an empty release', () => {
     render(
       <ReadinessPanel
         readiness={{
           ...base,
-          lifecycleState: 'CANCELLED',
           reasons: [{
-            code: 'RELEASE_CANCELLED',
+            code: 'EMPTY_RELEASE',
             workItemId: null,
             workItemTitle: null,
-            detail: 'Release v2.4.0 has been cancelled',
+            detail: 'Release v2.4.0 contains no work items',
           }],
+          totalWorkItems: 0,
+          completedWorkItems: 0,
         }}
       />
     );
 
-    expect(screen.getByText('Release v2.4.0 has been cancelled')).toBeInTheDocument();
-    expect(screen.getByText('RELEASE_CANCELLED')).toBeInTheDocument();
+    expect(screen.getByText('Release v2.4.0 contains no work items')).toBeInTheDocument();
+    expect(screen.getByText('EMPTY_RELEASE')).toBeInTheDocument();
   });
 });

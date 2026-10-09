@@ -24,10 +24,9 @@ const WORK_ITEM_TYPE_LABELS: Record<WorkItemType, string> = {
 
 /** Mirrors the server's transition rules so the UI only offers moves that will be accepted. */
 const NEXT_STATES: Record<ReleaseLifecycleState, ReleaseLifecycleState[]> = {
-  PLANNED: ['IN_PROGRESS', 'CANCELLED'],
-  IN_PROGRESS: ['RELEASED', 'CANCELLED'],
+  PLANNED: ['IN_PROGRESS'],
+  IN_PROGRESS: ['RELEASED'],
   RELEASED: [],
-  CANCELLED: [],
 };
 
 const ReleaseDetail: React.FC = () => {
@@ -173,11 +172,11 @@ const ReleaseDetail: React.FC = () => {
               <Button
                 key={next}
                 size="sm"
-                variant={next === 'CANCELLED' ? 'secondary' : 'primary'}
+                variant="primary"
                 disabled={busy}
                 onClick={() => changeLifecycle(next)}
               >
-                {next === 'CANCELLED' ? 'Cancel release' : `Move to ${LIFECYCLE_LABEL[next]}`}
+                {`Move to ${LIFECYCLE_LABEL[next]}`}
               </Button>
             ))}
           </div>

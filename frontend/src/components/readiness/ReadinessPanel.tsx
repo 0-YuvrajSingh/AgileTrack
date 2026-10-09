@@ -5,7 +5,6 @@ import type { ReadinessReasonCode, ReleaseReadiness } from '../../types';
 import { Card, CardBody } from '../ui/Card';
 
 const REASON_LABEL: Record<ReadinessReasonCode, string> = {
-  RELEASE_CANCELLED: 'Release cancelled',
   EMPTY_RELEASE: 'No work in scope',
   INCOMPLETE_WORK: 'Incomplete work',
   BLOCKED_WORK: 'Blocked work',
