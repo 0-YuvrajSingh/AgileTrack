@@ -13,7 +13,6 @@ import com.agiletrack.backend.task.dto.TaskResponse;
 import com.agiletrack.backend.task.dto.UpdateTaskRequest;
 import com.agiletrack.backend.task.dto.UpdateTaskStatusRequest;
 import com.agiletrack.backend.task.entity.Task;
-import com.agiletrack.backend.task.entity.RiskLevel;
 import com.agiletrack.backend.task.entity.TaskStatus;
 import com.agiletrack.backend.task.entity.WorkItemType;
 import com.agiletrack.backend.task.mapper.TaskMapper;
@@ -59,13 +58,6 @@ public class TaskService {
         Project project = projectService.getProject(workspaceId, projectId);
         projectService.requireMutable(project);
 
-        if (request.type() != WorkItemType.CHANGE && request.riskLevel() != null) {
-            throw new BusinessRuleException("Risk level is only valid for CHANGE work items");
-        }
-        RiskLevel riskLevel = request.type() == WorkItemType.CHANGE
-                ? (request.riskLevel() != null ? request.riskLevel() : RiskLevel.LOW)
-                : null;
-
         User assignee = request.assigneeId() != null
                 ? getValidatedAssignee(workspaceId, request.assigneeId())
                 : null;
@@ -75,7 +67,6 @@ public class TaskService {
                 .description(request.description())
                 .status(TaskStatus.TODO)
                 .type(request.type())
-                .riskLevel(riskLevel)
                 .priority(request.priority())
                 .deadline(request.deadline())
                 .project(project)
@@ -122,22 +113,13 @@ public class TaskService {
         projectService.requireMutable(task.getProject());
         OptimisticLockGuard.requireCurrentVersion(Task.class, taskId, task.getVersion(), request.version());
 
-        if (request.type() != WorkItemType.CHANGE && request.riskLevel() != null) {
-            throw new BusinessRuleException("Risk level is only valid for CHANGE work items");
-        }
-
         com.agiletrack.backend.task.entity.TaskPriority oldPriority = task.getPriority();
         com.agiletrack.backend.task.entity.WorkItemType oldType = task.getType();
-        RiskLevel oldRisk = task.getRiskLevel();
-        RiskLevel newRisk = request.type() == WorkItemType.CHANGE
-                ? (request.riskLevel() != null ? request.riskLevel() : (oldRisk != null ? oldRisk : RiskLevel.LOW))
-                : null;
 
         task.setTitle(request.title());
         task.setDescription(request.description());
         task.setPriority(request.priority());
         task.setType(request.type());
-        task.setRiskLevel(newRisk);
         task.setDeadline(request.deadline());
         task.setAssignee(request.assigneeId() != null
                 ? getValidatedAssignee(workspaceId, request.assigneeId())
@@ -151,11 +133,6 @@ public class TaskService {
         if (!Objects.equals(oldType, request.type())) {
             recordActivity(task, ActivityType.TYPE_CHANGED,
                     "Type changed from " + oldType + " to " + request.type());
-        }
-
-        if (oldRisk != null && newRisk != null && !Objects.equals(oldRisk, newRisk)) {
-            recordActivity(task, ActivityType.RISK_CHANGED,
-                    "Risk level changed from " + oldRisk + " to " + newRisk);
         }
 
         return taskMapper.toResponse(task);

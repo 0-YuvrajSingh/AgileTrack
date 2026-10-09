@@ -1,6 +1,5 @@
 package com.agiletrack.backend.task.dto;
 
-import com.agiletrack.backend.task.entity.RiskLevel;
 import com.agiletrack.backend.task.entity.TaskPriority;
 import com.agiletrack.backend.task.entity.WorkItemType;
 import jakarta.validation.constraints.Future;
@@ -25,8 +24,6 @@ public record CreateTaskRequest(
 
         @NotNull(message = "Priority is required")
         TaskPriority priority,
-
-        RiskLevel riskLevel,
 
         @Future(message = "Deadline must be in the future")
         LocalDateTime deadline,

@@ -21,8 +21,5 @@ public enum ReadinessReasonCode {
     INCOMPLETE_WORK,
 
     /** A work item in the release is held up by an unresolved blocker. */
-    BLOCKED_WORK,
-
-    /** A controlled change in the release still needs approval. Populated from Phase 5 onward. */
-    APPROVAL_REQUIRED
+    BLOCKED_WORK
 }

@@ -10,7 +10,6 @@ import com.agiletrack.backend.release.entity.Release;
 import com.agiletrack.backend.release.entity.ReleaseLifecycleState;
 import com.agiletrack.backend.release.repository.ReleaseRepository;
 import com.agiletrack.backend.task.entity.Task;
-import com.agiletrack.backend.task.entity.RiskLevel;
 import com.agiletrack.backend.task.entity.TaskPriority;
 import com.agiletrack.backend.task.entity.TaskStatus;
 import com.agiletrack.backend.task.entity.WorkItemType;
@@ -181,16 +180,16 @@ public class DataSeeder implements CommandLineRunner {
 
         Task schema = task(project, "Design database schema v2",
                 "New tables for notifications and audit log",
-                WorkItemType.CHANGE, TaskStatus.IN_PROGRESS, TaskPriority.URGENT, 1.0, demoUser, cutover);
+                WorkItemType.FEATURE, TaskStatus.IN_PROGRESS, TaskPriority.URGENT, 1.0, demoUser, cutover);
         Task rateLimiting = task(project, "Add rate limiting middleware",
                 "Prevent abuse on public endpoints",
-                WorkItemType.CHANGE, TaskStatus.TODO, TaskPriority.MEDIUM, 2.0, demoUser, cutover);
+                WorkItemType.FEATURE, TaskStatus.TODO, TaskPriority.MEDIUM, 2.0, demoUser, cutover);
         Task authMigration = task(project, "Migrate auth endpoints to v2",
                 "Move token issue and refresh onto the v2 contract",
-                WorkItemType.CHANGE, TaskStatus.TODO, TaskPriority.HIGH, 3.0, teammate, cutover);
+                WorkItemType.FEATURE, TaskStatus.TODO, TaskPriority.HIGH, 3.0, teammate, cutover);
         Task deprecateV1 = task(project, "Deprecate v1 task endpoints",
                 "Remove the old routes once every client has moved",
-                WorkItemType.CHANGE, TaskStatus.TODO, TaskPriority.HIGH, 4.0, demoUser, cutover);
+                WorkItemType.FEATURE, TaskStatus.TODO, TaskPriority.HIGH, 4.0, demoUser, cutover);
 
         task(project, "Write integration tests", "Cover auth and workspace flows",
                 WorkItemType.TECH_DEBT, TaskStatus.TODO, TaskPriority.HIGH, 5.0, teammate, null);
@@ -216,21 +215,12 @@ public class DataSeeder implements CommandLineRunner {
     private Task task(Project project, String title, String description,
                       WorkItemType type, TaskStatus status, TaskPriority priority,
                       double position, User assignee, Release release) {
-        return task(project, title, description, type,
-                type == WorkItemType.CHANGE ? RiskLevel.HIGH : null,
-                status, priority, position, assignee, release);
-    }
-
-    private Task task(Project project, String title, String description,
-                      WorkItemType type, RiskLevel riskLevel, TaskStatus status, TaskPriority priority,
-                      double position, User assignee, Release release) {
         return taskRepository.save(Task.builder()
                 .project(project)
                 .title(title)
                 .description(description)
                 .status(status)
                 .type(type)
-                .riskLevel(riskLevel)
                 .priority(priority)
                 .position(position)
                 .assignee(assignee)

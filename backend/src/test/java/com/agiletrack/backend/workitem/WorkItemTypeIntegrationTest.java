@@ -262,7 +262,7 @@ class WorkItemTypeIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(put(tasksUrl() + "/" + taskId)
                         .header("Authorization", "Bearer " + viewerToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(updateJson("CHANGE")))
+                        .content(updateJson("TECH_DEBT")))
                 .andExpect(status().isForbidden());
 
         assertThat(taskRepository.findById(taskId)).get()
@@ -275,7 +275,7 @@ class WorkItemTypeIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(put(tasksUrl() + "/" + taskId)
                         .header("Authorization", "Bearer " + outsiderToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(updateJson("CHANGE")))
+                        .content(updateJson("TECH_DEBT")))
                 .andExpect(status().isForbidden());
 
         assertThat(taskRepository.findById(taskId)).get()

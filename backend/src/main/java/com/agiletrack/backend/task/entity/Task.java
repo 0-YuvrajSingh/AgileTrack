@@ -52,10 +52,6 @@ public class Task extends BaseEntity {
     @Column(nullable = false, length = 50)
     private WorkItemType type;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "risk_level", length = 50)
-    private RiskLevel riskLevel;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;

@@ -169,7 +169,6 @@ class EndToEndIntegrationTest extends AbstractIntegrationTest {
                                 "Expanded test coverage",
                                 WorkItemType.BUG,
                                 TaskPriority.URGENT,
-                                null,
                                 LocalDateTime.now().plusDays(3),
                                 UUID.fromString(ownerId),
                                 0L
@@ -237,7 +236,6 @@ class EndToEndIntegrationTest extends AbstractIntegrationTest {
                 "Implement full integration suite",
                 WorkItemType.FEATURE,
                 TaskPriority.HIGH,
-                null,
                 LocalDateTime.now().plusDays(2),
                 UUID.fromString(ownerId)
         );
@@ -311,8 +309,7 @@ class EndToEndIntegrationTest extends AbstractIntegrationTest {
                                                                 "Implement end-to-end suite",
                                                                  WorkItemType.FEATURE,
                                                                  TaskPriority.HIGH,
-                                                                 null,
-                                                                 LocalDateTime.now().plusDays(2),
+                                                                  LocalDateTime.now().plusDays(2),
                                                                 UUID.fromString(ownerId)
                                                 ))))
                                 .andExpect(status().isCreated())
