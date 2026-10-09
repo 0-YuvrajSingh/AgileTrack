@@ -83,17 +83,28 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
   - `V15`: Added check constraint `ck_tasks_change_risk CHECK (type = 'CHANGE' OR risk_level IS NULL)` on `tasks`.
   - `V15`: Added index `idx_tasks_risk_level ON tasks(risk_level)`.
   - `V15`: Created table `change_approvals` with foreign keys to `tasks` and `users` (ON DELETE CASCADE), and constraint `ck_change_approval_decision CHECK (decision IN ('APPROVED', 'REJECTED'))`.
-- **Pre-Migration Data Inventory Step**:
-  1. Inventory tasks with `type = 'CHANGE'`:
+- **Mandatory Pre-Migration Data Inventory & Data Loss Impact**:
+  1. **Work Items Inventory (`type = 'CHANGE'`)**:
      ```sql
      SELECT id, project_id, title, status, risk_level FROM tasks WHERE type = 'CHANGE';
      ```
-  2. Inventory any unexpected task types that violate in-scope types:
+  2. **Unexpected Task Types Inventory**:
      ```sql
      SELECT DISTINCT type FROM tasks WHERE type NOT IN ('FEATURE', 'BUG', 'TECH_DEBT');
      ```
-  3. Report inventory counts to user before proceeding.
-  4. **Stop Rule**: If the work-item type inventory finds values other than `CHANGE` that are outside the approved types (`FEATURE`, `BUG`, `TECH_DEBT`), **explicitly stop immediately** and present the findings to the user. Obtain an approved mapping from the user before finalizing or running the `V16` migration.
+  3. **`change_approvals` Table Inventory (Count & Decision Breakdown)**:
+     ```sql
+     SELECT COUNT(*) AS total_approvals,
+            COUNT(*) FILTER (WHERE decision = 'APPROVED') AS approved_count,
+            COUNT(*) FILTER (WHERE decision = 'REJECTED') AS rejected_count,
+            COUNT(DISTINCT task_id) AS distinct_tasks_affected,
+            COUNT(DISTINCT user_id) AS distinct_approvers
+     FROM change_approvals;
+     ```
+  4. **Documented Data Loss Impact**:
+     Dropping `change_approvals` permanently and irreversibly deletes all historical approval decisions, rejection records, and reviewer sign-off history across all work items. Resetting `risk_level` on `tasks` removes all recorded risk categorization data.
+  5. Report inventory counts and data loss summary to user before proceeding.
+  6. **Stop Rule**: If the work-item type inventory finds values other than `CHANGE` that are outside the approved types (`FEATURE`, `BUG`, `TECH_DEBT`), **explicitly stop immediately** and present the findings to the user. Obtain an approved mapping from the user before finalizing or running the `V16` migration.
 - **Database & Flyway Migration Plan (`V16__remove_change_governance.sql`)**:
   1. **Combined Data Conversion & Cleanup First**:
      - Convert all existing `CHANGE` tasks to `FEATURE` and reset `risk_level` to `NULL` in the **same atomic update**:
@@ -127,7 +138,7 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
        ALTER TABLE tasks ADD CONSTRAINT ck_tasks_type CHECK (type IN ('FEATURE', 'BUG', 'TECH_DEBT'));
        ```
   - > [!CAUTION]
-    > **User Gate**: Present migration `V16__remove_change_governance.sql` and the pre-migration inventory results. Await explicit user approval before execution.
+    > **User Gate**: Present migration `V16__remove_change_governance.sql`, pre-migration inventory counts, and documented data loss impact. Await explicit user approval before execution.
 - **Seed Data Changes**:
   - In `DataSeeder.java`: Remove seeding of work items with `type = WorkItemType.CHANGE`, remove `riskLevel` configurations, and remove `change_approvals` seeding.
 - **Application Code Changes**:
@@ -212,13 +223,32 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
     - Foreign key `user_id UUID NOT NULL REFERENCES users(id)`.
     - Index `idx_task_activities_task_id ON task_activities(task_id)`.
   - **Verification Finding**: No other tables in `V1`..`V15` reference `task_activities`.
+- **Mandatory Pre-Migration Data Inventory & Data Loss Impact**:
+  1. **`task_activities` Table Inventory (Count & Activity Summary)**:
+     - Total record count and affected entities:
+       ```sql
+       SELECT COUNT(*) AS total_activities,
+              COUNT(DISTINCT task_id) AS distinct_tasks_affected,
+              COUNT(DISTINCT user_id) AS distinct_actor_users
+       FROM task_activities;
+       ```
+     - Breakdown by activity type:
+       ```sql
+       SELECT activity_type, COUNT(*) AS count
+       FROM task_activities
+       GROUP BY activity_type
+       ORDER BY count DESC;
+       ```
+  2. **Documented Data Loss Impact**:
+     Dropping `task_activities` permanently and irreversibly deletes all historical task change logs, status mutation timestamps, assignment audit histories, and user activity timelines across all projects. (Note: MedVault retains the authoritative compliance and audit narrative).
+  3. Report activity inventory counts and data loss summary to user before proceeding.
 - **Database & Flyway Migration Plan (`V18__remove_task_activities.sql`)**:
   1. Drop table `task_activities` without CASCADE:
      ```sql
      DROP TABLE IF EXISTS task_activities;
      ```
   - > [!CAUTION]
-    > **User Gate**: Present migration `V18__remove_task_activities.sql`. Await explicit user approval before execution.
+    > **User Gate**: Present migration `V18__remove_task_activities.sql`, pre-drop activity inventory counts, and documented data loss impact. Await explicit user approval before execution.
 - **Seed Data Changes**:
   - In `DataSeeder.java`: Remove seeding of task activity records.
 - **Application Code Changes**:
@@ -242,13 +272,27 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
   - `V7`: Table `refresh_tokens` created with foreign key `user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE`.
   - `V9`: Cleared existing refresh tokens.
   - **Verification Finding**: No other tables in `V1`..`V15` reference `refresh_tokens`.
+- **Mandatory Pre-Migration Data Inventory & Session Invalidation Impact**:
+  1. **`refresh_tokens` Table Inventory (Count-Based, No Secrets Exposed)**:
+     - Execute strictly count-based inventory query:
+       ```sql
+       SELECT COUNT(*) AS total_tokens,
+              COUNT(DISTINCT user_id) AS distinct_users_with_sessions,
+              COUNT(*) FILTER (WHERE expiry_date > CURRENT_TIMESTAMP) AS active_unexpired_tokens,
+              COUNT(*) FILTER (WHERE expiry_date <= CURRENT_TIMESTAMP) AS expired_tokens
+       FROM refresh_tokens;
+       ```
+     - **Security Invariant**: Never query, select, or log actual token strings (`token`), token hashes, or session secrets.
+  2. **Documented Session Invalidation & Data Loss Impact**:
+     Dropping `refresh_tokens` permanently removes stored refresh session records and immediately invalidates all active persistent sessions. Users can no longer silently refresh expired access tokens and will be required to re-authenticate with their primary credentials (email/password) as soon as their current stateless JWT access token expires.
+  3. Report session counts and invalidation impact to user before proceeding.
 - **Database & Flyway Migration Plan (`V19__remove_refresh_tokens.sql`)**:
   1. Drop table `refresh_tokens` without CASCADE:
      ```sql
      DROP TABLE IF EXISTS refresh_tokens;
      ```
   - > [!CAUTION]
-    > **User Gate**: Present migration `V19__remove_refresh_tokens.sql`. Await explicit user approval before execution.
+    > **User Gate**: Present migration `V19__remove_refresh_tokens.sql`, pre-drop session count inventory, and documented session invalidation impact. Await explicit user approval before execution.
 - **Seed Data Changes**: None (refresh tokens are runtime session entities).
 - **Application Code Changes**:
   - Backend:
@@ -282,27 +326,57 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
   2. **Mapping `VIEWER`**:
      - *If `VIEWER -> MEMBER`*: **Privilege Expansion Warning**. Promotes previously read-only users to full write access (can create, modify, and delete work items, releases, and dependencies).
      - *Alternative*: Revoke/delete `VIEWER` memberships to preserve read-only restrictions, requiring workspace owners to deliberately grant `MEMBER` access if desired.
-- **Mandatory Pre-Migration Data Inventory & Approval Step**:
-  1. Run inventory query:
-     ```sql
-     SELECT wm.id, wm.workspace_id, u.email, wm.role FROM workspace_members wm JOIN users u ON wm.user_id = u.id WHERE wm.role IN ('ADMIN', 'VIEWER');
-     ```
-  2. Present inventory results to the user.
-  3. **Keep migration non-executable (DRAFT template)** until user explicitly reviews the inventory and chooses the viewer mapping. Do not include unconditional `VIEWER -> MEMBER` conversion in executable code.
+- **Mandatory Pre-Migration Data Inventory & Decision Gates**:
+  1. **Role Counts & Member Inventory**:
+     - Aggregate counts of existing roles outside `OWNER` and `MEMBER`:
+       ```sql
+       SELECT role, COUNT(*) AS count
+       FROM workspace_members
+       WHERE role NOT IN ('OWNER', 'MEMBER')
+       GROUP BY role;
+       ```
+     - List detailed members with `ADMIN` and `VIEWER` roles:
+       ```sql
+       SELECT wm.id, wm.workspace_id, u.email, wm.role
+       FROM workspace_members wm
+       JOIN users u ON wm.user_id = u.id
+       WHERE wm.role IN ('ADMIN', 'VIEWER')
+       ORDER BY wm.role, wm.workspace_id;
+       ```
+     - Inventory any unexpected roles:
+       ```sql
+       SELECT DISTINCT role FROM workspace_members WHERE role NOT IN ('OWNER', 'MEMBER', 'ADMIN', 'VIEWER');
+       ```
+  2. **Present inventory results to the user**.
+  3. **Dual Decision Gates (Explicit User Approval Required for Both)**:
+     - **Gate A: Explicit Approval Required for `ADMIN` Mapping**:
+       Although `ADMIN -> MEMBER` is recommended to adhere to least privilege, **it must not be treated as approved merely because it is recommended**. The user must review the inventory and explicitly approve the `ADMIN -> MEMBER` mapping (or specify an alternative) before it can be finalized.
+     - **Gate B: Explicit Approval Required for `VIEWER` Handling**:
+       The user must review the inventory and explicitly decide between:
+       - *Option A (Privilege Expansion)*: `UPDATE workspace_members SET role = 'MEMBER' WHERE role = 'VIEWER';`
+       - *Option B (Revocation)*: `DELETE FROM workspace_members WHERE role = 'VIEWER';`
+       - *Option C (Manual Resolution)*: Custom handling specified by user.
+  4. **Strict Non-Executable Draft Status**:
+     `V20__simplify_workspace_roles.sql` remains strictly a non-executable draft template. No mapping or constraint SQL will be finalized or executed until the user has reviewed the inventory and given explicit approval for **both** the `ADMIN` decision and the `VIEWER` decision.
 - **Database & Flyway Migration Plan (`V20__simplify_workspace_roles.sql`) (Draft Template)**:
   ```sql
-  -- 1. Apply least-privilege mapping for ADMIN:
-  UPDATE workspace_members SET role = 'MEMBER' WHERE role = 'ADMIN';
+  -- ==============================================================================
+  -- V20__simplify_workspace_roles.sql (NON-EXECUTABLE DRAFT TEMPLATE)
+  -- DO NOT EXECUTE UNTIL BOTH ADMIN AND VIEWER DECISIONS ARE EXPLICITLY APPROVED
+  -- ==============================================================================
 
-  -- 2. VIEWER mapping: APPLIED ONLY AFTER EXPLICIT USER DECISION:
+  -- 1. ADMIN mapping (REQUIRES EXPLICIT USER APPROVAL; NOT PRE-APPROVED):
+  -- Option A (Recommended): UPDATE workspace_members SET role = 'MEMBER' WHERE role = 'ADMIN';
+
+  -- 2. VIEWER mapping (REQUIRES EXPLICIT USER DECISION):
   -- Option A (Approved Expansion): UPDATE workspace_members SET role = 'MEMBER' WHERE role = 'VIEWER';
   -- Option B (Revocation): DELETE FROM workspace_members WHERE role = 'VIEWER';
 
   -- 3. Add brand-new check constraint enforcing strictly in-scope roles:
-  ALTER TABLE workspace_members ADD CONSTRAINT ck_workspace_members_role CHECK (role IN ('OWNER', 'MEMBER'));
+  -- ALTER TABLE workspace_members ADD CONSTRAINT ck_workspace_members_role CHECK (role IN ('OWNER', 'MEMBER'));
   ```
   - > [!CAUTION]
-    > **User Gate**: Present migration `V20__simplify_workspace_roles.sql` and the inventory results. Migration remains non-executable until explicit user choice on viewer mapping is provided.
+    > **User Gate**: Present migration `V20__simplify_workspace_roles.sql` draft and role inventory results. The migration remains completely non-executable until explicit user approval is granted for both the `ADMIN` mapping and the selected `VIEWER` handling.
 - **Seed Data Changes**:
   - In `DataSeeder.java`: Seed only `OWNER` and `MEMBER` roles.
 - **Application Code Changes**:
