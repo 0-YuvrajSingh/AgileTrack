@@ -3,8 +3,14 @@
 This execution plan adapts the project brief to the findings of `docs/AUDIT.md` and approved decisions (`D1` through `D4`).
 Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
 
-> [!IMPORTANT]
-> **Hard Rule on Migrations**: Never edit existing Flyway migrations (`V1`..`V15`). All schema changes are applied through new sequential migrations (`V16`, `V17`, etc.). Every migration converting or dropping schema elements must **convert existing data before dropping**, and **require explicit user approval before execution**.
+> [!CRITICAL]
+> **Hard Rules on Database Migrations**:
+> 1. **Never edit existing Flyway migrations (`V1`..`V15`)**. All schema modifications are added as new, sequential Flyway migrations (`V16`, `V17`, etc.).
+> 2. **Never execute a destructive migration without explicit user approval**.
+> 3. **Always convert existing data before dropping constraints, columns, or tables**.
+> 4. **Specify exact constraint and table names verified against `V1`..`V15`**.
+> 5. **Avoid `CASCADE` drops** unless the full dependency graph is verified, documented, and approved.
+> 6. Present each proposed migration SQL and its exact data impact for review before execution.
 
 ---
 
@@ -20,9 +26,10 @@ Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
   - [x] Create `docs/AUDIT.md`.
   - [x] Create `docs/PLAN.md`.
   - [x] Create `docs/WALKTHROUGH.md` outline.
+  - [x] Mark `docs/BASELINE.md` as historical archive.
   - [x] STOP and await user approval before proceeding to Phase 1.
 - **Files Touched**:
-  - `AGENTS.md`, `docs/SCOPE.md`, `DECISIONS.md`, `docs/AUDIT.md`, `docs/PLAN.md`, `docs/WALKTHROUGH.md`.
+  - `AGENTS.md`, `docs/SCOPE.md`, `DECISIONS.md`, `docs/AUDIT.md`, `docs/PLAN.md`, `docs/WALKTHROUGH.md`, `docs/BASELINE.md`.
 - **Tests Added/Removed**: None.
 - **Risks**: None (no production or test code modified).
 - **Status**: **COMPLETE (Approved with corrections incorporated)**.
@@ -48,102 +55,144 @@ Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
 
 ## Phase 2: Cut Change Governance & Approval Workflow
 - **Goal**: Remove all change governance concepts (`CHANGE` task type, risk levels, approval models, approval gates, and frontend modals) to eliminate overlap with MedVault.
-- **Database & Flyway Migration Plan (`V16`)**:
-  - **Data Conversion First**:
-    - Convert any tasks with `type = 'CHANGE'` to `'FEATURE'`:
-      `UPDATE tasks SET type = 'FEATURE' WHERE type = 'CHANGE';`
-  - **Constraint & Schema Drops**:
-    - Drop check constraint `ck_tasks_change_risk` (on `tasks`).
-    - Drop check constraint `ck_tasks_risk_level` (on `tasks`).
-    - Drop column `risk_level` from `tasks`.
-    - Update check constraint `ck_tasks_type` from `('FEATURE', 'BUG', 'CHANGE', 'TECH_DEBT')` to `('FEATURE', 'BUG', 'TECH_DEBT')`.
-    - Drop table `change_approvals` (foreign keys to `tasks` and `users`).
+- **Verified Schema Context (from `V12` and `V15`)**:
+  - `V12`: Added column `type VARCHAR(50) NOT NULL DEFAULT 'FEATURE'` to `tasks`. (No check constraint added in `V12`).
+  - `V15`: Added column `risk_level VARCHAR(50)` to `tasks`.
+  - `V15`: Added check constraint `ck_tasks_risk_level CHECK (risk_level IS NULL OR risk_level IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL'))` on `tasks`.
+  - `V15`: Added check constraint `ck_tasks_change_risk CHECK (type = 'CHANGE' OR risk_level IS NULL)` on `tasks`.
+  - `V15`: Added index `idx_tasks_risk_level ON tasks(risk_level)`.
+  - `V15`: Created table `change_approvals` with:
+    - Foreign key `fk_change_approval_task FOREIGN KEY (work_item_id) REFERENCES tasks(id) ON DELETE CASCADE`.
+    - Foreign key `fk_change_approval_user FOREIGN KEY (approver_id) REFERENCES users(id) ON DELETE CASCADE`.
+    - Check constraint `ck_change_approval_decision CHECK (decision IN ('APPROVED', 'REJECTED'))`.
+    - Index `idx_change_approvals_work_item_id ON change_approvals(work_item_id, created_at DESC)`.
+- **Database & Flyway Migration Plan (`V16__remove_change_governance.sql`)**:
+  1. **Data Inventory & Conversion First**:
+     - Inventory tasks with `type = 'CHANGE'`:
+       `SELECT id, project_id, title FROM tasks WHERE type = 'CHANGE';`
+     - Convert existing `CHANGE` tasks to `FEATURE` before restricting allowed types:
+       `UPDATE tasks SET type = 'FEATURE' WHERE type = 'CHANGE';`
+  2. **Schema & Constraint Drops (Ordered by Dependency)**:
+     - Drop dependent table `change_approvals` (no other table depends on it; avoided CASCADE):
+       `DROP TABLE IF EXISTS change_approvals;`
+     - Drop index `idx_tasks_risk_level` on `tasks`:
+       `DROP INDEX IF EXISTS idx_tasks_risk_level;`
+     - Drop check constraint `ck_tasks_change_risk` from `tasks`:
+       `ALTER TABLE tasks DROP CONSTRAINT IF EXISTS ck_tasks_change_risk;`
+     - Drop check constraint `ck_tasks_risk_level` from `tasks`:
+       `ALTER TABLE tasks DROP CONSTRAINT IF EXISTS ck_tasks_risk_level;`
+     - Drop column `risk_level` from `tasks`:
+       `ALTER TABLE tasks DROP COLUMN IF EXISTS risk_level;`
+  3. **Add Enforcing Check Constraint for In-Scope Types**:
+     - Enforce only valid types (`FEATURE`, `BUG`, `TECH_DEBT`) on `tasks`:
+       `ALTER TABLE tasks ADD CONSTRAINT ck_tasks_type CHECK (type IN ('FEATURE', 'BUG', 'TECH_DEBT'));`
   - > [!CAUTION]
-    > **User Gate**: Present migration `V16__remove_change_governance.sql` and ask for explicit approval before executing.
+    > **User Gate**: Present migration `V16__remove_change_governance.sql` and data inventory. Await explicit user approval before execution.
 - **Seed Data Changes**:
-  - In `DataSeeder.java`: Remove any seeded work items with `type = WorkItemType.CHANGE`, remove `riskLevel` setters, and remove `change_approvals` seeding.
+  - In `DataSeeder.java`: Remove seeding of work items with `type = WorkItemType.CHANGE`, remove `riskLevel` configurations, and remove `change_approvals` seeding.
 - **Application Code Changes**:
   - Backend:
     - Remove package `com.agiletrack.backend.approval` (`ChangeApproval`, `ChangeApprovalService`, `ChangeRiskPolicy`, `ChangeApprovalRepository`, `ApprovalController`, DTOs).
     - Remove `CHANGE` from `WorkItemType` enum (`FEATURE`, `BUG`, `TECH_DEBT` remain).
-    - Remove `riskLevel` field and methods from `Task` entity and DTOs (`TaskResponse`, `CreateTaskRequest`, `UpdateTaskRequest`, `TaskMapper`).
+    - Remove `riskLevel` from `Task` entity and DTOs (`TaskResponse`, `CreateTaskRequest`, `UpdateTaskRequest`, `TaskMapper`).
     - Remove `APPROVAL_REQUIRED` from `ReadinessReasonCode` and `ReadinessService.calculateReadiness()`.
   - Frontend:
     - Delete `ApprovalModal.tsx` and `approvalService.ts`.
     - Remove approval buttons and badges from `TaskBoard.tsx`, `TaskCard.tsx`, `ReleaseDetail.tsx`.
-    - Update TypeScript types in `types/index.ts` to remove `CHANGE`, `RiskLevel`, and `ChangeApproval`.
+    - Update TypeScript definitions in `types/index.ts` to remove `CHANGE`, `RiskLevel`, and `ChangeApproval`.
 - **Tests Added/Removed**:
-  - Removed backend: `ApprovalIntegrationTest` (6 tests), `ApprovalConcurrencyIntegrationTest` (2 tests), `ChangeRiskPolicyTest` (6 tests). Total = 14 tests.
-  - Removed frontend: `ApprovalModal.test.tsx` (9 tests), `approvalService.test.ts` (3 tests). Total = 12 tests.
-  - Updated: `WorkItemTypeIntegrationTest`, `ReadinessIntegrationTest`, `EndToEndIntegrationTest` to remove `CHANGE` references.
-- **Risks**: Medium. Touching `Task` DTOs requires updating all construction call sites across integration tests.
+  - Removed backend: `ApprovalIntegrationTest` (6), `ApprovalConcurrencyIntegrationTest` (2), `ChangeRiskPolicyTest` (6) = 14 tests.
+  - Removed frontend: `ApprovalModal.test.tsx` (9), `approvalService.test.ts` (3) = 12 tests.
+  - Updated: `WorkItemTypeIntegrationTest`, `ReadinessIntegrationTest`, `EndToEndIntegrationTest` to remove `CHANGE` setup.
+- **Risks**: Medium. Multiple DTO signatures modified; all construction sites across integration tests must be updated cleanly.
 - **Status**: PENDING.
 
 ---
 
 ## Phase 3: Cut Cancelled Release State & RELEASE_CANCELLED Gate
 - **Goal**: Align release lifecycle strictly with v1 scope (`PLANNED -> IN_PROGRESS -> RELEASED`). Remove `CANCELLED` state and `RELEASE_CANCELLED` gate.
-- **Database & Flyway Migration Plan (`V17`)**:
-  - **Data Conversion First**:
-    - Delete any cancelled releases or transition to planned if needed:
-      `DELETE FROM releases WHERE lifecycle_state = 'CANCELLED';`
-  - **Constraint Drops & Updates**:
-    - Drop check constraint `ck_releases_lifecycle_state` on `releases`.
-    - Add check constraint:
-      `ALTER TABLE releases ADD CONSTRAINT ck_releases_lifecycle_state CHECK (lifecycle_state IN ('PLANNED', 'IN_PROGRESS', 'RELEASED'));`
+- **Verified Schema Context (from `V13`)**:
+  - `V13`: Table `releases` created with column `lifecycle_state VARCHAR(50) NOT NULL DEFAULT 'PLANNED'`.
+  - `V13`: Index `idx_releases_lifecycle_state ON releases(lifecycle_state)`.
+  - `V13`: Table `tasks` has foreign key `fk_task_release FOREIGN KEY (release_id) REFERENCES releases(id) ON DELETE SET NULL`.
+  - Note: `V13` did not include a check constraint on `lifecycle_state`.
+- **Mandatory Data Inventory & Decision Gate**:
+  - **Step 1: Inventory Existing Cancelled Releases**:
+    Query and report all existing rows in `CANCELLED` state:
+    `SELECT id, name, release_version, project_id, created_at FROM releases WHERE lifecycle_state = 'CANCELLED';`
+  - **Step 2: Explicit User Decision Required**:
+    Present the count and details of cancelled releases to the user. Do **not** default to automatic deletion. Wait for user's explicit decision:
+    - *Decision Option A (Delete)*: `DELETE FROM releases WHERE lifecycle_state = 'CANCELLED';` (foreign key `fk_task_release` sets `tasks.release_id = NULL` safely).
+    - *Decision Option B (Transition)*: Update cancelled releases to `PLANNED` or `RELEASED` if historical preservation is desired.
+    - *Decision Option C (Abort)*: Halt migration if unanticipated production data is present.
+- **Database & Flyway Migration Plan (`V17__remove_cancelled_release_state.sql`)**:
+  1. Execute approved data handling SQL based on user decision.
+  2. Add check constraint to enforce strictly the 3 in-scope states:
+     `ALTER TABLE releases ADD CONSTRAINT ck_releases_lifecycle_state CHECK (lifecycle_state IN ('PLANNED', 'IN_PROGRESS', 'RELEASED'));`
   - > [!CAUTION]
-    > **User Gate**: Present migration `V17__remove_cancelled_release_state.sql` and ask for explicit approval before executing.
+    > **User Gate**: Present migration `V17__remove_cancelled_release_state.sql` and inventory results. Await explicit approval before execution.
 - **Seed Data Changes**:
-  - In `DataSeeder.java`: Remove seeding of any release in `CANCELLED` state.
+  - In `DataSeeder.java`: Remove seeding of any release in `CANCELLED` state (seed only `PLANNED`, `IN_PROGRESS`, and `RELEASED`).
 - **Application Code Changes**:
   - Backend:
     - Remove `CANCELLED` from `ReleaseLifecycleState` enum.
-    - Update `ReleaseLifecycleState.canTransitionTo()` to allow only `PLANNED -> IN_PROGRESS` and `IN_PROGRESS -> RELEASED`.
+    - Update `ReleaseLifecycleState.canTransitionTo()`: allow only `PLANNED -> IN_PROGRESS` and `IN_PROGRESS -> RELEASED`.
     - Remove `RELEASE_CANCELLED` from `ReadinessReasonCode` and `ReadinessService.calculateReadiness()`.
-    - Update `ReleaseService.deleteRelease()`: only allowed while `PLANNED`.
+    - Update `ReleaseService.deleteRelease()`: deletion strictly allowed while `PLANNED`.
   - Frontend:
     - Remove `CANCELLED` state handling and badges from `ReleaseDetail.tsx`, `ReleaseList.tsx`, `types/index.ts`.
 - **Tests Added/Removed**:
   - Removed/Updated: Remove `cancelledIsTerminal` in `ReleaseIntegrationTest.java` and `cancelledRelease()` in `ReadinessIntegrationTest.java`.
-- **Risks**: Low. Clean enum and state machine reduction.
+- **Risks**: Low. State machine reduction simplifies lifecycle transitions.
 - **Status**: PENDING.
 
 ---
 
 ## Phase 4: Cut Task Activity & Audit Trail
 - **Goal**: Remove task activity history tracking and the activity timeline endpoint, as MedVault owns the auditing narrative.
-- **Database & Flyway Migration Plan (`V18`)**:
-  - **Schema Drops**:
-    - Drop table `task_activities`:
-      `DROP TABLE IF EXISTS task_activities CASCADE;`
+- **Verified Schema Context (from `V10`)**:
+  - `V10`: Table `task_activities` created with:
+    - Foreign key `task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE`.
+    - Foreign key `user_id UUID NOT NULL REFERENCES users(id)`.
+    - Index `idx_task_activities_task_id ON task_activities(task_id)`.
+  - Note: No other tables reference `task_activities`.
+- **Database & Flyway Migration Plan (`V18__remove_task_activities.sql`)**:
+  1. Drop table `task_activities` without CASCADE:
+     `DROP TABLE IF EXISTS task_activities;`
   - > [!CAUTION]
-    > **User Gate**: Present migration `V18__remove_task_activities.sql` and ask for explicit approval before executing.
+    > **User Gate**: Present migration `V18__remove_task_activities.sql`. Await explicit approval before execution.
 - **Seed Data Changes**:
   - In `DataSeeder.java`: Remove seeding of task activity records.
 - **Application Code Changes**:
   - Backend:
-    - Remove `TaskActivityRecorder` calls in `TaskService` and `ReleaseService`.
+    - Remove `TaskActivityRecorder` invocations in `TaskService` and `ReleaseService`.
     - Delete `TaskActivity.java`, `TaskActivityRepository.java`, `TaskActivityRecorder.java`, `ActivityType.java`.
     - Remove `GET /tasks/{taskId}/activities` endpoint from `TaskController`.
   - Frontend:
-    - Remove activity history references/components if present.
+    - Remove activity history components and views if present.
 - **Tests Added/Removed**:
   - Removed: Delete `TaskActivityIntegrationTest.java` (2 tests).
-  - Updated: Remove assertions in `ReleaseIntegrationTest.java:addAndRemove_areAudited()`.
-- **Risks**: Low. Simplifies task and release transactions by removing audit table inserts.
+  - Updated: Remove activity assertions in `ReleaseIntegrationTest.java:addAndRemove_areAudited()`.
+- **Risks**: Low. Removes non-domain side effects from task mutations.
 - **Status**: PENDING.
 
 ---
 
 ## Phase 5: Cut Refresh Token Rotation
 - **Goal**: Keep authentication strictly minimal (stateless access tokens + BCrypt passwords), eliminating refresh tokens and rotation endpoints.
-- **Database & Flyway Migration Plan (`V19`)**:
-  - **Schema Drops**:
-    - Drop table `refresh_tokens`:
-      `DROP TABLE IF EXISTS refresh_tokens CASCADE;`
+- **Verified Schema Context (from `V7` and `V9`)**:
+  - `V7`: Table `refresh_tokens` created with:
+    - Foreign key `user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE`.
+    - Unique constraint on `token VARCHAR(255)`.
+    - Indexes `idx_refresh_tokens_token`, `idx_refresh_tokens_user_id`.
+  - `V9`: Cleared existing refresh tokens.
+  - Note: No other tables reference `refresh_tokens`.
+- **Database & Flyway Migration Plan (`V19__remove_refresh_tokens.sql`)**:
+  1. Drop table `refresh_tokens` without CASCADE:
+     `DROP TABLE IF EXISTS refresh_tokens;`
   - > [!CAUTION]
-    > **User Gate**: Present migration `V19__remove_refresh_tokens.sql` and ask for explicit approval before executing.
-- **Seed Data Changes**: None (refresh tokens are transient session entities).
+    > **User Gate**: Present migration `V19__remove_refresh_tokens.sql`. Await explicit approval before execution.
+- **Seed Data Changes**: None (refresh tokens are runtime session entities).
 - **Application Code Changes**:
   - Backend:
     - Delete `RefreshToken.java`, `RefreshTokenRepository.java`, `RefreshTokenService.java`, `TokenRefreshException.java`.
@@ -159,54 +208,76 @@ Work proceeds strictly in sequential, reviewable phases on branch `scope-v1`.
 ---
 
 ## Phase 6: Simplify Roles to Owner and Member
-- **Goal**: Consolidate roles to `OWNER` (manages workspace settings and members) and `MEMBER` (creates and edits work items, releases, dependencies), removing `ADMIN` and `VIEWER`.
-- **Database & Flyway Migration Plan (`V20`)**:
-  - **Role Mapping & Data Conversion**:
-    - Map existing roles:
-      - `ADMIN` $\rightarrow$ `OWNER`
-      - `VIEWER` $\rightarrow$ `MEMBER`
-    - SQL:
-      ```sql
-      UPDATE workspace_members SET role = 'OWNER' WHERE role = 'ADMIN';
-      UPDATE workspace_members SET role = 'MEMBER' WHERE role = 'VIEWER';
-      ```
-  - **Constraint Drops & Updates**:
-    - Add check constraint:
-      `ALTER TABLE workspace_members ADD CONSTRAINT ck_workspace_members_role CHECK (role IN ('OWNER', 'MEMBER'));`
+- **Goal**: Consolidate roles to `OWNER` (manages workspace settings and members) and `MEMBER` (creates and edits work items, releases, dependencies), eliminating `ADMIN` and `VIEWER`.
+- **Verified Schema & Business Logic Invariants (from `V2` and `WorkspaceService`)**:
+  - `V2`: Table `workspaces` has `owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE`.
+  - `V2`: Table `workspace_members` has `role VARCHAR(50) NOT NULL` and `uk_workspace_user UNIQUE (workspace_id, user_id)`.
+  - **Single Owner Invariant Verified**: In `WorkspaceService.java`:
+    - `workspaces.owner_id` uniquely identifies the workspace owner.
+    - `inviteMember()` explicitly throws `BusinessRuleException("Cannot assign OWNER role via invitation")`.
+    - `removeMember()` explicitly throws `BusinessRuleException("Cannot remove the workspace owner")`.
+    - **Conclusion**: Multiple `OWNER` memberships per workspace are **INVALID** in AgileTrack's domain model.
+- **Privilege Consequences of Role Mappings**:
+  1. **Mapping `ADMIN`**:
+     - *If `ADMIN -> OWNER`*: **Rejected**. Violates the single-owner invariant and causes multiple owner rows per workspace.
+     - *If `ADMIN -> MEMBER` (Recommended)*: **Adheres to least privilege**. `ADMIN` users lose the ability to manage workspace members and settings, but retain full permissions to create and edit work items, releases, and dependencies as `MEMBER`.
+  2. **Mapping `VIEWER`**:
+     - *If `VIEWER -> MEMBER`*: **Expands privileges**. Previously read-only users would gain write permissions to create, update, and delete work items, releases, and dependencies.
+     - *Alternative*: Revoke/remove `VIEWER` memberships so read-only accounts do not gain unintended write access, requiring explicit re-invitation by the workspace owner as `MEMBER`.
+  - > [!IMPORTANT]
+    > **Mandatory Inventory & Approval Step**:
+    > Before applying migration `V20`:
+    > 1. Run inventory query:
+    >    `SELECT wm.id, wm.workspace_id, u.email, wm.role FROM workspace_members wm JOIN users u ON wm.user_id = u.id WHERE wm.role IN ('ADMIN', 'VIEWER');`
+    > 2. Present inventory results to the user.
+    > 3. Require explicit user approval for:
+    >    - Mapping `ADMIN -> MEMBER` (least privilege).
+    >    - Handling `VIEWER` (mapping to `MEMBER` vs. removing membership).
+- **Database & Flyway Migration Plan (`V20__simplify_workspace_roles.sql`)**:
+  1. Execute data conversion based on user decision:
+     ```sql
+     -- Apply least privilege mapping for ADMIN
+     UPDATE workspace_members SET role = 'MEMBER' WHERE role = 'ADMIN';
+
+     -- Apply approved VIEWER handling (e.g. UPDATE to 'MEMBER' or DELETE based on user instruction)
+     UPDATE workspace_members SET role = 'MEMBER' WHERE role = 'VIEWER';
+     ```
+  2. Add check constraint enforcing only `OWNER` and `MEMBER`:
+     `ALTER TABLE workspace_members ADD CONSTRAINT ck_workspace_members_role CHECK (role IN ('OWNER', 'MEMBER'));`
   - > [!CAUTION]
-    > **User Gate**: Present migration `V20__simplify_workspace_roles.sql` and ask for explicit approval before executing.
+    > **User Gate**: Present migration `V20__simplify_workspace_roles.sql` and await explicit approval before execution.
 - **Seed Data Changes**:
-  - In `DataSeeder.java`: Update all seeded workspace members to `OWNER` or `MEMBER`.
+  - In `DataSeeder.java`: Seed only `OWNER` and `MEMBER` roles.
 - **Application Code Changes**:
   - Backend:
     - Update `WorkspaceRole` enum to contain only `OWNER` and `MEMBER`.
     - Simplify `WorkspaceService` authorization checks:
-      - `getWorkspaceForUser()`: verifies caller is a member (`OWNER` or `MEMBER`).
-      - `getWorkspaceForMutation()`: all members can create/edit work items, releases, dependencies.
-      - Member management (`addMember`, `removeMember`, `updateWorkspace`): strictly restricted to `OWNER`.
+      - `getWorkspaceForUser()`: verifies membership (`OWNER` or `MEMBER`).
+      - `getWorkspaceForMutation()`: all verified members can mutate tasks, releases, dependencies.
+      - Member management (`inviteMember`, `removeMember`, `updateWorkspace`): strictly restricted to `OWNER`.
   - Frontend:
-    - Update role dropdowns and member management modals to offer only `OWNER` and `MEMBER`.
+    - Update member management modals and role selectors to display only `OWNER` and `MEMBER`.
 - **Tests Added/Removed**:
-  - Updated: `WorkspaceAuthorizationIntegrationTest.java` and `ReleaseIntegrationTest.java` to test `OWNER` and `MEMBER`, removing `VIEWER` and `ADMIN` specific tests.
-- **Risks**: Low-Medium. Must ensure `OWNER` retains exclusive membership management rights while `MEMBER` can edit work items and releases.
+  - Updated: `WorkspaceAuthorizationIntegrationTest.java` and `ReleaseIntegrationTest.java` to assert `OWNER` and `MEMBER` permissions, removing `ADMIN` and `VIEWER` specific tests.
+- **Risks**: Medium. Must verify that `OWNER` retains exclusive membership management rights while `MEMBER` can edit work items and releases.
 - **Status**: PENDING.
 
 ---
 
 ## Phase 7: Access-Token Lifetime Configuration
-- **Goal**: Configure the stateless access-token lifetime after the removal of refresh tokens, documenting the security vs. usability trade-off.
+- **Goal**: Configure the stateless access-token lifetime following refresh-token removal, documenting the security vs. usability trade-off.
 - **Proposed Lifetime**:
   - **60 minutes (1 hour)** for production deployments (`JWT_EXPIRATION=3600000`).
   - (Default development profile retains 24 hours for developer ergonomics).
 - **Checklist**:
   - [ ] Set default production JWT expiration to 1 hour in `application.yaml` / Docker environment.
-  - [ ] Add architectural trade-off note to README:
+  - [ ] Add architectural trade-off note to `README.md`:
     > *Trade-off*: Without refresh-token rotation, access tokens are stateless and cannot be revoked before expiry. Setting a 60-minute lifetime balances user convenience (avoiding re-login interruptions during active delivery planning) against bounded exposure in the event of token interception.
-  - [ ] Verify `JwtService` and `AuthService` test cases for token issuance and expiration.
+  - [ ] Verify `JwtService` and `AuthServiceTest` test cases for token issuance and expiration.
 - **Files Likely Touched**:
-  - `backend/src/main/resources/application.yaml`, `README.md`.
+  - `backend/src/main/resources/application.yaml`, `README.md`, `AuthServiceTest.java`.
 - **Tests Added/Removed**:
-  - Unit test in `AuthServiceTest` asserting expiration header / lifetime configuration.
+  - Unit test in `AuthServiceTest` asserting expiration lifetime configuration.
 - **Risks**: None. Pure configuration and documentation.
 - **Status**: PENDING.
 
