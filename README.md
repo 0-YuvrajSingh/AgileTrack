@@ -323,8 +323,9 @@ A `PerformanceBenchmarkTest` exists but is tagged `benchmark` and excluded from 
 ## Security
 
 - **Passwords** — BCrypt: salted and deliberately slow, because human-chosen passwords are low-entropy.
-- **Refresh tokens** — stored as SHA-256 hashes and rotated on use. SHA-256 rather than BCrypt because the tokens are high-entropy random values and the server needs an indexed lookup; BCrypt's per-call salt makes `WHERE hash = ?` impossible.
+- **No refresh tokens** — authentication is register/login plus a stateless JWT access token. There is no silent renewal: when the access token expires, the user re-authenticates with email and password.
 - **Access tokens** — validated statelessly on every request. The `prod` profile defaults to a 15-minute lifetime; the default profile defaults to 24 hours. `docker-compose.yml` uses the 15-minute default; **set `JWT_EXPIRATION` explicitly for any real deployment** rather than relying on defaults.
+  > *Trade-off*: Without refresh-token rotation, access tokens are stateless and cannot be revoked before expiry. Setting a short lifetime balances user convenience (avoiding re-login interruptions during active delivery planning) against bounded exposure in the event of token interception.
 - **Authorization** — enforced in the service layer against the parent chain, never by the presence of a UUID and never by the UI.
 - **SQL injection** — parameterized throughout via Spring Data JPA.
 - **CORS** — production reads a single permitted origin from `FRONTEND_ORIGIN`; no hardcoded localhost fallbacks in the prod profile.

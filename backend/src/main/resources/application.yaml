@@ -29,8 +29,6 @@ spring:
 jwt:
   secret: ${JWT_SECRET:c2VjcmV0S2V5Rm9yQWdpbGVUcmFja0FwcGxpY2F0aW9uVGVzdGluZ1B1cnBvc2VzMzJCeXRlc01pbmltdW0=}
   expiration: ${JWT_EXPIRATION:86400000}
-  refresh:
-    expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
 app:
   cors:
