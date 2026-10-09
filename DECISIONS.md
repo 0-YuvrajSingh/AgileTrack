@@ -7,16 +7,10 @@ Every entry contains an ID, date, status (`ACCEPTED`, `OPEN`, `REJECTED`), the d
 
 ### D1: Workspace Layer Above Projects
 - **Date**: 2026-10-09
-- **Status**: OPEN
-- **Decision**: Determine whether to retain or remove the top-level `Workspace` entity container.
-  - **Option A (Remove)**: Refactor entities, controllers, URLs, security checks, and frontend to make `Project` the top-level container owned directly by a user.
-    - *Effort*: Very High (>40 files touched across backend, frontend, migrations, and test suites).
-    - *Risk*: High risk of introducing subtle regressions in tenant authorization and routing.
-  - **Option B (Retain - Recommended)**: Retain the `Workspace` layer as an organizational boundary. Describe it in one line in the README as a multi-project container and do not market it.
-    - *Effort*: Zero code changes.
-    - *Risk*: Low. Complies directly with the Scope Freeze rule: *"If the refactor is too big, keep the layer, describe it in one line in the README, and do not market it."*
-- **Recommendation**: ACCEPT Option B. Retaining the existing entity model avoids destabilizing working tenant authorization while keeping v1 clean.
-- **Consequences**: Awaits user approval.
+- **Status**: ACCEPTED
+- **Decision**: Keep the workspace layer (`User -> Workspace -> Project -> Task/Release`). Add one factual sentence to the README explaining that projects belong to workspaces, update `docs/SCOPE.md` to describe Owner and Member permissions at the workspace level, and update `docs/WALKTHROUGH.md` to explain the resource hierarchy.
+- **Reason**: The current architecture, API routes, and authorization checks already rely on workspaces. Removing that layer would require breaking refactors across routing, membership, permissions, and resource access (>40 files) without domain benefit. The scope document explicitly permits retaining it when removal would require a substantial refactor: *"If the refactor is too big, keep the layer, describe it in one line in the README, and do not market it."*
+- **Consequences**: No architectural refactoring needed. Documentation reflects the real hierarchy (`Workspace` as multi-project container) without marketing it.
 
 ---
 
@@ -40,16 +34,10 @@ Every entry contains an ID, date, status (`ACCEPTED`, `OPEN`, `REJECTED`), the d
 
 ### D4: Release Requires READY Status to Become RELEASED
 - **Date**: 2026-10-09
-- **Status**: OPEN
-- **Decision**: Determine whether the state machine should strictly reject transitions to `RELEASED` if the release's derived readiness status is `NOT_READY`.
-  - **Option A (Enforce - Recommended)**: In `ReleaseService.updateLifecycle`, before transitioning a release from `IN_PROGRESS` to `RELEASED`, invoke `ReadinessService.calculateReadiness`. If the verdict is `NOT_READY`, reject the transition with `BusinessRuleException` listing the blocking reasons.
-    - *Effort*: Low (~15 lines of code in `ReleaseService`, plus integration test).
-    - *Risk*: Low. Integrates the state machine directly with the readiness engine.
-  - **Option B (Do Not Enforce)**: Keep state transition decoupled from the readiness verdict (readiness remains purely informational).
-    - *Effort*: Zero code changes.
-    - *Risk*: Misses the opportunity to make the release state machine enforce the core domain calculation.
-- **Recommendation**: ACCEPT Option A. Enforcing `READY` on `RELEASED` firmly ties the release state machine and readiness calculation together into a single cohesive story.
-- **Consequences**: Awaits user approval.
+- **Status**: ACCEPTED
+- **Decision**: Require `READY` status before allowing a transition from `IN_PROGRESS` to `RELEASED`.
+- **Reason**: This directly connects the two central mechanisms of AgileTrack: the release state machine and the derived readiness calculation engine. A release should not be allowed to ship while any gate (empty release, incomplete work, or unresolved blockers) is firing.
+- **Consequences**: In `ReleaseService.updateLifecycle`, when target state is `RELEASED`, the service will call `ReadinessService.calculateReadiness(workspaceId, projectId, releaseId)`. If status is `NOT_READY`, transition is rejected with `BusinessRuleException` including the blocking reasons. Tested for both `NOT_READY` rejection and `READY` acceptance. Applied strictly to this transition rule without introducing approvals or other lifecycle bloat.
 
 ---
 

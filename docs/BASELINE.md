@@ -1,4 +1,7 @@
-# Phase 0 — Baseline Freeze
+# Phase 0 — Baseline Freeze (HISTORICAL)
+
+> [!NOTE]
+> **HISTORICAL ARCHIVE**: This document is an immutable historical record from the initial repository baseline (recording 11 migrations and 88 passing tests before the Phase 1–6 specialization). For the authoritative v1 scope and current baseline audit (15 migrations, 284 passing tests), see [docs/SCOPE.md](file:///c:/Users/uvi58/OneDrive/Documents/AgileTrack/docs/SCOPE.md) and [docs/AUDIT.md](file:///c:/Users/uvi58/OneDrive/Documents/AgileTrack/docs/AUDIT.md).
 
 Recorded before any domain change toward the engineering-delivery specialization.
 Tag: `phase-0-baseline`. Work branch: `feature/engineering-delivery`.

@@ -33,8 +33,8 @@ AgileTrack owns the domain-logic and algorithms story. MedVault owns access cont
 | Area | What is Included |
 |---|---|
 | **Accounts** | Register, login, JWT access token, BCrypt passwords |
-| **Roles (minimal)** | `Owner` (manages project and its members) and `Member` (creates and edits work) |
-| **Projects** | Create, edit, and list projects |
+| **Workspaces & Projects** | Workspaces serve as collaboration containers grouping projects and members. Create, edit, and list workspaces and projects |
+| **Roles (minimal)** | `Owner` (manages workspace settings, projects, and members) and `Member` (creates and edits work items, releases, and dependencies) |
 | **Work items** | Types: `FEATURE`, `BUG`, `TECH_DEBT`; Status: `TODO`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`; priority; assignee; simple board view |
 | **Releases** | Name, version, target date; lifecycle: `PLANNED`, `IN_PROGRESS`, `RELEASED`; scope freezes once a release leaves `PLANNED` |
 | **Dependencies** | "A blocks B" between work items of the same project; cycles rejected with the path shown; a blocked item cannot move to `DONE` |
@@ -65,7 +65,7 @@ AgileTrack owns the domain-logic and algorithms story. MedVault owns access cont
 | From | To | Rule |
 |---|---|---|
 | `PLANNED` | `IN_PROGRESS` | Allowed. **Scope freezes**: work items can no longer be added to or removed from the release. |
-| `IN_PROGRESS` | `RELEASED` | Allowed. `RELEASED` is terminal. (See open decision D4 regarding enforcing `READY`). |
+| `IN_PROGRESS` | `RELEASED` | Allowed only when readiness verdict is `READY` (Decision D4). `RELEASED` is terminal. |
 | Any other move | Any | **Rejected**, including backwards transitions. |
 
 *Note: While a release is not `RELEASED`, its own metadata fields (name, version, target date) remain editable. Only its work item scope is frozen.*
@@ -73,9 +73,9 @@ AgileTrack owns the domain-logic and algorithms story. MedVault owns access cont
 ### Permissions Matrix
 | Role | Can | Cannot |
 |---|---|---|
-| **Owner** | Everything a Member can do, plus manage project settings and members | Access projects they do not belong to |
-| **Member** | Create and edit work items, releases, and dependencies in their project | Manage project members; access other projects |
-| **Non-member** | Nothing. Requests for another project's data return HTTP 404 | Any access |
+| **Owner** | Everything a Member can do, plus manage workspace settings, projects, and workspace members | Access workspaces they do not belong to |
+| **Member** | Create and edit work items, releases, and dependencies in projects within their workspace | Manage workspace members; access other workspaces |
+| **Non-member** | Nothing. Direct requests targeting a foreign workspace return HTTP 403; requests for non-existent or foreign entities under own workspace return HTTP 404 | Any access |
 
 ---
 
@@ -87,8 +87,8 @@ AgileTrack owns the domain-logic and algorithms story. MedVault owns access cont
 4. **Same-Project Release Assignment**: A work item can join only a release within the same project.
 5. **Release Scope Lock**: Release scope is locked permanently once the release leaves `PLANNED`.
 6. **Stateless Derived Readiness**: Release readiness is strictly read-only and computed on request. It possesses no write endpoint.
-7. **Strict Project Isolation**: A user can access and mutate only projects they belong to, with their verified role.
-8. **Simple Bounded Cycle Detection**: Before saving a new "A blocks B" edge, search from B back toward A using depth-first search (DFS). If A is reached, the edge closes a loop and is rejected. The traversal is bounded (depth and node limit) to eliminate DoS risk. No third-party graph libraries.
+7. **Strict Tenant & Workspace Isolation**: A user can access and mutate only workspaces and projects they belong to, with their verified role.
+8. **Simple Bounded Cycle Detection (BFS)**: Before saving a proposed "A blocks B" edge, perform a Breadth-First Search (BFS) starting at B searching for A over existing outgoing `BLOCKS` edges. Traversal expands level-by-level across a frontier set using batched SQL queries (`findEdgesBySourceIds`), so database round-trips are bounded by depth ($O(\text{depth}) \le 100$ queries) rather than node count. Traversal enforces hard ceilings: max depth 100 and max 10,000 visited nodes. If either ceiling is exceeded, a `BusinessRuleException` is thrown to fail closed rather than risk a runaway scan. In-memory time complexity is $O(V + E)$ and space is $O(V)$ for `visited`, `frontier`, and `cameFrom` maps. No graph library is used.
 
 ---
 
@@ -101,26 +101,18 @@ AgileTrack owns the domain-logic and algorithms story. MedVault owns access cont
 | **Activity and audit trail** | MedVault owns the audit story. |
 | **Refresh-token rotation** | MedVault owns auth depth; AgileTrack keeps auth minimal (stateless access token). |
 | **Viewer and Admin role split** | `Owner` and `Member` provide sufficient granularity. |
-| **Million-row benchmark test & search-index write-up** | Distracts from the core domain story. |
-| **`INTERVIEW_PREP.md` and `CONTRIBUTING.md`** | Extraneous repository files that do not belong in production codebases. |
+| **Million-row benchmark test & search-index write-up** | Distracts from the core domain story. Removed in Phase 1. |
+| **`INTERVIEW_PREP.md` and `CONTRIBUTING.md`** | Extraneous repository files that do not belong in production codebases. Removed in Phase 1. |
 | **More dashboards, roles, gates, or dependency types; UI release editing; real-time updates; caching; graph caching; distributed locking; event-driven messaging; notifications** | Dilute the central story. Strictly out of scope for v1. |
 
 ---
 
-## 8. Open Decisions (Settle Before Freezing)
+## 8. Decisions (Settled)
 
-- **D1. Workspace layer above projects**:
-  - *Default*: Remove it. A project is owned by a user and has members.
-  - *Rule*: If the refactor is too large, keep the layer, describe it in one line in the README, and do not market it.
-- **D2. Optimistic locking (409 on stale save)**:
-  - *Default*: Keep only if it works today.
-  - *Rule*: Must be able to explain how `@Version` travels from client to DB check.
-- **D3. Portfolio dashboard page**:
-  - *Default*: Freeze it. No further development.
-  - *Rule*: The release detail page is the primary screen.
-- **D4. A release can become RELEASED only if its readiness is READY**:
-  - *Default*: Check what code does today.
-  - *Rule*: If not present, evaluate as a small addition tying the state machine and readiness together.
+- **D1. Workspace layer above projects**: **ACCEPTED**. Retained as the collaboration container (`User -> Workspace -> Project -> Task/Release`). Described in one line in the README; not marketed.
+- **D2. Optimistic locking (409 on stale save)**: **ACCEPTED**. Retained and verified working end-to-end via JPA `@Version`.
+- **D3. Portfolio dashboard page**: **ACCEPTED**. Frozen as read-only. The release detail page is the primary cockpit.
+- **D4. A release can become RELEASED only if its readiness is READY**: **ACCEPTED**. Enforced in `ReleaseService.updateLifecycle` to tie the release lifecycle directly to the readiness calculation engine.
 
 ---
 
