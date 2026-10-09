@@ -130,6 +130,15 @@ describe('ReleaseDetail', () => {
     expect(screen.queryByRole('button', { name: /Cancel release/i })).not.toBeInTheDocument();
   });
 
+  it('disables the Release action while readiness is NOT READY', () => {
+    setRelease({ lifecycleState: 'IN_PROGRESS', scopeLocked: true });
+    renderComponent();
+
+    const releaseButton = screen.getByRole('button', { name: /Move to Released/i });
+    expect(releaseButton).toBeDisabled();
+    expect(releaseButton).toHaveAttribute('title', expect.stringContaining('Readiness'));
+  });
+
   it('sends the version it read when changing lifecycle state', async () => {
     vi.mocked(releaseService.updateLifecycle).mockResolvedValueOnce({} as any);
 

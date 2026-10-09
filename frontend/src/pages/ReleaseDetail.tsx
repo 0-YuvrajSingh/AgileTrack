@@ -168,17 +168,23 @@ const ReleaseDetail: React.FC = () => {
 
         {canMutate && NEXT_STATES[release.lifecycleState].length > 0 && (
           <div className="flex gap-2">
-            {NEXT_STATES[release.lifecycleState].map(next => (
-              <Button
-                key={next}
-                size="sm"
-                variant="primary"
-                disabled={busy}
-                onClick={() => changeLifecycle(next)}
-              >
-                {`Move to ${LIFECYCLE_LABEL[next]}`}
-              </Button>
-            ))}
+            {NEXT_STATES[release.lifecycleState].map(next => {
+              // D4: the server rejects IN_PROGRESS -> RELEASED while NOT_READY.
+              // Mirror that rule so the UI only offers moves that will be accepted.
+              const blockedByReadiness = next === 'RELEASED' && readiness?.status !== 'READY';
+              return (
+                <Button
+                  key={next}
+                  size="sm"
+                  variant="primary"
+                  disabled={busy || blockedByReadiness}
+                  title={blockedByReadiness ? `Readiness: ${readiness?.reasons.length ?? 0} open reason(s)` : undefined}
+                  onClick={() => changeLifecycle(next)}
+                >
+                  {`Move to ${LIFECYCLE_LABEL[next]}`}
+                </Button>
+              );
+            })}
           </div>
         )}
       </div>

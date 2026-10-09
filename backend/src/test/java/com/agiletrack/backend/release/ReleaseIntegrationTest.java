@@ -311,6 +311,47 @@ class ReleaseIntegrationTest extends AbstractIntegrationTest {
         }
 
         @Test
+        @DisplayName("IN_PROGRESS cannot become RELEASED while readiness is NOT_READY")
+        void inProgressToReleased_whileNotReady_isRejected() throws Exception {
+            mockMvc.perform(put(releaseUrl() + "/work-items/" + taskId)
+                            .header("Authorization", "Bearer " + memberToken))
+                    .andExpect(status().isOk());
+            moveTo(ReleaseLifecycleState.IN_PROGRESS);
+
+            mockMvc.perform(patch(releaseUrl() + "/lifecycle")
+                            .header("Authorization", "Bearer " + memberToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(lifecycleBody(ReleaseLifecycleState.RELEASED, null)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message", org.hamcrest.Matchers.containsString("NOT_READY")));
+
+            assertThat(storedRelease().getLifecycleState()).isEqualTo(ReleaseLifecycleState.IN_PROGRESS);
+        }
+
+        @Test
+        @DisplayName("IN_PROGRESS becomes RELEASED once every work item is DONE and unblocked")
+        void inProgressToReleased_whenReady_succeeds() throws Exception {
+            com.agiletrack.backend.task.entity.Task task =
+                    taskRepository.findById(taskId).orElseThrow();
+            task.setStatus(com.agiletrack.backend.task.entity.TaskStatus.DONE);
+            taskRepository.saveAndFlush(task);
+
+            mockMvc.perform(put(releaseUrl() + "/work-items/" + taskId)
+                            .header("Authorization", "Bearer " + memberToken))
+                    .andExpect(status().isOk());
+            moveTo(ReleaseLifecycleState.IN_PROGRESS);
+
+            mockMvc.perform(patch(releaseUrl() + "/lifecycle")
+                            .header("Authorization", "Bearer " + memberToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(lifecycleBody(ReleaseLifecycleState.RELEASED, null)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.lifecycleState").value("RELEASED"));
+
+            assertThat(storedRelease().getLifecycleState()).isEqualTo(ReleaseLifecycleState.RELEASED);
+        }
+
+        @Test
         @DisplayName("RELEASED is terminal — it cannot be reopened")
         void releasedIsTerminal() throws Exception {
             moveTo(ReleaseLifecycleState.RELEASED);

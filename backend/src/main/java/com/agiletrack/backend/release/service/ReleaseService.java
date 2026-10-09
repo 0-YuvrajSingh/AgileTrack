@@ -6,6 +6,9 @@ import com.agiletrack.backend.common.exception.ReleaseNotFoundException;
 import com.agiletrack.backend.common.exception.TaskNotFoundException;
 import com.agiletrack.backend.project.entity.Project;
 import com.agiletrack.backend.project.service.ProjectService;
+import com.agiletrack.backend.readiness.dto.ReadinessReason;
+import com.agiletrack.backend.readiness.dto.ReadinessStatus;
+import com.agiletrack.backend.readiness.service.ReadinessService;
 import com.agiletrack.backend.release.dto.CreateReleaseRequest;
 import com.agiletrack.backend.release.dto.ReleaseResponse;
 import com.agiletrack.backend.release.dto.UpdateReleaseLifecycleRequest;
@@ -20,6 +23,7 @@ import com.agiletrack.backend.task.mapper.TaskMapper;
 import com.agiletrack.backend.task.repository.TaskRepository;
 import com.agiletrack.backend.workspace.service.WorkspaceService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Release lifecycle and scope rules.
@@ -45,6 +50,9 @@ public class ReleaseService {
     private final WorkspaceService workspaceService;
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
+    // Resolved lazily at call time: ReadinessService itself depends on ReleaseService,
+    // so a direct constructor reference would be circular.
+    private final ObjectProvider<ReadinessService> readinessProvider;
 
     // -- commands --------------------------------------------------------------
 
@@ -100,6 +108,19 @@ public class ReleaseService {
         if (!release.canTransitionTo(request.lifecycleState())) {
             throw new BusinessRuleException("Invalid release lifecycle transition: "
                     + release.getLifecycleState() + " -> " + request.lifecycleState());
+        }
+
+        // D4: a release ships only when the derived readiness engine says READY.
+        if (request.lifecycleState() == ReleaseLifecycleState.RELEASED) {
+            var readiness = readinessProvider.getObject()
+                    .evaluate(workspaceId, projectId, releaseId);
+            if (readiness.status() != ReadinessStatus.READY) {
+                throw new BusinessRuleException(
+                        "Cannot release: release is NOT_READY. Reasons: "
+                                + readiness.reasons().stream()
+                                .map(ReadinessReason::detail)
+                                .collect(Collectors.joining("; ")));
+            }
         }
 
         release.setLifecycleState(request.lifecycleState());
