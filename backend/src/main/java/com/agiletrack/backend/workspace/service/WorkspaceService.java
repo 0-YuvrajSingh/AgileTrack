@@ -73,7 +73,7 @@ public class WorkspaceService {
 
     @Transactional
     public WorkspaceResponse update(UpdateWorkspaceRequest request, UUID id) {
-        Workspace workspace = getWorkspaceForAdmin(id);
+        Workspace workspace = getWorkspaceForOwner(id);
         workspace.setName(request.name());
         if (request.description() != null) workspace.setDescription(request.description());
         workspaceRepository.save(workspace);
@@ -89,7 +89,7 @@ public class WorkspaceService {
 
     @Transactional
     public void inviteMember(UUID workspaceId, InviteMemberRequest request) {
-        Workspace workspace = getWorkspaceForAdmin(workspaceId);
+        Workspace workspace = getWorkspaceForOwner(workspaceId);
 
         if (request.role() == WorkspaceRole.OWNER) {
             throw new BusinessRuleException("Cannot assign OWNER role via invitation");
@@ -121,24 +121,20 @@ public class WorkspaceService {
         return member.getWorkspace();
     }
 
-    public Workspace getWorkspaceForAdmin(UUID workspaceId) {
+    public Workspace getWorkspaceForOwner(UUID workspaceId) {
         WorkspaceMember member = getWorkspaceMember(workspaceId);
 
-        if (member.getRole() != WorkspaceRole.OWNER && member.getRole() != WorkspaceRole.ADMIN) {
-            throw new AccessDeniedException("Requires ADMIN or OWNER role to perform this action");
+        if (member.getRole() != WorkspaceRole.OWNER) {
+            throw new AccessDeniedException("Requires OWNER role to perform this action");
         }
 
         return member.getWorkspace();
     }
 
     public Workspace getWorkspaceForMutation(UUID workspaceId) {
-        WorkspaceMember member = getWorkspaceMember(workspaceId);
-
-        if (member.getRole() == WorkspaceRole.VIEWER) {
-            throw new AccessDeniedException("VIEWER role cannot perform this action");
-        }
-
-        return member.getWorkspace();
+        // Every verified member (OWNER or MEMBER) may mutate work items, releases and
+        // dependencies. Membership itself is the gate; getWorkspaceMember throws otherwise.
+        return getWorkspaceMember(workspaceId).getWorkspace();
     }
 
     public Workspace getWorkspaceIfMember(UUID workspaceId) {
@@ -181,7 +177,7 @@ public class WorkspaceService {
 
     @Transactional
     public void removeMember(UUID workspaceId, UUID memberId) {
-        getWorkspaceForAdmin(workspaceId);
+        getWorkspaceForOwner(workspaceId);
         WorkspaceMember member = workspaceMemberRepository.findById(memberId)
                 .orElseThrow(() -> new BusinessRuleException("Member not found"));
 

@@ -67,7 +67,6 @@ class ReleaseIntegrationTest extends AbstractIntegrationTest {
     @Autowired TaskRepository taskRepository;
 
     private String memberToken;
-    private String viewerToken;
     private String outsiderToken;
 
     private UUID workspaceId;
@@ -93,7 +92,6 @@ class ReleaseIntegrationTest extends AbstractIntegrationTest {
 
         User owner = saveUser("rel-owner@test.com");
         User member = saveUser("rel-member@test.com");
-        User viewer = saveUser("rel-viewer@test.com");
         User outsider = saveUser("rel-outsider@test.com");
 
         Workspace workspace = workspaceRepository.save(
@@ -101,7 +99,6 @@ class ReleaseIntegrationTest extends AbstractIntegrationTest {
         workspaceId = workspace.getId();
         saveMember(workspace, owner, WorkspaceRole.OWNER);
         saveMember(workspace, member, WorkspaceRole.MEMBER);
-        saveMember(workspace, viewer, WorkspaceRole.VIEWER);
 
         Project project = saveProject(workspace, "Payments");
         projectId = project.getId();
@@ -130,7 +127,6 @@ class ReleaseIntegrationTest extends AbstractIntegrationTest {
                 .project(foreignProject).build()).getId();
 
         memberToken = jwtService.generateToken(new CustomUserDetails(member));
-        viewerToken = jwtService.generateToken(new CustomUserDetails(viewer));
         outsiderToken = jwtService.generateToken(new CustomUserDetails(outsider));
     }
 
@@ -455,29 +451,6 @@ class ReleaseIntegrationTest extends AbstractIntegrationTest {
     @Nested
     @DisplayName("Authorization and isolation")
     class Isolation {
-
-        @Test
-        @DisplayName("A VIEWER can read releases but cannot create one")
-        void viewer_isReadOnly() throws Exception {
-            mockMvc.perform(get(releasesUrl()).header("Authorization", "Bearer " + viewerToken))
-                    .andExpect(status().isOk());
-
-            mockMvc.perform(post(releasesUrl())
-                            .header("Authorization", "Bearer " + viewerToken)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    { "name": "sneaky" }
-                                    """))
-                    .andExpect(status().isForbidden());
-        }
-
-        @Test
-        @DisplayName("A VIEWER cannot change release scope")
-        void viewer_cannotChangeScope() throws Exception {
-            mockMvc.perform(put(releaseUrl() + "/work-items/" + taskId)
-                            .header("Authorization", "Bearer " + viewerToken))
-                    .andExpect(status().isForbidden());
-        }
 
         @Test
         @DisplayName("A non-member cannot read a release even with the right UUIDs")

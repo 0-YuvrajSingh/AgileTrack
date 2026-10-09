@@ -87,7 +87,7 @@ public class WorkspaceController {
     }
 
     @DeleteMapping("/{id}/members/{memberId}")
-    @Operation(summary = "Remove workspace member", description = "Removes a member from the workspace. Requires ADMIN or OWNER role.")
+    @Operation(summary = "Remove workspace member", description = "Removes a member from the workspace. Requires OWNER role.")
     public ResponseEntity<Void> removeMember(
             @PathVariable UUID id,
             @PathVariable UUID memberId

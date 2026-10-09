@@ -66,7 +66,6 @@ class DependencyIntegrationTest extends AbstractIntegrationTest {
     @Autowired WorkItemDependencyRepository dependencyRepository;
 
     private String memberToken;
-    private String viewerToken;
     private String outsiderToken;
 
     private UUID workspaceId;
@@ -94,7 +93,6 @@ class DependencyIntegrationTest extends AbstractIntegrationTest {
 
         User owner = saveUser("dep-owner@test.com");
         User member = saveUser("dep-member@test.com");
-        User viewer = saveUser("dep-viewer@test.com");
         User outsider = saveUser("dep-outsider@test.com");
         memberId = member.getId();
 
@@ -103,7 +101,6 @@ class DependencyIntegrationTest extends AbstractIntegrationTest {
         workspaceId = workspace.getId();
         saveMember(workspace, owner, WorkspaceRole.OWNER);
         saveMember(workspace, member, WorkspaceRole.MEMBER);
-        saveMember(workspace, viewer, WorkspaceRole.VIEWER);
 
         Project project = saveProject(workspace, "Graph Project");
         projectId = project.getId();
@@ -118,7 +115,6 @@ class DependencyIntegrationTest extends AbstractIntegrationTest {
         foreignTaskId = saveTask(other, "Foreign").getId();
 
         memberToken = jwtService.generateToken(new CustomUserDetails(member));
-        viewerToken = jwtService.generateToken(new CustomUserDetails(viewer));
         outsiderToken = jwtService.generateToken(new CustomUserDetails(outsider));
     }
 
@@ -467,21 +463,6 @@ class DependencyIntegrationTest extends AbstractIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body(foreignTaskId)))
                     .andExpect(status().isNotFound());
-
-            assertThat(dependencyRepository.count()).isZero();
-        }
-
-        @Test
-        @DisplayName("A VIEWER cannot create a dependency but can read the graph")
-        void viewer_isReadOnly() throws Exception {
-            mockMvc.perform(post(depsUrl(b))
-                            .header("Authorization", "Bearer " + viewerToken)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(body(a)))
-                    .andExpect(status().isForbidden());
-
-            mockMvc.perform(get(depsUrl(b)).header("Authorization", "Bearer " + viewerToken))
-                    .andExpect(status().isOk());
 
             assertThat(dependencyRepository.count()).isZero();
         }

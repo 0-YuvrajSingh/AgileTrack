@@ -32,10 +32,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * Role-privilege matrix under test:
  *
- *  Operation                | MEMBER | ADMIN | OWNER
- *  Invite member            |   403  |  200  |  200
- *  Remove member            |   403  |  204  |  204
- *  Delete workspace         |   403  |  403  |  204
+ *  Operation                | MEMBER | OWNER
+ *  Invite member            |   403  |  200
+ *  Remove member            |   403  |  204
+ *  Delete workspace         |   403  |  204
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -53,7 +53,6 @@ class WorkspaceAuthorizationIntegrationTest extends com.agiletrack.backend.Abstr
     @Autowired TaskRepository taskRepository;
 
     private String ownerToken;
-    private String adminToken;
     private String memberToken;
     private UUID workspaceId;
     private UUID memberMembershipId;   // workspace_members.id for the MEMBER row
@@ -69,9 +68,6 @@ class WorkspaceAuthorizationIntegrationTest extends com.agiletrack.backend.Abstr
 
         User owner = userRepository.save(User.builder()
                 .email("owner@test.com").password("pw").role(Role.USER).build());
-
-        User admin = userRepository.save(User.builder()
-                .email("admin@test.com").password("pw").role(Role.USER).build());
 
         User member = userRepository.save(User.builder()
                 .email("member@test.com").password("pw").role(Role.USER).build());
@@ -89,15 +85,12 @@ class WorkspaceAuthorizationIntegrationTest extends com.agiletrack.backend.Abstr
 
         workspaceMemberRepository.save(WorkspaceMember.builder()
                 .workspace(workspace).user(owner).role(WorkspaceRole.OWNER).build());
-        workspaceMemberRepository.save(WorkspaceMember.builder()
-                .workspace(workspace).user(admin).role(WorkspaceRole.ADMIN).build());
 
         WorkspaceMember memberRow = workspaceMemberRepository.save(WorkspaceMember.builder()
                 .workspace(workspace).user(member).role(WorkspaceRole.MEMBER).build());
         memberMembershipId = memberRow.getId();
 
         ownerToken  = jwtService.generateToken(new CustomUserDetails(owner));
-        adminToken  = jwtService.generateToken(new CustomUserDetails(admin));
         memberToken = jwtService.generateToken(new CustomUserDetails(member));
     }
 
@@ -114,10 +107,10 @@ class WorkspaceAuthorizationIntegrationTest extends com.agiletrack.backend.Abstr
     }
 
     @Test
-    @DisplayName("ADMIN → POST /members → 200 (invite succeeds)")
-    void admin_inviteMember_isAllowed() throws Exception {
+    @DisplayName("OWNER → POST /members → 200 (invite succeeds)")
+    void owner_inviteMember_isAllowed() throws Exception {
         mockMvc.perform(post(membersUrl())
-                        .header("Authorization", "Bearer " + adminToken)
+                        .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(inviteJson("uninvited@test.com", "MEMBER")))
                 .andExpect(status().isOk());
@@ -134,20 +127,20 @@ class WorkspaceAuthorizationIntegrationTest extends com.agiletrack.backend.Abstr
     }
 
     @Test
-    @DisplayName("ADMIN → DELETE /members/{id} → 204 (remove succeeds)")
-    void admin_removeMember_isAllowed() throws Exception {
+    @DisplayName("OWNER → DELETE /members/{id} → 204 (remove succeeds)")
+    void owner_removeMember_isAllowed() throws Exception {
         mockMvc.perform(delete(memberUrl(memberMembershipId))
-                        .header("Authorization", "Bearer " + adminToken))
+                        .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isNoContent());
     }
 
     // ── Delete workspace ──────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("ADMIN (non-owner) → DELETE /workspaces/{id} → 403")
-    void admin_deleteWorkspace_isForbidden() throws Exception {
+    @DisplayName("MEMBER (non-owner) → DELETE /workspaces/{id} → 403")
+    void member_deleteWorkspace_isForbidden() throws Exception {
         mockMvc.perform(delete(workspaceUrl())
-                        .header("Authorization", "Bearer " + adminToken))
+                        .header("Authorization", "Bearer " + memberToken))
                 .andExpect(status().isForbidden());
     }
 

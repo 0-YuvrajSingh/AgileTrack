@@ -93,8 +93,8 @@ class TaskServiceTest {
     }
 
     @Test
-    void deleteTask_Viewer_ThrowsException() {
-        when(workspaceService.getWorkspaceForMutation(workspaceId)).thenThrow(new AccessDeniedException("VIEWER role cannot perform this action"));
+    void deleteTask_NonMember_ThrowsException() {
+        when(workspaceService.getWorkspaceForMutation(workspaceId)).thenThrow(new AccessDeniedException("Access denied"));
 
         assertThatThrownBy(() -> taskService.deleteTask(workspaceId, projectId, taskId))
                 .isInstanceOf(AccessDeniedException.class);

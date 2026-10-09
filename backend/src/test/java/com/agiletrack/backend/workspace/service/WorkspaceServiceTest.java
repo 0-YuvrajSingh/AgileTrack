@@ -78,19 +78,19 @@ class WorkspaceServiceTest {
     }
 
     @Test
-    void getOwnedWorkspace_UserIsViewer_ThrowsAccessDenied() {
+    void getOwnedWorkspace_UserIsMember_ThrowsAccessDenied() {
         UUID wsId = testWorkspace.getId();
         when(currentUserService.getCurrentUser()).thenReturn(testUser);
         when(workspaceRepository.findById(wsId)).thenReturn(Optional.of(testWorkspace));
 
-        WorkspaceMember viewerMember = WorkspaceMember.builder()
+        WorkspaceMember memberRow = WorkspaceMember.builder()
                 .user(testUser)
                 .workspace(testWorkspace)
-                .role(WorkspaceRole.VIEWER)
+                .role(WorkspaceRole.MEMBER)
                 .build();
 
         when(workspaceMemberRepository.findByWorkspaceIdAndUserId(wsId, testUser.getId()))
-                .thenReturn(Optional.of(viewerMember));
+                .thenReturn(Optional.of(memberRow));
 
         assertThatThrownBy(() -> workspaceService.getOwnedWorkspace(wsId))
                 .isInstanceOf(AccessDeniedException.class);

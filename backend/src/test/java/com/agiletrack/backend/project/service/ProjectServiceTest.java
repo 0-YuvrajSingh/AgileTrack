@@ -65,10 +65,10 @@ class ProjectServiceTest {
     }
 
     @Test
-    void createProject_Viewer_ThrowsException() {
+    void createProject_NonMember_ThrowsException() {
         CreateProjectRequest request = new CreateProjectRequest("Proj", "Desc");
         when(workspaceService.getWorkspaceForMutation(workspaceId))
-                .thenThrow(new org.springframework.security.access.AccessDeniedException("VIEWER role cannot perform this action"));
+                .thenThrow(new org.springframework.security.access.AccessDeniedException("Access denied"));
 
         assertThatThrownBy(() -> projectService.createProject(workspaceId, request))
                 .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);

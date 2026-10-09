@@ -44,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Phase 1 — work items carry an engineering type end-to-end.
  *
  * <p>Also pins the rule that the new field is governed by the same authorization chain as every
- * other field: a UUID is not a capability, and a VIEWER cannot reclassify work.
+ * other field: a UUID is not a capability, and a non-member cannot reclassify work.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -61,7 +61,6 @@ class WorkItemTypeIntegrationTest extends AbstractIntegrationTest {
     @Autowired TaskRepository taskRepository;
 
     private String memberToken;
-    private String viewerToken;
     private String outsiderToken;
     private UUID workspaceId;
     private UUID projectId;
@@ -78,7 +77,6 @@ class WorkItemTypeIntegrationTest extends AbstractIntegrationTest {
 
         User owner = saveUser("wit-owner@test.com");
         User member = saveUser("wit-member@test.com");
-        User viewer = saveUser("wit-viewer@test.com");
         User outsider = saveUser("wit-outsider@test.com");
         memberId = member.getId();
 
@@ -90,8 +88,6 @@ class WorkItemTypeIntegrationTest extends AbstractIntegrationTest {
                 .workspace(workspace).user(owner).role(WorkspaceRole.OWNER).build());
         workspaceMemberRepository.save(WorkspaceMember.builder()
                 .workspace(workspace).user(member).role(WorkspaceRole.MEMBER).build());
-        workspaceMemberRepository.save(WorkspaceMember.builder()
-                .workspace(workspace).user(viewer).role(WorkspaceRole.VIEWER).build());
 
         Project project = projectRepository.save(Project.builder()
                 .name("Delivery Project").status(ProjectStatus.ACTIVE).workspace(workspace).build());
@@ -108,7 +104,6 @@ class WorkItemTypeIntegrationTest extends AbstractIntegrationTest {
                 .build()).getId();
 
         memberToken = jwtService.generateToken(new CustomUserDetails(member));
-        viewerToken = jwtService.generateToken(new CustomUserDetails(viewer));
         outsiderToken = jwtService.generateToken(new CustomUserDetails(outsider));
     }
 
@@ -250,19 +245,6 @@ class WorkItemTypeIntegrationTest extends AbstractIntegrationTest {
     }
 
     // -- authorization on the new field ----------------------------------------
-
-    @Test
-    @DisplayName("VIEWER cannot reclassify a work item, and the stored type is unchanged")
-    void viewer_cannotChangeType() throws Exception {
-        mockMvc.perform(put(tasksUrl() + "/" + taskId)
-                        .header("Authorization", "Bearer " + viewerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(updateJson("TECH_DEBT")))
-                .andExpect(status().isForbidden());
-
-        assertThat(taskRepository.findById(taskId)).get()
-                .extracting(Task::getType).isEqualTo(WorkItemType.FEATURE);
-    }
 
     @Test
     @DisplayName("A non-member knowing the UUIDs still cannot set the type")

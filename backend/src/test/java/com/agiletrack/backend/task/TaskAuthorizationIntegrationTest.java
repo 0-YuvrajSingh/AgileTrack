@@ -39,11 +39,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Integration test proving that the server enforces VIEWER/MEMBER task RBAC
+ * Integration test proving that the server enforces MEMBER task RBAC
  * independently of any client-side UI behaviour.
  *
  * The critical invariant:
- *   VIEWER → directly calls any mutating API → 403 (not just hidden in UI)
+ *   MEMBER → directly calls any mutating API → allowed (not just offered in UI)
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -61,7 +61,6 @@ class TaskAuthorizationIntegrationTest extends AbstractIntegrationTest {
     @Autowired TaskRepository taskRepository;
 
     private String memberToken;
-    private String viewerToken;
     private UUID workspaceId;
     private UUID projectId;
     private UUID taskId;
@@ -89,12 +88,6 @@ class TaskAuthorizationIntegrationTest extends AbstractIntegrationTest {
                 .build());
         memberId = member.getId();
 
-        User viewer = userRepository.save(User.builder()
-                .email("viewer@test.com")
-                .password("pw")
-                .role(Role.USER)
-                .build());
-
         Workspace workspace = workspaceRepository.save(Workspace.builder()
                 .name("Test Workspace")
                 .description("Integration test")
@@ -106,8 +99,6 @@ class TaskAuthorizationIntegrationTest extends AbstractIntegrationTest {
                 .workspace(workspace).user(owner).role(WorkspaceRole.OWNER).build());
         workspaceMemberRepository.save(WorkspaceMember.builder()
                 .workspace(workspace).user(member).role(WorkspaceRole.MEMBER).build());
-        workspaceMemberRepository.save(WorkspaceMember.builder()
-                .workspace(workspace).user(viewer).role(WorkspaceRole.VIEWER).build());
 
         Project project = projectRepository.save(Project.builder()
                 .name("Test Project")
@@ -130,75 +121,6 @@ class TaskAuthorizationIntegrationTest extends AbstractIntegrationTest {
         taskId = task.getId();
 
         memberToken = jwtService.generateToken(new CustomUserDetails(member));
-        viewerToken = jwtService.generateToken(new CustomUserDetails(viewer));
-    }
-
-    // ── VIEWER: mutations blocked server-side ─────────────────────────────────
-
-    @Test
-    @DisplayName("VIEWER → POST /tasks → 403 (server enforces, not just UI)")
-    void viewer_createTask_isForbidden() throws Exception {
-        mockMvc.perform(post(taskBaseUrl())
-                        .header("Authorization", "Bearer " + viewerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(createTaskJson()))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("VIEWER → PUT /tasks/{id} → 403")
-    void viewer_updateTask_isForbidden() throws Exception {
-        mockMvc.perform(put(taskUrl(taskId))
-                        .header("Authorization", "Bearer " + viewerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(updateTaskJson()))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("VIEWER → PATCH /tasks/{id}/status → 403")
-    void viewer_patchTaskStatus_isForbidden() throws Exception {
-        mockMvc.perform(patch(taskUrl(taskId) + "/status")
-                        .header("Authorization", "Bearer " + viewerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"status\":\"IN_PROGRESS\"}"))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("VIEWER → PATCH /tasks/{id}/position → 403")
-    void viewer_patchTaskPosition_isForbidden() throws Exception {
-        mockMvc.perform(patch(taskUrl(taskId) + "/position")
-                        .header("Authorization", "Bearer " + viewerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("2.0"))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("VIEWER → DELETE /tasks/{id} → 403")
-    void viewer_deleteTask_isForbidden() throws Exception {
-        mockMvc.perform(delete(taskUrl(taskId))
-                        .header("Authorization", "Bearer " + viewerToken))
-                .andExpect(status().isForbidden());
-    }
-
-    // ── VIEWER: reads are permitted ────────────────────────────────────────────
-
-    @Test
-    @DisplayName("VIEWER → GET /tasks → 200 (reads are allowed)")
-    void viewer_readTasks_isAllowed() throws Exception {
-        mockMvc.perform(get(taskBaseUrl())
-                        .header("Authorization", "Bearer " + viewerToken))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @DisplayName("VIEWER → GET /tasks/{id} → 200")
-    void viewer_readSingleTask_isAllowed() throws Exception {
-        mockMvc.perform(get(taskUrl(taskId))
-                        .header("Authorization", "Bearer " + viewerToken))
-                .andExpect(status().isOk());
     }
 
     // ── MEMBER: mutations permitted ────────────────────────────────────────────
