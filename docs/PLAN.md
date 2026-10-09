@@ -332,9 +332,21 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
   - Frontend:
     - Remove refresh token storage and token rotation interceptors from `authService.ts` and Axios client.
 - **Tests Added/Removed**:
-  - Removed: Delete `RefreshTokenServiceTest.java` (5 tests).
+  - Removed: `RefreshTokenServiceTest.java` (9 tests; correction: the plan estimated 5, actual annotation count verified from git history).
+  - Removed: `EndToEndIntegrationTest.refreshRotatesTokenAndLogoutInvalidatesRefreshToken` (1 test).
+  - Reworked: `AuthServiceTest` (removed 3 refresh/logout tests + mock; register/login assertions now access-token-only).
+  - Backend suite: **161 passed, 0 failed** (174 - 13 removed = 161, reconciled). Frontend suite: **64 passed, 0 failed** (no frontend test changes; logic covered by type-check + suite).
+  - V19 additionally exercised by the backend suite: Testcontainers validated and applied all 19 migrations (repositories 9 -> 7).
 - **Risks**: Low. Access tokens are already stateless JJWT tokens.
-- **Status**: PENDING.
+- **Status**: **COMPLETE (executed 2026-10-09 under standing authorization)**.
+- **Execution Record (verified, seeded scratch database)**:
+  - Pre-migration inventory, count-based only (no token material ever selected): 0 stored sessions, 0 users, 0 unexpired, 0 expired. Sessions are runtime entities; the seeder creates none.
+  - Drop verified safe without `CASCADE`: only outward FK (`user_id -> users`); no inbound references.
+  - V19 executed via Flyway on a disposable scratch database: table gone, v19 recorded successful.
+  - API-verified post-state (tokens never printed): register 201 + login 200 return access-token-only bodies (`token`, `user` keys; no `refreshToken`); `POST /auth/refresh` and `POST /auth/logout` have no mapping (`NoResourceFoundException` in logs); protected route 200 with token / 401 without.
+  - Observed pre-existing behavior (not a regression, out of scope): unmapped routes fall through to the generic handler and return 500 since no `NoResourceFoundException` mapping exists in `GlobalExceptionHandler` (absent in HEAD too).
+  - Session-invalidation impact (seeded env): 0 sessions invalidated. A live database with logged-in users would invalidate active persistent sessions at V19 — such a database must be inventoried count-only before V19 runs against it.
+  - Deviations: `RefreshTokenHasher`, `RefreshTokenCleanupTask`, `TokenRefreshRequest/Response`, `@EnableScheduling`, `AuthServiceTest`/`EndToEndIntegrationTest` reworks, and frontend `authStorage`/`AuthContext`/`Login`/`Register`/`Header` changes went beyond the plan's file list; `JWT_REFRESH_EXPIRATION` yaml properties deliberately left for Phase 7 (unbound, harmless).
 
 ---
 

@@ -142,3 +142,15 @@ This document explains the core technical mechanisms of AgileTrack in plain, int
   - `DependencyIntegrationTest.java:EdgeCreation.removeEdge_deletesEdge()` (verified - deletion asserted via 204 + zero count)
   - `WorkItemTypeIntegrationTest.java:updateTask_changesType()` (verified - type change asserted via response + DB)
   - Deleted: `TaskActivityIntegrationTest` (2), `DependencyIntegrationTest.createEdge_isAudited` (1, redundant with `createEdge`) — each covered only removed behaviour.
+
+---
+
+## 11. Refresh-Token Rotation Cut (Phase 5, D8)
+- **What it does**: Reduces auth to register/login plus stateless JWT access tokens: the `refresh_tokens` table, entity, repository, service, hasher, cleanup task, exception, refresh DTOs, `POST /refresh` and `POST /logout` endpoints, and the frontend rotation interceptor plus refresh storage are all gone. The Axios client now clears local auth on 401 instead of silently refreshing.
+- **Why**: Scope mandates minimal auth; silent session renewal is cut, so an expired access token means re-authenticating with email/password.
+- **How it works**: `AuthService` mints only the JWT; `AuthResponse` carries `token` + user. Migration `V19__remove_refresh_tokens.sql` is a single `DROP TABLE IF EXISTS refresh_tokens` — verified safe without `CASCADE` since the table's only foreign key points outward. Pre-migration inventory on a seeded database (count-based only, never selecting token material) showed 0 sessions. V19 was executed against a disposable seeded scratch database and API-verified: register/login return access-token-only bodies, removed endpoints have no mapping, and protected routes stay 200-with-token / 401-without.
+- **Tests that prove it**:
+  - `EndToEndIntegrationTest.java:registerAndLogin_work()` (verified - register/login contract without refresh fields)
+  - `AuthServiceTest.java:login_returnsAuthResponseOnValidCredentials()` (verified - access-token-only response)
+  - `TaskBoard`/`Dashboard` suites (verified - 64 frontend tests green against the pruned auth types)
+  - Deleted: `RefreshTokenServiceTest` (9), `refreshRotatesTokenAndLogoutInvalidatesRefreshToken` (1), `AuthServiceTest` refresh/logout tests (3) — each covered only removed behaviour.

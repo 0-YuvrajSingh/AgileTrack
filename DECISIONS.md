@@ -77,6 +77,7 @@ Every entry contains an ID, date, status (`ACCEPTED`, `OPEN`, `REJECTED`), the d
 - **Decision**: Remove refresh tokens (`refresh_tokens` table, `RefreshTokenService`, `/api/v1/auth/refresh`, `/api/v1/auth/logout`) and retain only stateless JWT access tokens with BCrypt password authentication.
 - **Reason**: Scope document Section 7 cuts refresh-token rotation to keep authentication minimal, delegating authentication depth to MedVault.
 - **Consequences**: Auth endpoints are restricted to `POST /register` and `POST /login`.
+- **Executed**: Phase 5, 2026-10-09, under standing authorization. V19 (`DROP TABLE refresh_tokens`, no `CASCADE`) applied to a disposable seeded scratch database and API-verified (access-token-only auth; 0 seeded sessions); suites green (backend 161, frontend 64). `JWT_REFRESH_EXPIRATION` yaml properties deferred to Phase 7.
 
 ---
 
