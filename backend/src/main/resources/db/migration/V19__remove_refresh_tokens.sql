@@ -1,0 +1,17 @@
+-- Phase 5 (D8): Cut refresh-token rotation.
+--
+-- Verified pre-migration inventory on a freshly seeded database, using
+-- count-based queries only (token material is never selected or logged):
+-- 0 stored sessions, 0 distinct users, 0 unexpired, 0 expired. Refresh
+-- sessions are runtime entities; the demo seeder creates none.
+-- Dropping the table permanently removes stored refresh sessions and
+-- immediately invalidates all active persistent sessions: clients can no
+-- longer silently refresh expired access tokens and must re-authenticate
+-- with primary credentials once the current stateless JWT expires.
+-- Verified safe without CASCADE: the only foreign key involving
+-- refresh_tokens points outward (user_id -> users ON DELETE CASCADE);
+-- no other table references refresh_tokens.
+-- NOTE: counts quantify a freshly seeded environment only. Any database
+-- holding real session rows must be inventoried (count-based, no secrets)
+-- before this migration runs against it.
+DROP TABLE IF EXISTS refresh_tokens;

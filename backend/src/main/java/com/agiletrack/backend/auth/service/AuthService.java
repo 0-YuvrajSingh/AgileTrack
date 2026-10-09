@@ -3,11 +3,7 @@ package com.agiletrack.backend.auth.service;
 import com.agiletrack.backend.auth.dto.AuthResponse;
 import com.agiletrack.backend.auth.dto.LoginRequest;
 import com.agiletrack.backend.auth.dto.RegisterRequest;
-import com.agiletrack.backend.auth.dto.TokenRefreshRequest;
-import com.agiletrack.backend.auth.dto.TokenRefreshResponse;
-import com.agiletrack.backend.auth.entity.RefreshToken;
 import com.agiletrack.backend.common.exception.EmailAlreadyExistsException;
-import com.agiletrack.backend.common.exception.TokenRefreshException;
 import com.agiletrack.backend.common.exception.UserNotFoundException;
 import com.agiletrack.backend.security.CustomUserDetails;
 import com.agiletrack.backend.security.JwtService;
@@ -30,7 +26,6 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final RefreshTokenService refreshTokenService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -46,12 +41,9 @@ public class AuthService {
         user = userRepository.save(user);
 
         String jwtToken = jwtService.generateToken(new CustomUserDetails(user));
-        // createRefreshToken now returns the raw plaintext token — never stored in DB
-        String rawRefreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         return AuthResponse.builder()
                 .token(jwtToken)
-                .refreshToken(rawRefreshToken)
                 .user(AuthResponse.UserDto.builder()
                         .id(user.getId())
                         .email(user.getEmail())
@@ -73,38 +65,14 @@ public class AuthService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         String jwtToken = jwtService.generateToken(new CustomUserDetails(user));
-        String rawRefreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         return AuthResponse.builder()
                 .token(jwtToken)
-                .refreshToken(rawRefreshToken)
                 .user(AuthResponse.UserDto.builder()
                         .id(user.getId())
                         .email(user.getEmail())
                         .role(user.getRole().name())
                         .build())
                 .build();
-    }
-
-    @Transactional
-    public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
-        String requestRefreshToken = request.getRefreshToken();
-
-        return refreshTokenService.findByToken(requestRefreshToken)
-                .map(refreshTokenService::verifyExpiration)
-                .map(storedToken -> {
-                    User user = storedToken.getUser();
-                    String newAccessToken = jwtService.generateToken(new CustomUserDetails(user));
-                    // rotateRefreshToken returns the new raw token; old hash is deleted atomically
-                    String newRawRefreshToken = refreshTokenService.rotateRefreshToken(storedToken);
-                    return new TokenRefreshResponse(newAccessToken, newRawRefreshToken);
-                })
-                .orElseThrow(() -> new TokenRefreshException("Refresh token is not in database!"));
-    }
-
-    @Transactional
-    public void logout(TokenRefreshRequest request) {
-        // deleteByToken hashes the raw token before querying the DB
-        refreshTokenService.deleteByToken(request.getRefreshToken());
     }
 }
