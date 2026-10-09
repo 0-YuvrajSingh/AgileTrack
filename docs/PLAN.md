@@ -431,9 +431,19 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
   - Frontend:
     - Update member management modals and role selectors to display only `OWNER` and `MEMBER`.
 - **Tests Added/Removed**:
-  - Updated: `WorkspaceAuthorizationIntegrationTest.java` and `ReleaseIntegrationTest.java` to assert `OWNER` and `MEMBER` permissions, removing `ADMIN` and `VIEWER` specific tests.
+  - Updated: `WorkspaceAuthorizationIntegrationTest.java` (ADMIN matrix -> OWNER-positive matrix, 6 tests: 3 ADMIN removed, 3 OWNER added) and `ReleaseIntegrationTest.java` (2 VIEWER tests removed).
+  - Removed viewer coverage: `TaskAuthorizationIntegrationTest` (7 viewer tests; 4 member tests kept), `DependencyIntegrationTest.viewer_isReadOnly` (1), `WorkItemTypeIntegrationTest.viewer_cannotChangeType` (1). Reworked: `WorkspaceServiceTest` viewer fixture -> member; `ProjectServiceTest`/`TaskServiceTest` stub messages.
+  - Updated frontend: TaskBoard/ReleaseDetail VIEWER tests -> MEMBER-positive; ADMIN fixtures -> MEMBER.
+  - Backend suite: **150 passed, 0 failed** (161 - 11 removed = 150, reconciled). Frontend suite: **64 passed, 0 failed** (count unchanged).
+  - V20 additionally exercised by the backend suite: Testcontainers validated and applied all 20 migrations.
 - **Risks**: Medium. Must verify that `OWNER` retains exclusive membership management rights while `MEMBER` can edit work items and releases.
-- **Status**: PENDING.
+- **Status**: **COMPLETE (executed 2026-10-09 under standing authorization; dual gates explicitly approved)**.
+- **Execution Record (verified, seeded scratch database + approved gates)**:
+  - Pre-migration inventory (read-only): 0 `ADMIN`, 0 `VIEWER`, 0 unexpected roles (1 `OWNER` + 1 `MEMBER` seeded).
+  - Gate A approved: `ADMIN -> MEMBER` (least privilege; `ADMIN -> OWNER` rejected on the single-owner invariant). Gate B approved: VIEWER revocation (`DELETE`; promotion rejected as privilege expansion).
+  - V20 executed via Flyway on a disposable scratch database (plus 1 `ADMIN` + 1 `VIEWER` fixtures): ADMIN demoted to MEMBER, VIEWER row deleted, OWNER untouched; `ck_workspace_members_role` present with the exact 2-role definition; a rolled-back `VIEWER` insert probe was rejected (0 residue).
+  - Limitation: figures quantify a freshly seeded environment (plus disclosed fixtures). A database holding real ADMIN/VIEWER rows applies the same approved mappings.
+  - Deviations: `getWorkspaceForAdmin` renamed to `getWorkspaceForOwner` (OWNER-only); `getWorkspaceForMutation` is now pure membership verification; `ReleaseDetail/ReleaseList/WorkspaceDetail/TaskBoard` role gates simplified to member-wide mutation; `WorkspaceMembers` invite offers MEMBER only and removal is OWNER-only; app-level `user.Role` (ADMIN/USER) deliberately untouched as out of scope.
 
 ---
 

@@ -145,6 +145,19 @@ This document explains the core technical mechanisms of AgileTrack in plain, int
 
 ---
 
+## 12. Workspace Roles Cut (Phase 6, D9)
+- **What it does**: Reduces workspace membership to `OWNER` (manages settings and members) and `MEMBER` (creates and edits work items, releases, dependencies). `ADMIN` and `VIEWER` are gone from the enum, the authorization checks, the member UI, and the database (via approved mappings + a new check constraint).
+- **Why**: Scope cuts the Admin/Viewer split. The single-owner invariant (`workspaces.owner_id` + "cannot assign/remove OWNER") makes `ADMIN -> OWNER` invalid, so demotion to `MEMBER` is the least-privilege mapping; promoting `VIEWER` would silently expand read-only users to writers, so revocation was approved instead.
+- **How it works**: `getWorkspaceForOwner` gates member management to `OWNER` only; `getWorkspaceForMutation` is now pure membership verification. Migration `V20__simplify_workspace_roles.sql` applies the approved Gate A (`UPDATE … SET role='MEMBER' WHERE role='ADMIN'`), Gate B (`DELETE … WHERE role='VIEWER'`), then adds the brand-new `ck_workspace_members_role`. Pre-migration inventory on a seeded database showed 0 `ADMIN`/`VIEWER`/unexpected roles. V20 was executed against a disposable seeded scratch database (plus 1 `ADMIN` + 1 `VIEWER` fixture): the admin demoted, the viewer row deleted, the owner untouched, and a rolled-back `VIEWER` insert probe confirmed the constraint.
+- **Tests that prove it**:
+  - `WorkspaceAuthorizationIntegrationTest.java:owner_inviteMember_isAllowed()` / `owner_removeMember_isAllowed()` (verified - OWNER-only management)
+  - `WorkspaceAuthorizationIntegrationTest.java:member_deleteWorkspace_isForbidden()` (verified - non-owner cannot delete)
+  - `TaskAuthorizationIntegrationTest.java:member_createTask_isAllowed()` (verified - MEMBER mutates)
+  - `ReleaseDetail.test.tsx:a MEMBER gets the mutating controls` (verified - member-wide UI)
+  - Deleted: 7 viewer task tests, 2 release viewer tests, 1 dependency viewer test, 1 work-item viewer test — each covered only removed behaviour.
+
+---
+
 ## 11. Refresh-Token Rotation Cut (Phase 5, D8)
 - **What it does**: Reduces auth to register/login plus stateless JWT access tokens: the `refresh_tokens` table, entity, repository, service, hasher, cleanup task, exception, refresh DTOs, `POST /refresh` and `POST /logout` endpoints, and the frontend rotation interceptor plus refresh storage are all gone. The Axios client now clears local auth on 401 instead of silently refreshing.
 - **Why**: Scope mandates minimal auth; silent session renewal is cut, so an expired access token means re-authenticating with email/password.

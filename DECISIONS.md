@@ -87,6 +87,7 @@ Every entry contains an ID, date, status (`ACCEPTED`, `OPEN`, `REJECTED`), the d
 - **Decision**: Eliminate the `ADMIN` and `VIEWER` roles, consolidating authorization to `OWNER` and `MEMBER`.
 - **Reason**: Scope document Section 3 & 7 cuts the Admin/Viewer split. `OWNER` manages the project and membership; `MEMBER` creates and edits work items, releases, and dependencies.
 - **Consequences**: `WorkspaceRole` enum simplified to `OWNER` and `MEMBER`. Security checks updated accordingly.
+- **Executed**: Phase 6, 2026-10-09, under standing authorization with both decision gates explicitly approved (Gate A: `ADMIN->MEMBER`; Gate B: VIEWER revocation). V20 applied to a disposable seeded scratch database and verified; suites green (backend 150, frontend 64).
 
 ---
 
