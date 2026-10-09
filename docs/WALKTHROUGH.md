@@ -130,3 +130,15 @@ This document explains the core technical mechanisms of AgileTrack in plain, int
   - `ReadinessIntegrationTest.java:Determinism.gateReasonsFollowCodeOrder()` (verified - INCOMPLETE×3 sort ahead of BLOCKED×1)
   - `ReleaseDetail.test.tsx:offers only the transitions the server would accept` (verified - no Cancel action)
   - Deleted: `cancelledIsTerminal`, `cancelledRelease()`, `ReadinessPanel.test.tsx:explains a cancelled release` — each covered only removed behaviour.
+
+---
+
+## 10. Task Activity & Audit Trail Cut (Phase 4, D7)
+- **What it does**: Removes all task-mutation history tracking: the `task_activities` table, the `TaskActivity` entity/recorder/repository/mapper/DTO, the `GET /tasks/{taskId}/activities` endpoint, every `activityRecorder` invocation in `TaskService`/`ReleaseService`/`DependencyService`, and the frontend `useTaskActivities` hook, `activityService`, and activity types. Mutations now change only domain state.
+- **Why**: Scope cuts activity and audit trails because MedVault owns the auditing narrative; history side effects do not belong on the delivery write path.
+- **How it works**: Services were de-instrumented (record calls and the helper deleted; `removeDependency` keeps its scoped edge lookup and task validation). Migration `V18__remove_task_activities.sql` is a single `DROP TABLE IF EXISTS task_activities` — verified safe without `CASCADE` since the table's foreign keys point outward only. Pre-migration inventory on a seeded database showed 0 activity rows. V18 was executed against a disposable seeded scratch database: the table is gone, v18 recorded successful, and domain rows are intact (12 tasks, 5 releases, 4 dependencies).
+- **Tests that prove it**:
+  - `ReleaseIntegrationTest.java:Scope.addAndRemove_updatesScope()` (verified - scope change asserted via API + DB, no history)
+  - `DependencyIntegrationTest.java:EdgeCreation.removeEdge_deletesEdge()` (verified - deletion asserted via 204 + zero count)
+  - `WorkItemTypeIntegrationTest.java:updateTask_changesType()` (verified - type change asserted via response + DB)
+  - Deleted: `TaskActivityIntegrationTest` (2), `DependencyIntegrationTest.createEdge_isAudited` (1, redundant with `createEdge`) — each covered only removed behaviour.

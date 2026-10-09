@@ -280,10 +280,19 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
   - Frontend:
     - Remove activity history components and views if present.
 - **Tests Added/Removed**:
-  - Removed: Delete `TaskActivityIntegrationTest.java` (2 tests).
-  - Updated: Remove activity assertions in `ReleaseIntegrationTest.java:addAndRemove_areAudited()`.
+  - Removed: `TaskActivityIntegrationTest.java` (2 tests).
+  - Removed: `DependencyIntegrationTest.createEdge_isAudited` (1 test; its surviving assertions duplicated `createEdge`, which still passes).
+  - Reworked (no count change): `removeEdge_isAudited` -> `removeEdge_deletesEdge`, `addAndRemove_areAudited` -> `addAndRemove_updatesScope` (plus a DB-level scope assertion), `updateTask_recordsTypeChangeActivity` -> `updateTask_changesType` (response + DB assertions).
+  - Backend suite: **174 passed, 0 failed** (177 - 3 removed = 174, reconciled). Frontend suite: **64 passed, 0 failed** (no frontend test changes; no test files covered the deleted hook/service).
+  - V18 additionally exercised by the backend suite: Testcontainers validated and applied all 18 migrations (repositories 10 -> 8).
 - **Risks**: Low. Removes non-domain side effects from task mutations.
-- **Status**: PENDING.
+- **Status**: **COMPLETE (executed 2026-10-09 under standing authorization)**.
+- **Execution Record (verified, seeded scratch database)**:
+  - Pre-migration inventory (read-only): 0 rows in `task_activities` (0 tasks, 0 actors), empty per-type breakdown. The seeder writes through repositories and never records history.
+  - Verified drop-safe without `CASCADE`: `task_activities` FKs point outward only (`task_id -> tasks ON DELETE CASCADE`, `user_id -> users`); no inbound references from any other table.
+  - V18 executed via Flyway on a disposable scratch database: table gone, v18 recorded successful, domain rows intact (12 tasks, 5 releases, 4 dependencies), backend started healthy on the migrated schema.
+  - Data-loss impact (seeded env): 0 rows deleted. A database holding real activity history would lose it irreversibly — such a database must be inventoried before V18 runs against it.
+  - Deviations: `DependencyService` recorder invocations, `TaskActivityMapper`, `TaskActivityResponse`, frontend `useTaskActivities`/`activityService`/`ActivityType` types, and three extra test reworks went beyond the plan's file list (found by reference sweep); `DataSeeder` needed no change (it never seeded activities).
 
 ---
 

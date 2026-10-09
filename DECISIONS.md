@@ -67,6 +67,7 @@ Every entry contains an ID, date, status (`ACCEPTED`, `OPEN`, `REJECTED`), the d
 - **Decision**: Remove `task_activities` entity, recorder, repository, and `/tasks/{taskId}/activities` endpoint.
 - **Reason**: Scope document Section 7 cuts activity and audit trails because MedVault owns the auditing and compliance narrative.
 - **Consequences**: `TaskActivityRecorder` and related tests (`TaskActivityIntegrationTest`) will be removed. Mutations focus solely on domain entity state changes.
+- **Executed**: Phase 4, 2026-10-09, under standing authorization. V18 (`DROP TABLE task_activities`, no `CASCADE`) applied to a disposable seeded scratch database and verified (0 seeded rows; domain rows intact); suites green (backend 174, frontend 64).
 
 ---
 
