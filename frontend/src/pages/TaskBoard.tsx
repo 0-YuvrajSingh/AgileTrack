@@ -314,7 +314,7 @@ const TaskBoard: React.FC = () => {
               <option key={t} value={t}>{WORK_ITEM_TYPE_LABELS[t]}</option>
             ))}
           </select>
-          {workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED' && (
+          {project?.status !== 'ARCHIVED' && (
             <Button onClick={openCreateModal} size="sm" className="w-full sm:w-auto whitespace-nowrap shadow-sm">
               <Plus size={16} className="mr-1" /> New Task
             </Button>
@@ -351,10 +351,10 @@ const TaskBoard: React.FC = () => {
                   {statusTasks.map(task => (
                     <div
                       key={task.id}
-                      draggable={workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED'}
+                      draggable={project?.status !== 'ARCHIVED'}
                       onDragStart={(e) => handleDragStart(e, task.id)}
                       className={`bg-white border p-3 rounded-lg shadow-sm hover:shadow-md transition-all group ${
-                        workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED' ? 'cursor-grab active:cursor-grabbing hover:border-cf-primary/40' : 'cursor-default'
+                        project?.status !== 'ARCHIVED' ? 'cursor-grab active:cursor-grabbing hover:border-cf-primary/40' : 'cursor-default'
                       } ${getStatusColor(task.status).split(' ')[2]}`}
                     >
                       <div className="flex justify-between items-start mb-2 gap-2">
@@ -372,7 +372,7 @@ const TaskBoard: React.FC = () => {
                           >
                             <Link2 size={12} />
                           </button>
-                        {workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED' && (
+                        {project?.status !== 'ARCHIVED' && (
                           <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => openEditModal(task)}
@@ -427,7 +427,7 @@ const TaskBoard: React.FC = () => {
                           </div>
                         )}
 
-                        {workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED' && (
+                        {project?.status !== 'ARCHIVED' && (
                           <div className="mt-2 flex items-center justify-between text-[10px] border-t border-dashed border-cf-border pt-2 md:hidden">
                             <span className="text-cf-textMuted flex items-center gap-1">
                               <ArrowLeftRight size={10} /> Move:
@@ -581,7 +581,7 @@ const TaskBoard: React.FC = () => {
           projectId={projectId}
           task={dependencyTask}
           candidates={tasks}
-          canMutate={workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED'}
+          canMutate={project?.status !== 'ARCHIVED'}
           onClose={() => setDependencyTask(null)}
           onChanged={() => {
             refetchBlocked();

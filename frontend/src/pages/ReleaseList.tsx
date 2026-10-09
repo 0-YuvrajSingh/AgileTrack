@@ -39,7 +39,7 @@ const ReleaseList: React.FC = () => {
   const [targetDate, setTargetDate] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const canMutate = workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED';
+  const canMutate = project?.status !== 'ARCHIVED';
 
   const openCreate = () => {
     setName('');

@@ -27,7 +27,7 @@ export interface Workspace {
   updatedAt: string;
 }
 
-export type WorkspaceRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
+export type WorkspaceRole = 'OWNER' | 'MEMBER';
 
 export interface WorkspaceMember {
   userId: string;

@@ -81,7 +81,7 @@ describe('ReleaseDetail', () => {
     refetchMock = vi.fn();
 
     vi.mocked(useWorkspace).mockReturnValue({
-      workspace: { id: workspaceId, name: 'WS', myRole: 'ADMIN' }, loading: false, error: null
+      workspace: { id: workspaceId, name: 'WS', myRole: 'MEMBER' }, loading: false, error: null
     } as any);
     vi.mocked(useProject).mockReturnValue({
       project: { id: projectId, name: 'Payments', status: 'ACTIVE' }, loading: false, error: null
@@ -152,15 +152,15 @@ describe('ReleaseDetail', () => {
     expect(screen.queryByRole('button', { name: /Remove Ship checkout/i })).not.toBeInTheDocument();
   });
 
-  it('a VIEWER gets no mutating controls', () => {
+  it('a MEMBER gets the mutating controls', () => {
     vi.mocked(useWorkspace).mockReturnValue({
-      workspace: { id: workspaceId, name: 'WS', myRole: 'VIEWER' }, loading: false, error: null
+      workspace: { id: workspaceId, name: 'WS', myRole: 'MEMBER' }, loading: false, error: null
     } as any);
 
     renderComponent();
 
-    expect(screen.queryByRole('button', { name: /Add work item/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Move to In Progress/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Add work item/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Move to In Progress/i })).toBeInTheDocument();
   });
 
   it('removes a work item from scope', async () => {

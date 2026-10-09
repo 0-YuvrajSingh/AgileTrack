@@ -67,7 +67,7 @@ describe('TaskBoard', () => {
     } as any);
 
     vi.mocked(useWorkspace).mockReturnValue({ 
-      workspace: { id: workspaceId, name: 'Test WS', myRole: 'ADMIN' },
+      workspace: { id: workspaceId, name: 'Test WS', myRole: 'MEMBER' },
       loading: false, error: null 
     } as any);
 
@@ -222,18 +222,16 @@ describe('TaskBoard', () => {
     expect(refetchTasksMock).toHaveBeenCalled();
   });
   
-  it('prevents VIEWER from dragging tasks', () => {
-    vi.mocked(useWorkspace).mockReturnValue({ 
-      workspace: { id: workspaceId, name: 'Test WS', myRole: 'VIEWER' },
-      loading: false, error: null 
+  it('lets a MEMBER drag tasks', () => {
+    vi.mocked(useWorkspace).mockReturnValue({
+      workspace: { id: workspaceId, name: 'Test WS', myRole: 'MEMBER' },
+      loading: false, error: null
     } as any);
 
     renderComponent();
 
-    // Task should NOT be draggable
-    // Find the first div that wraps Task 1 title. Actually it has draggable attribute.
-    // In our component: draggable={workspace?.myRole !== 'VIEWER' && ...} -> false
+    // Every verified member may mutate the board, so cards are draggable.
     const taskCard = screen.getByText('Task 1').closest('.bg-white.border');
-    expect(taskCard?.getAttribute('draggable')).toBe('false');
+    expect(taskCard?.getAttribute('draggable')).toBe('true');
   });
 });

@@ -7,7 +7,7 @@ import { Input } from '../components/ui/Input';
 import { Pagination } from '../components/ui/Pagination';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { FolderPlus, Settings, LayoutDashboard, Search, Trash2, ShieldAlert } from 'lucide-react';
+import { FolderPlus, Settings, LayoutDashboard, Search, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import { useWorkspace } from '../hooks/useWorkspaces';
@@ -162,11 +162,6 @@ const WorkspaceDetail: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-cf-textDark flex items-center gap-2">
             {workspace?.name}
-            {workspace?.myRole === 'VIEWER' && (
-              <span className="flex items-center gap-1 text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-mono uppercase tracking-wider">
-                <ShieldAlert size={12} /> Read-Only
-              </span>
-            )}
           </h1>
           <p className="text-sm text-cf-textMuted mt-1">{workspace?.description}</p>
         </div>
@@ -189,11 +184,9 @@ const WorkspaceDetail: React.FC = () => {
             </Button>
           </Link>
 
-          {workspace?.myRole !== 'VIEWER' && (
-            <Button onClick={() => setShowCreateModal(true)} size="sm" className="w-full sm:w-auto shadow-sm whitespace-nowrap">
-              <FolderPlus size={16} className="mr-1.5" /> New Project
-            </Button>
-          )}
+          <Button onClick={() => setShowCreateModal(true)} size="sm" className="w-full sm:w-auto shadow-sm whitespace-nowrap">
+            <FolderPlus size={16} className="mr-1.5" /> New Project
+          </Button>
         </div>
       </div>
 
@@ -206,8 +199,8 @@ const WorkspaceDetail: React.FC = () => {
           icon={LayoutDashboard}
           title={debouncedSearch ? "No projects match your search" : "No projects yet"}
           description={debouncedSearch ? "Try adjusting your search terms." : "Create your first project to start tracking tasks."}
-          actionLabel={debouncedSearch ? "Clear Search" : (workspace?.myRole !== 'VIEWER' ? "Create Project" : undefined)}
-          onAction={debouncedSearch ? () => setSearchQuery('') : (workspace?.myRole !== 'VIEWER' ? () => setShowCreateModal(true) : undefined)}
+          actionLabel={debouncedSearch ? "Clear Search" : "Create Project"}
+          onAction={debouncedSearch ? () => setSearchQuery('') : () => setShowCreateModal(true)}
         />
       ) : (
         <>
@@ -219,7 +212,7 @@ const WorkspaceDetail: React.FC = () => {
                     <h3 className="font-bold text-lg text-cf-textDark leading-tight line-clamp-1 flex-1">
                       {project.name}
                     </h3>
-                    {workspace?.myRole !== 'VIEWER' && project.status !== 'ARCHIVED' && (
+                    {project.status !== 'ARCHIVED' && (
                       <button
                         onClick={(e) => {
                           e.preventDefault();
@@ -238,21 +231,15 @@ const WorkspaceDetail: React.FC = () => {
 
                   <div className="mt-auto pt-4 border-t border-cf-border/60">
                     <div className="flex justify-between items-center">
-                      {workspace?.myRole !== 'VIEWER' ? (
-                        <select
-                          value={project.status}
-                          onChange={(e) => handleStatusChange(project.id, e.target.value as ProjectStatus)}
-                          className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded border focus:outline-none focus:ring-1 focus:ring-cf-primary transition-colors cursor-pointer ${STATUS_COLORS[project.status]}`}
-                        >
-                          {(Object.keys(STATUS_COLORS) as ProjectStatus[]).map(status => (
-                            <option key={status} value={status}>{status.replace('_', ' ')}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded border ${STATUS_COLORS[project.status]}`}>
-                          {project.status.replace('_', ' ')}
-                        </span>
-                      )}
+                      <select
+                        value={project.status}
+                        onChange={(e) => handleStatusChange(project.id, e.target.value as ProjectStatus)}
+                        className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded border focus:outline-none focus:ring-1 focus:ring-cf-primary transition-colors cursor-pointer ${STATUS_COLORS[project.status]}`}
+                      >
+                        {(Object.keys(STATUS_COLORS) as ProjectStatus[]).map(status => (
+                          <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                        ))}
+                      </select>
                       
                       <span className="text-[10px] text-cf-textMuted">
                         Updated {new Date(project.updatedAt).toLocaleDateString()}
@@ -285,7 +272,7 @@ const WorkspaceDetail: React.FC = () => {
       )}
 
       {/* Modals and Dialogs */}
-      {showCreateModal && workspace?.myRole !== 'VIEWER' && (
+      {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-cf-navy/60 backdrop-blur-sm">
           <Card className="w-full max-w-md shadow-2xl">
             <CardHeader className="bg-cf-navy text-white">

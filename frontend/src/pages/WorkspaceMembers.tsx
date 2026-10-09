@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { Users, UserPlus, ShieldAlert, ShieldCheck, User as UserIcon, Trash2, ArrowLeft } from 'lucide-react';
+import { Users, UserPlus, ShieldAlert, User as UserIcon, Trash2, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import { useWorkspace } from '../hooks/useWorkspaces';
@@ -17,9 +17,7 @@ import { getApiErrorMessage } from '../api/axios';
 
 const ROLE_COLORS: Record<WorkspaceRole, { bg: string, text: string, icon: React.ReactNode }> = {
   OWNER: { bg: 'bg-purple-100', text: 'text-purple-700', icon: <ShieldAlert size={12} /> },
-  ADMIN: { bg: 'bg-blue-100', text: 'text-blue-700', icon: <ShieldCheck size={12} /> },
   MEMBER: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: <UserIcon size={12} /> },
-  VIEWER: { bg: 'bg-gray-100', text: 'text-gray-700', icon: <UserIcon size={12} /> }
 };
 
 const WorkspaceMembers: React.FC = () => {
@@ -106,7 +104,7 @@ const WorkspaceMembers: React.FC = () => {
     );
   }
 
-  const canManageMembers = workspace?.myRole === 'OWNER' || workspace?.myRole === 'ADMIN';
+  const canManageMembers = workspace?.myRole === 'OWNER';
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -158,9 +156,7 @@ const WorkspaceMembers: React.FC = () => {
                   onChange={(e) => setInviteRole(e.target.value as WorkspaceRole)}
                   className="w-full px-3 py-2 text-sm text-cf-textDark bg-white border border-cf-border rounded focus:outline-none focus:border-cf-primary focus:ring-1 focus:ring-cf-primary transition duration-150"
                 >
-                  <option value="ADMIN">Admin</option>
                   <option value="MEMBER">Member</option>
-                  <option value="VIEWER">Viewer</option>
                 </select>
               </div>
               <Button type="submit" disabled={inviting} className="w-full sm:w-auto h-[38px]">
@@ -184,11 +180,8 @@ const WorkspaceMembers: React.FC = () => {
             const isMe = member.userId === user?.id;
             const roleConfig = ROLE_COLORS[member.role];
             
-            // Only OWNER can remove other OWNERs. ADMINs can remove MEMBERs and VIEWERs.
-            const canRemove = !isMe && canManageMembers && (
-              workspace?.myRole === 'OWNER' || 
-              (workspace?.myRole === 'ADMIN' && member.role !== 'OWNER' && member.role !== 'ADMIN')
-            );
+            // Only the OWNER manages membership. The owner row itself can never be removed.
+            const canRemove = !isMe && canManageMembers && workspace?.myRole === 'OWNER';
 
             return (
               <div key={member.userId} className="p-4 flex items-center justify-between hover:bg-cf-bgLight/30 transition-colors">

@@ -33,7 +33,7 @@ describe('Dashboard (Engineering Release Dashboard)', () => {
       name: 'Acme Corp',
       description: 'Main workspace',
       ownerId: 'u-1',
-      myRole: 'ADMIN',
+      myRole: 'MEMBER',
       createdAt: '2026-09-10T10:00:00Z',
       updatedAt: '2026-09-10T10:00:00Z',
     },

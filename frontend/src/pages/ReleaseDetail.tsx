@@ -44,7 +44,7 @@ const ReleaseDetail: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const canMutate = workspace?.myRole !== 'VIEWER' && project?.status !== 'ARCHIVED';
+  const canMutate = project?.status !== 'ARCHIVED';
   const scopeEditable = canMutate && release != null && !release.scopeLocked;
 
   const completion = useMemo(() => {
