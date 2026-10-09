@@ -38,6 +38,7 @@ Every entry contains an ID, date, status (`ACCEPTED`, `OPEN`, `REJECTED`), the d
 - **Decision**: Require `READY` status before allowing a transition from `IN_PROGRESS` to `RELEASED`.
 - **Reason**: This directly connects the two central mechanisms of AgileTrack: the release state machine and the derived readiness calculation engine. A release should not be allowed to ship while any gate (empty release, incomplete work, or unresolved blockers) is firing.
 - **Consequences**: In `ReleaseService.updateLifecycle`, when target state is `RELEASED`, the service will call `ReadinessService.calculateReadiness(workspaceId, projectId, releaseId)`. If status is `NOT_READY`, transition is rejected with `BusinessRuleException` including the blocking reasons. Tested for both `NOT_READY` rejection and `READY` acceptance. Applied strictly to this transition rule without introducing approvals or other lifecycle bloat.
+- **Executed**: Phase 8, 2026-10-09, under standing authorization. `ReadinessService` resolved via `ObjectProvider` (lazy; avoids a constructor cycle); suites green (backend 154, frontend 65).
 
 ---
 

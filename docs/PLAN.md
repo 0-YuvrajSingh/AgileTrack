@@ -498,9 +498,15 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
   - Backend: `ReleaseService.java`, `ReleaseIntegrationTest.java`.
   - Frontend: `ReleaseDetail.tsx`.
 - **Tests Added/Removed**:
-  - Added: 2 integration tests verifying D4 enforcement on direct API calls.
+  - Added: 2 integration tests verifying D4 enforcement on direct API calls (`inProgressToReleased_whileNotReady_isRejected` 400 with NOT_READY reasons; `inProgressToReleased_whenReady_succeeds` 200).
+  - Added: 1 frontend test (`disables the Release action while readiness is NOT READY`).
+  - Backend suite: **154 passed, 0 failed** (152 + 2 = 154, reconciled). Frontend suite: **65 passed, 0 failed** (64 + 1).
 - **Risks**: Low. Direct enforcement of the system's core technical value proposition.
-- **Status**: PENDING.
+- **Status**: **COMPLETE (executed 2026-10-09 under standing authorization)**.
+- **Execution Record**:
+  - `ReleaseService.updateLifecycle` evaluates readiness via the engine and rejects `IN_PROGRESS -> RELEASED` with 400 listing blocking reasons when NOT_READY.
+  - Deviations: `ReadinessService` is resolved through `ObjectProvider` (lazy) rather than direct constructor injection — direct injection would be circular since `ReadinessService` depends on `ReleaseService`; the engine method is `evaluate`, not `calculateReadiness`.
+  - Frontend mirrors the rule: the Release action disables with a reason-count tooltip while NOT_READY.
 
 ---
 

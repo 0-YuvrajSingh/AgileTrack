@@ -168,6 +168,17 @@ This document explains the core technical mechanisms of AgileTrack in plain, int
 
 ---
 
+## 14. READY-Gated Release (Phase 8, D4)
+- **What it does**: Ties the release state machine to the derived readiness engine: `IN_PROGRESS -> RELEASED` succeeds only when readiness evaluates `READY`, otherwise the server rejects with 400 and lists the blocking reasons. The UI mirrors the rule by disabling the Release action with a reason count while `NOT_READY`.
+- **Why**: A release must not ship while any gate (empty release, incomplete work, unresolved blockers) is firing — this is the system's core value proposition, enforced for every caller, not just the UI.
+- **How it works**: `updateLifecycle` resolves `ReadinessService` lazily (`ObjectProvider`, avoiding a constructor cycle since the engine depends back on `ReleaseService`) and evaluates the release before mutating state.
+- **Tests that prove it**:
+  - `ReleaseIntegrationTest.java:Lifecycle.inProgressToReleased_whileNotReady_isRejected()` (verified - 400 with NOT_READY reasons, state unchanged)
+  - `ReleaseIntegrationTest.java:Lifecycle.inProgressToReleased_whenReady_succeeds()` (verified - 200, state RELEASED)
+  - `ReleaseDetail.test.tsx:disables the Release action while readiness is NOT READY` (verified - button disabled with tooltip)
+
+---
+
 ## 11. Refresh-Token Rotation Cut (Phase 5, D8)
 - **What it does**: Reduces auth to register/login plus stateless JWT access tokens: the `refresh_tokens` table, entity, repository, service, hasher, cleanup task, exception, refresh DTOs, `POST /refresh` and `POST /logout` endpoints, and the frontend rotation interceptor plus refresh storage are all gone. The Axios client now clears local auth on 401 instead of silently refreshing.
 - **Why**: Scope mandates minimal auth; silent session renewal is cut, so an expired access token means re-authenticating with email/password.
