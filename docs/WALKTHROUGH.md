@@ -158,6 +158,16 @@ This document explains the core technical mechanisms of AgileTrack in plain, int
 
 ---
 
+## 13. Access-Token Lifetime (Phase 7)
+- **What it does**: Pins down the stateless access-token lifetime now that silent renewal is gone: 15 minutes in `prod` (and compose), 24 hours in the dev default. Dead `JWT_REFRESH_EXPIRATION` properties were removed, and the README Security section states the no-refresh trade-off.
+- **Why**: Without rotation, an intercepted token is usable until expiry while an expired token forces re-login — so the lifetime is the whole session-security posture, and it must be short in production.
+- **How it works**: `JwtService` mints `exp = now + jwt.expiration`; validation rejects expired tokens at parse time. The 60-minute proposal was superseded: production already enforced a stricter 15 minutes, which was kept rather than weakened.
+- **Tests that prove it**:
+  - `JwtServiceTest.java:generatedTokenExpiresAfterConfiguredLifetime()` (verified - expiry honors configuration within JWT second-resolution)
+  - `JwtServiceTest.java:negativeLifetimeTokenIsInvalid()` (verified - expired token rejected at parse)
+
+---
+
 ## 11. Refresh-Token Rotation Cut (Phase 5, D8)
 - **What it does**: Reduces auth to register/login plus stateless JWT access tokens: the `refresh_tokens` table, entity, repository, service, hasher, cleanup task, exception, refresh DTOs, `POST /refresh` and `POST /logout` endpoints, and the frontend rotation interceptor plus refresh storage are all gone. The Axios client now clears local auth on 401 instead of silently refreshing.
 - **Why**: Scope mandates minimal auth; silent session renewal is cut, so an expired access token means re-authenticating with email/password.

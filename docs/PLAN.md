@@ -460,9 +460,15 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
 - **Files Likely Touched**:
   - `backend/src/main/resources/application.yaml`, `README.md`, `AuthServiceTest.java`.
 - **Tests Added/Removed**:
-  - Unit test in `AuthServiceTest` asserting expiration lifetime configuration.
+  - Added: `JwtServiceTest` (2 tests: configured-lifetime expiry bound honoring JWT second-resolution; expired token rejected at parse).
+  - Backend suite: **152 passed, 0 failed** (150 + 2 = 152, reconciled). Frontend suite: **64 passed, 0 failed** (no changes).
 - **Risks**: None. Pure configuration and documentation.
-- **Status**: PENDING.
+- **Status**: **COMPLETE (executed 2026-10-09 under standing authorization)**.
+- **Execution Record**:
+  - Verified the production default was already 15 minutes (`application-prod.yaml`, `docker-compose.yml`), stricter than the proposed 60 — kept as-is rather than weakening it; dev default stays 24 hours.
+  - Removed dead `JWT_REFRESH_EXPIRATION` properties (`application.yaml`, `application-prod.yaml`, `docker-compose.yml`, `.env.example`; deferred D8 cleanup) — unbound since Phase 5, harmless but misleading.
+  - README Security section: replaced the now-false refresh-token bullet with a no-refresh statement and added the trade-off note (full README rewrite stays Phase 10).
+  - Deviation: test added as new `JwtServiceTest` (lifetime is `JwtService` configuration) rather than in `AuthServiceTest`.
 
 ---
 
