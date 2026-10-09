@@ -97,8 +97,8 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
      SELECT COUNT(*) AS total_approvals,
             COUNT(*) FILTER (WHERE decision = 'APPROVED') AS approved_count,
             COUNT(*) FILTER (WHERE decision = 'REJECTED') AS rejected_count,
-            COUNT(DISTINCT task_id) AS distinct_tasks_affected,
-            COUNT(DISTINCT user_id) AS distinct_approvers
+            COUNT(DISTINCT work_item_id) AS distinct_tasks_affected,
+            COUNT(DISTINCT approver_id) AS distinct_approvers
      FROM change_approvals;
      ```
   4. **Documented Data Loss Impact**:
