@@ -1,0 +1,45 @@
+# docs/AUDIT.md — Scope vs. Code Gap Report
+
+**Audit Date**: 2026-10-09  
+**Source of Truth**: `AgileTrack_Scope_v1.docx` (mirrored in `docs/SCOPE.md`)  
+**Target Branch**: `scope-v1`
+
+---
+
+## 1. Verified Baseline Test Results
+
+Recorded prior to making any domain changes. Full test runs were executed and verified:
+
+| Component | Command | Result | Notes |
+|---|---|---|---|
+| **Backend Test Suite** | `docker run ... maven:3.9-eclipse-temurin-21 mvn test` | **208 passed, 0 failed, 0 skipped** | Runs against PostgreSQL 16 via Testcontainers. `PerformanceBenchmarkTest` excluded via surefire configuration. |
+| **Frontend Test Suite** | `docker run ... node:24-alpine npm run test:ci` | **76 passed, 0 failed, 0 skipped** | 12 Vitest test files passing. |
+| **Combined Tests** | — | **284 passed, 0 failed** | Matches the documented baseline count. |
+| **Backend Build** | `mvn -DskipTests compile` | **BUILD SUCCESS** | 116 source files compiled with Java 21 release target. |
+| **Frontend Build** | `npm run build` | **BUILD SUCCESS** | `tsc -b && vite build` bundled successfully in 17s. |
+| **Flyway Migrations** | Schema migration verification | **15 applied (V1..V15)** | Cleanly applied to `agiletrack_test` database. |
+
+---
+
+## 2. Itemized Gap Report
+
+| Item | Scope Says | Code Does | Evidence (File or Test) | Action |
+|---|---|---|---|---|
+| **Change Governance & Approvals** | Cut from v1. No `CHANGE` work item type, no risk levels, no approvals, no `APPROVAL_REQUIRED` gate. | Implements full change approval workflow: `risk_level` on tasks, `change_approvals` table, `CHANGE` task type, approval modal, and gate. | Migration `V15__create_change_governance_and_approvals.sql`, package `com.agiletrack.backend.approval`, `ApprovalIntegrationTest.java`, `ApprovalModal.tsx`. | Cut in Phase 2. Remove approval package, frontend modal, DTOs, and delete covering tests. Add schema migration or consult on cleanup. |
+| **Cancelled Release State** | Cut from v1. Releases have only `PLANNED`, `IN_PROGRESS`, `RELEASED`. No `CANCELLED` state. | Enum includes `CANCELLED`. State transitions allow moving from `PLANNED` or `IN_PROGRESS` to `CANCELLED`. | `ReleaseLifecycleState.java:22`, `ReleaseIntegrationTest.java:cancelledIsTerminal`, `ReleaseDetail.tsx`. | Cut in Phase 3. Remove `CANCELLED` from enum, UI, and test cases. |
+| **`RELEASE_CANCELLED` Readiness Gate** | Cut from v1. Only 3 gates: `EMPTY_RELEASE`, `INCOMPLETE_WORK`, `BLOCKED_WORK`. | Gate fires if release is in `CANCELLED` state, adding `RELEASE_CANCELLED` reason code. | `ReadinessReasonCode.java:15`, `ReadinessService.java:51`, `ReadinessIntegrationTest.java`. | Cut in Phase 3. Remove gate logic and reason code. |
+| **Activity & Audit Trail** | Cut from v1. MedVault owns the audit story. | Tracks task mutations in `task_activities` table; records events on status change, release assignment, etc. | Migration `V10__create_task_activities.sql`, `TaskActivityRecorder.java`, `TaskActivityIntegrationTest.java`. | Cut in Phase 4. Remove `TaskActivity` entity, recorder, and test. |
+| **Refresh-Token Rotation** | Cut from v1. Minimal auth: register, login, JWT access token, BCrypt. | Implements refresh tokens in DB, rotation on `/refresh`, and revocation on `/logout`. | Migration `V7__create_refresh_tokens.sql`, `RefreshTokenService.java`, `RefreshTokenServiceTest.java`. | Cut in Phase 5. Remove refresh token entity, service, endpoints, and test. |
+| **Roles Granularity** | Only `Owner` and `Member`. Viewer and Admin split is cut. | `WorkspaceRole` enum defines `OWNER`, `ADMIN`, `MEMBER`, `VIEWER`. Checks enforce mutation restrictions on `VIEWER`. | `WorkspaceRole.java`, `WorkspaceService.java:getWorkspaceForMutation`, `WorkspaceAuthorizationIntegrationTest.java`. | Cut in Phase 6. Simplify enum to `OWNER` and `MEMBER`; adjust authorization checks and tests. |
+| **Million-Row Benchmark & Search Index** | Cut from v1. Not part of core idea. | Contains 1.1M row insertion harness `PerformanceBenchmarkTest.java` and README documentation. | `PerformanceBenchmarkTest.java`, `README.md:319`. | Cut in Phase 1. Delete benchmark test file; remove write-up from README. |
+| **Extraneous Doc Files** | Do not belong in repo: delete `INTERVIEW_PREP.md` and `CONTRIBUTING.md`. | Files exist at repository root (`INTERVIEW_PREP.md` is 48KB, `CONTRIBUTING.md` is 1.7KB). | `INTERVIEW_PREP.md`, `CONTRIBUTING.md`. | Cut in Phase 1. Delete both files from repository. |
+| **Portfolio Dashboard Page (D3)** | Freeze it. No further work. Release page is main screen. | Full dashboard page exists with metrics, cockpit, and workspace rollups. | `frontend/src/pages/Dashboard.tsx`, `Dashboard.test.tsx`. | Frozen as-is (Option ACCEPTED). Keep existing read-only page without modifications. |
+| **Optimistic Locking (D2)** | Keep only if it works today. Return HTTP 409 on stale save. | Fully functional. `@Version` on Task, Project, Release. `GlobalExceptionHandler` maps to HTTP 409. Handled in UI. | `OptimisticLockGuard.java`, `GlobalExceptionHandler.java:147`, `OptimisticLockingIntegrationTest.java`. | Keep (Option ACCEPTED). Retain implementation and tests. |
+| **Enforce READY Before RELEASED (D4)** | Settle decision: check if code enforces READY before transitioning to `RELEASED`. | Currently does NOT enforce readiness; allows transition if `release.canTransitionTo(RELEASED)` is true. | `ReleaseService.java:95-109`, `ReleaseIntegrationTest.java`. | Settle in Phase 7. Open decision D4 recommended to ACCEPT (add check in `ReleaseService`). |
+| **Workspace Layer (D1)** | Settle decision: remove or keep one-line mention. | Hierarchical structure: User -> Workspace -> Project -> Task/Release. | Entity model across backend and frontend. | Settle in Phase 7. Open decision D1 recommended to ACCEPT Option B (keep workspace layer, explain in 1 line in README). |
+| **Work Item Types** | In scope: `FEATURE`, `BUG`, `TECH_DEBT`. | Currently includes `CHANGE` in addition to the 3 valid types. | `WorkItemType.java:13`, `WorkItemTypeIntegrationTest.java`. | Cleaned in Phase 2 alongside change governance removal. |
+| **Release Scope Lock** | Release scope locked once leaving `PLANNED`. | Enforced in `ReleaseService.requireScopeChangeAllowed()`. Adding/removing items in `IN_PROGRESS` throws `BusinessRuleException`. | `ReleaseService.java:226`, `ReleaseIntegrationTest.java:addAfterScopeLock_isRejected`. | In Scope. Keep and preserve passing tests. |
+| **Dependency Cycle Detection** | "A blocks B" in same project. Cycles rejected with path shown. DFS search from B to A. | Implemented via `DependencyCycleDetector` DFS with path tracking and bounds check (depth 100, 10k nodes). | `DependencyCycleDetector.java`, `DependencyCycleDetectorTest.java`, `DependencyIntegrationTest.java`. | In Scope. Keep and preserve passing tests. |
+| **Blocked Work Completion Guard** | Work item cannot move to `DONE` while having unresolved blockers. Enforced on server. | Enforced in `TaskService.updateTaskStatus()` by querying `dependencyRepository.hasUnresolvedBlockers()`. | `TaskService.java:148`, `BusinessRuleIntegrationTest.java`. | In Scope. Keep and preserve passing tests. |
+| **Readiness Calculation** | Real-time calculation across 3 gates, sorted reasons, no write endpoint. | Real-time calculation in `ReadinessService`, reasons sorted by enum ordinal, read-only GET endpoint. | `ReadinessService.java`, `ReadinessController.java`, `ReadinessIntegrationTest.java`. | In Scope. Prune extra gates (`APPROVAL_REQUIRED`, `RELEASE_CANCELLED`) so only 3 remain. |
+| **README Documentation** | Short, plain, factual, no marketing claims, no duplicated lists. | Contains lengthy marketing claims, 7-item checklists, references to cut features (approvals, benchmark, refresh tokens). | `README.md`. | Rewrite in Phase 8 to be concise, accurate, and aligned with v1 scope. |
