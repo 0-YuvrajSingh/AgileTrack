@@ -93,6 +93,7 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
      SELECT DISTINCT type FROM tasks WHERE type NOT IN ('FEATURE', 'BUG', 'TECH_DEBT');
      ```
   3. Report inventory counts to user before proceeding.
+  4. **Stop Rule**: If the work-item type inventory finds values other than `CHANGE` that are outside the approved types (`FEATURE`, `BUG`, `TECH_DEBT`), **explicitly stop immediately** and present the findings to the user. Obtain an approved mapping from the user before finalizing or running the `V16` migration.
 - **Database & Flyway Migration Plan (`V16__remove_change_governance.sql`)**:
   1. **Combined Data Conversion & Cleanup First**:
      - Convert all existing `CHANGE` tasks to `FEATURE` and reset `risk_level` to `NULL` in the **same atomic update**:
@@ -164,7 +165,7 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
     ```sql
     SELECT id, project_id, name, release_version, lifecycle_state, target_date, created_at, version FROM releases WHERE lifecycle_state = 'CANCELLED';
     ```
-  - **Step 2: Explicit User Decision Required**:
+  - **Step 2: Explicit User Decision Required on Cancelled Releases**:
     Present the exact count and details of cancelled releases to the user. **Do not make deletion the automatic default**. Wait for user's explicit decision:
     - *Decision Option A (Delete)*:
       `DELETE FROM releases WHERE lifecycle_state = 'CANCELLED';`
@@ -172,8 +173,14 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
     - *Decision Option B (Transition to PLANNED)*:
       `UPDATE releases SET lifecycle_state = 'PLANNED' WHERE lifecycle_state = 'CANCELLED';`
     - *Decision Option C (Abort / Manual Handling)*: Halt migration until user performs custom data migration.
+  - **Step 3: Inventory Unexpected Lifecycle States**:
+    Execute query to identify any release lifecycle states outside `PLANNED`, `IN_PROGRESS`, `RELEASED`, and `CANCELLED`:
+    ```sql
+    SELECT DISTINCT lifecycle_state FROM releases WHERE lifecycle_state NOT IN ('PLANNED', 'IN_PROGRESS', 'RELEASED', 'CANCELLED');
+    ```
+    If unexpected lifecycle states exist, **explicitly stop** and resolve them with the user before adding the check constraint `ck_releases_lifecycle_state`.
 - **Database & Flyway Migration Plan (`V17__remove_cancelled_release_state.sql`)**:
-  1. Execute approved data handling SQL based on explicit user decision.
+  1. Execute approved data handling SQL based on explicit user decisions for `CANCELLED` releases and any resolved unexpected states.
   2. Add new check constraint to enforce strictly the 3 in-scope states:
      ```sql
      ALTER TABLE releases ADD CONSTRAINT ck_releases_lifecycle_state CHECK (lifecycle_state IN ('PLANNED', 'IN_PROGRESS', 'RELEASED'));
