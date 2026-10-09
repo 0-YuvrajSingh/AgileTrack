@@ -144,27 +144,3 @@ export interface Task {
   /** Sent back on mutations so the server can reject a write based on stale data. */
   version: number;
 }
-
-export type ActivityType =
-  | 'CREATED'
-  | 'ASSIGNED'
-  | 'STATUS_CHANGED'
-  | 'PRIORITY_CHANGED'
-  | 'TYPE_CHANGED'
-  | 'RELEASE_ASSIGNED'
-  | 'RELEASE_UNASSIGNED'
-  | 'DEPENDENCY_ADDED'
-  | 'DEPENDENCY_REMOVED'
-  | 'COMPLETED'
-  | 'APPROVAL_GRANTED'
-  | 'APPROVAL_REJECTED'
-  | 'RISK_CHANGED';
-
-export interface TaskActivityResponse {
-  id: string;
-  userId: string;
-  userEmail: string;
-  type: ActivityType;
-  details: string | null;
-  createdAt: string;
-}
