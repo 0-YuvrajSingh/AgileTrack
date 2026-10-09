@@ -54,3 +54,13 @@ This document explains the core technical mechanisms of AgileTrack in plain, int
 - **Why**: Prevents accidental data contamination and security boundary traversal across projects.
 - **How it works**: Service methods resolve all resources through their full parent hierarchy (`User -> Project -> Task/Release`). A UUID alone never authorizes access; if a project or task does not belong to the user's project, the repository returns empty, yielding HTTP 404 Not Found.
 - **Test that proves it**: `TenantIsolationIntegrationTest.java` and `ReleaseIntegrationTest.java:Isolation`.
+
+---
+
+## 7. Bounded Algorithmic Verification vs. Synthetic Row Bloat
+- **What it does**: Verifies graph algorithm resilience (cycle detection, depth bounds, visited node thresholds) via deterministic synthetic topologies rather than million-row database insertions.
+- **Why**: A 1.1-million row insertion harness (`PerformanceBenchmarkTest`) contained zero assertions, inserted un-cleaned rows into PostgreSQL, and caused downstream cascade deletes to hang. Real algorithmic defense requires asserting termination bounds, not generating multi-gigabyte database tables.
+- **How it works**: `DependencyCycleDetector` enforces strict structural bounds (max depth 100, max visited 10,000 nodes). Instead of a slow benchmark harness, unit tests construct artificial deep chains and wide subgraphs to assert that hitting either bound throws a `BusinessRuleException` rather than silently failing open.
+- **Test that proves it**: `DependencyCycleDetectorTest.java:deepChainReachingDepthBound_throwsException` and `wideGraphReachingNodeBound_throwsException`.
+
+

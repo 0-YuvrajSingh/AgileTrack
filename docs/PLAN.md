@@ -28,17 +28,17 @@ This execution plan adapts the project brief to the findings of `docs/AUDIT.md`.
 ## Phase 1: Cut Extraneous Files & Performance Benchmark
 - **Goal**: Remove files explicitly excluded by Scope Section 7 (`INTERVIEW_PREP.md`, `CONTRIBUTING.md`, and `PerformanceBenchmarkTest.java`).
 - **Checklist**:
-  - [ ] Delete `INTERVIEW_PREP.md`.
-  - [ ] Delete `CONTRIBUTING.md`.
-  - [ ] Delete `backend/src/test/java/com/agiletrack/backend/task/PerformanceBenchmarkTest.java`.
-  - [ ] Verify test suite continues to pass with 284 tests (benchmark was excluded by default surefire).
-  - [ ] Update `docs/PLAN.md`, `DECISIONS.md`, `docs/AUDIT.md`.
-- **Files Likely Touched**:
-  - Delete: `INTERVIEW_PREP.md`, `CONTRIBUTING.md`, `backend/src/test/java/com/agiletrack/backend/task/PerformanceBenchmarkTest.java`.
+  - [x] Delete `INTERVIEW_PREP.md`.
+  - [x] Delete `CONTRIBUTING.md`.
+  - [x] Delete `backend/src/test/java/com/agiletrack/backend/benchmark/PerformanceBenchmarkTest.java`.
+  - [x] Verify test suite continues to pass with 284 tests (benchmark was excluded by default surefire).
+  - [x] Update `docs/PLAN.md`, `DECISIONS.md`, `docs/AUDIT.md`.
+- **Files Touched**:
+  - Deleted: `INTERVIEW_PREP.md`, `CONTRIBUTING.md`, `backend/src/test/java/com/agiletrack/backend/benchmark/PerformanceBenchmarkTest.java`.
 - **Tests Added/Removed**:
   - Removed: `PerformanceBenchmarkTest.java` (measurement harness, had no assertions).
-- **Risks**: Very low. Zero application logic touched.
-- **Status**: PENDING.
+- **Risks**: None. Zero application logic touched.
+- **Status**: **COMPLETE**.
 
 ---
 
@@ -178,3 +178,4 @@ This execution plan adapts the project brief to the findings of `docs/AUDIT.md`.
 - **Tests Added/Removed**: None.
 - **Risks**: None.
 - **Status**: PENDING.
+
