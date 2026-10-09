@@ -179,6 +179,16 @@ This document explains the core technical mechanisms of AgileTrack in plain, int
 
 ---
 
+## 15. Seeded Demo Verdicts (Phase 9)
+- **What it does**: The demo dataset makes every readiness verdict visible on a fresh database without any clicks: one `READY` release and `NOT_READY` releases covering each reason code.
+- **Why**: The delivery engine is invisible until data exercises it; seeding both ends of the verdict spectrum proves the gates end to end on first boot.
+- **How it works**: Verified over the live API against a seeded database — `Design System Baseline` returns `READY` (all `DONE`, unblocked); `Q3 UI Refresh` returns `NOT_READY` with `INCOMPLETE_WORK` + `BLOCKED_WORK`; `API v2.1 Planning` returns `NOT_READY` with `EMPTY_RELEASE`; `Native Mobile Shell` returns `NOT_READY` with `INCOMPLETE_WORK`.
+- **Tests that prove it**:
+  - `ReadinessIntegrationTest.java:Gates.*` (verified - each gate in isolation)
+  - `ReadinessIntegrationTest.java:Determinism.*` (verified - combined gates with deterministic ordering)
+
+---
+
 ## 11. Refresh-Token Rotation Cut (Phase 5, D8)
 - **What it does**: Reduces auth to register/login plus stateless JWT access tokens: the `refresh_tokens` table, entity, repository, service, hasher, cleanup task, exception, refresh DTOs, `POST /refresh` and `POST /logout` endpoints, and the frontend rotation interceptor plus refresh storage are all gone. The Axios client now clears local auth on 401 instead of silently refreshing.
 - **Why**: Scope mandates minimal auth; silent session renewal is cut, so an expired access token means re-authenticating with email/password.

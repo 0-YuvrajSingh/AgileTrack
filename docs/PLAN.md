@@ -535,7 +535,11 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
   - `DataSeeder.java`, test files.
 - **Tests Added/Removed**: Core assertions validated.
 - **Risks**: Low.
-- **Status**: PENDING.
+- **Status**: **COMPLETE (executed 2026-10-09 under standing authorization)**.
+- **Execution Record**:
+  - Invariant matrix verified against the green suites (backend 154, frontend 65 — executed for Phase 8 with zero code changes since): cycle rejection with path (`DependencyIntegrationTest.Cycles`), blocked-completion guard (`DependencyIntegrationTest.BlockedCompletion`, `BusinessRuleIntegrationTest`), three sorted gates (`ReadinessIntegrationTest` Gates/Determinism), scope lock (`ReleaseIntegrationTest.Scope`), 403/404 isolation (`TenantIsolationIntegrationTest`, `ReleaseIntegrationTest.Isolation`), D4 (`ReleaseIntegrationTest.Lifecycle`).
+  - Seeded demo verdicts verified over the live API on a disposable V20 database (no seeder changes needed): `Design System Baseline` READY (Release 1); `Q3 UI Refresh` NOT_READY [INCOMPLETE_WORK, BLOCKED_WORK] (Release 2); plus `API v2.1 Planning` NOT_READY [EMPTY_RELEASE], `Native Mobile Shell` NOT_READY [INCOMPLETE_WORK], `API v2.0 Cutover` NOT_READY [INCOMPLETE_WORK, BLOCKED_WORK].
+  - DoD checklist: all six items hold (listed above); no code modifications were required to satisfy them.
 
 ---
 
