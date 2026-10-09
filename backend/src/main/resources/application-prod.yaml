@@ -17,7 +17,7 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRATION:3600000} # 60 minutes default for prod access tokens
+  expiration: ${JWT_EXPIRATION:900000} # 15 minutes default for prod access tokens
 
 app:
   cors:
