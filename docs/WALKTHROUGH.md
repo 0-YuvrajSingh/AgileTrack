@@ -168,6 +168,15 @@ This document explains the core technical mechanisms of AgileTrack in plain, int
 
 ---
 
+## 16. Scope-Aligned Documentation (Phase 10)
+- **What it does**: Rewrites the README to describe only what the system is: scoped delivery model, current V1–V20 schema diagram, three readiness gates, OWNER/MEMBER authorization, register/login-only auth, verified commands, and an explicit cut list.
+- **Why**: The old README documented removed features (approvals, risk levels, refresh rotation, cancelled releases, activity trail, benchmark) as if they were current, which contradicts the factual-documentation rule.
+- **How it works**: Every command was re-verified (compose ports/proxy, demo credentials over the API, `test:ci`, local ports); the workspace one-liner and token trade-off note are included verbatim; counts state the true totals (154 + 65).
+- **Tests that prove it**:
+  - Final green run: backend 154 passed, frontend 65 passed, production frontend build clean.
+
+---
+
 ## 14. READY-Gated Release (Phase 8, D4)
 - **What it does**: Ties the release state machine to the derived readiness engine: `IN_PROGRESS -> RELEASED` succeeds only when readiness evaluates `READY`, otherwise the server rejects with 400 and lists the blocking reasons. The UI mirrors the rule by disabling the Release action with a reason count while `NOT_READY`.
 - **Why**: A release must not ship while any gate (empty release, incomplete work, unresolved blockers) is firing — this is the system's core value proposition, enforced for every caller, not just the UI.

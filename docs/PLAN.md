@@ -546,15 +546,19 @@ Every phase in this plan must strictly adhere to this protocol before any subseq
 ## Phase 10: Final README & Interview Defense Polish
 - **Goal**: Rewrite `README.md` to be plain, factual, and strictly aligned with the v1 scope; finalize `docs/WALKTHROUGH.md`.
 - **Checklist**:
-  - [ ] Add README one-liner for workspaces:
+  - [x] Add README one-liner for workspaces:
     > *"Projects belong to workspaces, which serve as multi-project collaboration containers."*
-  - [ ] Document access-token expiration trade-off (60-minute lifetime).
-  - [ ] Include clear ASCII / Mermaid entity relationship diagram (`User -> Workspace -> Project -> Task/Release`, `Dependency`).
-  - [ ] Remove all marketing claims, 7-point lists, and references to cut features (approvals, risk levels, 1.1M benchmark, refresh tokens).
-  - [ ] Ensure every command in README is verified against Docker and local runtimes.
-  - [ ] Final end-to-end green run of full test suite across backend and frontend.
+  - [x] Document access-token expiration trade-off (15-minute prod default kept as stricter-than-proposed; done in Phase 7, retained verbatim).
+  - [x] Include clear ASCII / Mermaid entity relationship diagram (`User -> Workspace -> Project -> Task/Release`, `Dependency`).
+  - [x] Remove all marketing claims, 7-point lists, and references to cut features (approvals, risk levels, 1.1M benchmark, refresh tokens).
+  - [x] Ensure every command in README is verified against Docker and local runtimes (compose paths, ports, ports/proxy and demo credentials verified; `test:ci` used instead of watch-mode `test`).
+  - [x] Final end-to-end green run of full test suite across backend and frontend.
 - **Files Likely Touched**:
   - `README.md`, `docs/WALKTHROUGH.md`.
 - **Tests Added/Removed**: None.
 - **Risks**: None.
+- **Status**: **COMPLETE (executed 2026-10-09 under standing authorization)**.
+- **Execution Record**:
+  - README rewritten wholesale: scoped delivery model, current ERD (V1–V20 schema), 3-gate readiness, OWNER/MEMBER RBAC, register/login-only auth, 219-test totals (154 + 65), verified commands, "What is not built" cut list.
+  - Final green run: backend **154 passed**, frontend **65 passed**, production frontend build (`tsc -b && vite build`) clean.
 - **Status**: PENDING.
